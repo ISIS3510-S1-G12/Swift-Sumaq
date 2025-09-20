@@ -1,18 +1,26 @@
+//
+//  LoginView.swift
+//  SUMAQ
+//
+//  Created by RODRIGO PAZ LONDO�O on 20/09/25.
+//
+
 import SwiftUI
 
 struct LoginView: View {
-    let role: UserType  
+    let role: UserType
 
     var body: some View {
         VStack(spacing: 28) {
+
             Image("AppLogo")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
                 .padding(.top, 40)
-        
+            
             Text("WELCOME")
-                .font(.custom("Mukta-ExtraBold", size: 36))
+                .font(.system(size: 40, weight: .bold, design: .default))
                 .foregroundColor(role == .user ? Palette.purple : Palette.teal)
             
             VStack(alignment: .leading, spacing: 16) {
@@ -34,11 +42,12 @@ struct LoginView: View {
             }
             .padding(.horizontal, 32)
             
-            SolidButton(
+            SolidNavLink(
                 title: "Log In",
-                color: role == .usuario ? Palette.purple : Palette.teal,
+                color: role == .user ? Palette.purple : Palette.teal,
                 textColor: .white
             ) {
+
             }
             .padding(.horizontal, 32)
             
