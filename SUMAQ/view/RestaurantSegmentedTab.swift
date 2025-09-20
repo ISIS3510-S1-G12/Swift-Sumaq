@@ -8,18 +8,21 @@
 import SwiftUI
 
 struct RestaurantSegmentedTab: View {
+    @Binding var selectedIndex: Int            // 0: Menú, 1: Offers, 2: Review
+    var onSelect: ((Int) -> Void)? = nil
+
     private let items = ["Menú", "Offers", "Review"]
-    @Binding var selectedIndex: Int
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(items.indices, id: \.self) { idx in
                 Button {
                     selectedIndex = idx
+                    onSelect?(idx)
                 } label: {
                     Text(items[idx])
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(idx == selectedIndex ? Palette.teal : .primary)
+                        .font(.custom("Montserrat-SemiBold", size: 14))
+                        .foregroundColor(idx == selectedIndex ? Palette.orange : .primary)
                         .padding(.vertical, 10)
                         .padding(.horizontal, 18)
                         .contentShape(Rectangle())
@@ -35,7 +38,7 @@ struct RestaurantSegmentedTab: View {
         }
         .padding(6)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 22)
                 .fill(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 22)
