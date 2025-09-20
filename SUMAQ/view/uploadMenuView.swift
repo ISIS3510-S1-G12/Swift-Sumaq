@@ -47,7 +47,7 @@ struct UploadMenuView: View {
                 .padding(.top, 4)
 
                 Text("Upload your Offers")
-                    .font(.custom("Mukta-Bold", size: 28))   // asegurate de tener Mukta en el proyecto
+                    .font(.custom("Mukta-Bold", size: 28))
                     .foregroundColor(Palette.burgundy)
                     .padding(.top, 6)
 
@@ -78,7 +78,7 @@ struct UploadPrimaryButtonStyle: ButtonStyle {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Palette.orange.opacity(0.95))
+                    .fill(Palette.tealLight.opacity(0.95))
             )
             .shadow(radius: configuration.isPressed ? 0 : 2, x: 0, y: configuration.isPressed ? 0 : 1)
             .opacity(configuration.isPressed ? 0.92 : 1.0)
