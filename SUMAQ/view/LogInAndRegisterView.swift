@@ -28,21 +28,22 @@ struct LogInAndRegisterView: View {
                     .tracking(1)
 
                 VStack(spacing: 18) {
-                    NavigationLink {
-                        LoginView(role: role)
-                    } label: {
-                        SolidButton(
-                            title: "Log In",
-                            color: buttonColor,
-                            textColor: .white
-                        ) { }
-                    }
 
-                    SolidButton(
+                //    SolidNavLink(
+                 //       title: "Log In",
+                 //       color: buttonColor,
+                  //      textColor: .white
+                 //   ) {
+                 //       LoginView(role: role)
+                 //   }
+
+                    SolidNavLink(
                         title: "Register",
                         color: buttonColor,
                         textColor: .white
-                    ) { }
+                    ) {
+                        RegisterView(role: role)
+                    }
                 }
                 .padding(.horizontal, 32)
 
@@ -74,6 +75,8 @@ struct SolidButton: View {
         .shadow(radius: 2, y: 1)
     }
 }
+
+
 
 #Preview("Usuario (Morado)") {
     LogInAndRegisterView(role: .user)
