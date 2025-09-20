@@ -2,51 +2,50 @@
 //  LoginView.swift
 //  SUMAQ
 //
-//  Created by RODRIGO PAZ LONDO�O on 20/09/25.
+//  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 //
-
-import SwiftUI
 
 import SwiftUI
 
 struct LoginView: View {
     let role: UserType
 
+    @State private var user: String = ""
+    @State private var pass: String = ""
+
     var body: some View {
         VStack(spacing: 28) {
-
             Image("AppLogo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 120, height: 120)
-                .padding(.top, 40)
-            
+                .frame(width: 140, height: 140)
+                .cornerRadius(24)
+                .shadow(radius: 4, y: 2)
+                .padding(.top, 24)
+
             Text("WELCOME")
                 .font(.system(size: 40, weight: .bold, design: .default))
-                .foregroundColor(role == .user ? Palette.purple : Palette.teal)
-            
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Email or Username")
-                        .font(.custom("Montserrat-Regular", size: 14))
-                        .foregroundColor(.gray)
-                    TextField("Value", text: .constant(""))
-                        .textFieldStyle(.roundedBorder)
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Password")
-                        .font(.custom("Montserrat-Regular", size: 14))
-                        .foregroundColor(.gray)
-                    SecureField("Value", text: .constant(""))
-                        .textFieldStyle(.roundedBorder)
-                }
+                .foregroundColor(Palette.teal)
+                .tracking(1)
+
+            VStack(alignment: .leading, spacing: 18) {
+                LabeledInput(
+                    label: "Email or Username",
+                    text: $user,
+                    isSecure: false
+                )
+
+                LabeledInput(
+                    label: "Password",
+                    text: $pass,
+                    isSecure: true
+                )
             }
             .padding(.horizontal, 32)
-            
+
             SolidNavLink(
                 title: "Log In",
-                color: role == .user ? Palette.purple : Palette.teal,
+                color: Palette.teal,
                 textColor: .white
             ) {
                 if role == .restaurant {
@@ -56,10 +55,39 @@ struct LoginView: View {
                 }
             }
             .padding(.horizontal, 32)
-            
-            Spacer()
+
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white.ignoresSafeArea())
+    }
+}
+
+private struct LabeledInput: View {
+    let label: String
+    @Binding var text: String
+    var isSecure: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.custom("Montserrat-Regular", size: 14))
+                .foregroundColor(Palette.teal)
+
+            Group {
+                if isSecure {
+                    SecureField("Value", text: $text)
+                } else {
+                    TextField("Value", text: $text)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+                }
+            }
+            .font(.custom("Montserrat-Regular", size: 16))
+            .padding(.vertical, 12)
+            .padding(.horizontal, 12)
+            .background(Palette.grayLight) // #E5E5E6
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
     }
 }
