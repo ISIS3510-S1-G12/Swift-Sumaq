@@ -19,6 +19,8 @@ struct SolidNavLink<Destination: View>: View {
                 .background(color)
                 .clipShape(Capsule())
                 .shadow(radius: 2, y: 1)
+            
+            
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
