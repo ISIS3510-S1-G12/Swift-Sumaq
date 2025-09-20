@@ -15,7 +15,7 @@ struct LoginView: View {
 
     var body: some View {
         VStack(spacing: 28) {
-            Image("AppLogo")
+            Image("AppLogoUI")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 140, height: 140)
@@ -24,7 +24,7 @@ struct LoginView: View {
                 .padding(.top, 24)
 
             Text("WELCOME")
-                .font(.custom("Mukta-ExtraBold", size: 36))
+                .font(.system(size: 40, weight: .bold, design: .default))
                 .foregroundColor(role == .restaurant ? Palette.teal : Palette.purple)
                 .tracking(1)
 
