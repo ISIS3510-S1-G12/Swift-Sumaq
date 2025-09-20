@@ -18,6 +18,7 @@ extension Color {
 
 enum Palette {
     static let purple     = Color(hex: 0x792765) // morado
+    static let purpleLight = Color(hex: 0xAA6299) // morado claro
     static let orange     = Color(hex: 0xCE7B49) // search bar
     static let teal       = Color(hex: 0x276F79) // azulito principal
     static let tealLight  = Color(hex: 0x6BB8C2) // #6BB8C2
