@@ -17,6 +17,7 @@
 		18A77B2B2E7CC6C400032509 /* SUMAQTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A77B2A2E7CC6C400032509 /* SUMAQTests.swift */; };
 		18A77B352E7CC6C400032509 /* SUMAQUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A77B342E7CC6C400032509 /* SUMAQUITests.swift */; };
 		18A77B372E7CC6C400032509 /* SUMAQUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A77B362E7CC6C400032509 /* SUMAQUITestsLaunchTests.swift */; };
+		495F6CE62E7F129E00A3A0FE /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 495F6CE52E7F129E00A3A0FE /* LoginView.swift */; };
 		6612B99D2E7E378200FFBBB0 /* LogInAndRegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B99C2E7E378200FFBBB0 /* LogInAndRegisterView.swift */; };
 		6612B9A32E7E420100FFBBB0 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B9A22E7E420100FFBBB0 /* Colors.swift */; };
 		6612B9A52E7E44F300FFBBB0 /* HomeUserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B9A42E7E44F300FFBBB0 /* HomeUserView.swift */; };
@@ -60,6 +61,7 @@
 		18A77B302E7CC6C400032509 /* SUMAQUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SUMAQUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		18A77B342E7CC6C400032509 /* SUMAQUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SUMAQUITests.swift; sourceTree = "<group>"; };
 		18A77B362E7CC6C400032509 /* SUMAQUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SUMAQUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		495F6CE52E7F129E00A3A0FE /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		6612B99C2E7E378200FFBBB0 /* LogInAndRegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogInAndRegisterView.swift; sourceTree = "<group>"; };
 		6612B9A22E7E420100FFBBB0 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		6612B9A42E7E44F300FFBBB0 /* HomeUserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeUserView.swift; sourceTree = "<group>"; };
@@ -178,6 +180,7 @@
 				66C949CD2E7F0228001159A2 /* SearchFilterChatBar.swift */,
 				18944F692E7EE674003A92FD /* RegisterView.swift */,
 				186DDAF82E7EF5D20066CB9E /* SolidNavLinkView.swift */,
+				495F6CE52E7F129E00A3A0FE /* LoginView.swift */,
 
 			);
 			path = view;
@@ -324,6 +327,7 @@
 				6612B9A72E7E475900FFBBB0 /* TopBar.swift in Sources */,
 				18A77B1C2E7CC6C200032509 /* ContentView.swift in Sources */,
 				18944F6A2E7EE674003A92FD /* RegisterView.swift in Sources */,
+				495F6CE62E7F129E00A3A0FE /* LoginView.swift in Sources */,
 				6612B9A32E7E420100FFBBB0 /* Colors.swift in Sources */,
 				6612B9AF2E7E490600FFBBB0 /* StarViews.swift in Sources */,
 				0EB15F8D2E7D0A0700CB69D5 /* ChoiceUserView.swift in Sources */,
