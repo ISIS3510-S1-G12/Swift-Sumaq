@@ -17,8 +17,8 @@ import MapKit
 // MARK: - Home (sin navegación)
 struct UserHomeView: View {
     @State private var searchText = ""
-    @State private var selectedFilter: FilterOption? = nil
-    @State private var selectedTab = 0   
+    @State private var selectedFilter: FilterOptionHomeUserView? = nil
+    @State private var selectedTab = 0
 
     var body: some View {
         ScrollView {
@@ -26,10 +26,17 @@ struct UserHomeView: View {
                 TopBar()
                 SegmentedTabs(selectedIndex: $selectedTab)
 
-                SearchFilterChatBar(
+                SearchFilterChatBar<FilterOptionHomeUserView>(
                     text: $searchText,
                     selectedFilter: $selectedFilter,
-                    onChatTap: { /* abrir chatbot */ }
+                    onChatTap: { /* abrir chatbot */ },
+                    config: .init(
+                        searchColor: Palette.orange,
+                        ringColor:   Palette.orange,
+                        diameter:    44,
+                        ringLineWidth: 2
+                    )
+                    // options: [.withOffer, .withoutOffer] // <- (6) subset opcional
                 )
                 .padding(.horizontal, 16)
 
