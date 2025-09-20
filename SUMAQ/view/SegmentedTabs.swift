@@ -18,7 +18,7 @@ struct SegmentedTabs: View {
                     selectedIndex = idx
                 } label: {
                     Text(items[idx])
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(idx == selectedIndex ? Palette.orange : .primary)
                         .padding(.vertical, 10)
                         .padding(.horizontal, 18)
