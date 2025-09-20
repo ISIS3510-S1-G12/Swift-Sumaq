@@ -22,7 +22,7 @@ struct ChoiceUserView: View {
             // Botones abajo
             VStack(spacing: 16) {
                 NavigationLink {
-                    LogInAndRegisterView()
+                    LogInAndRegisterView(role: .user)
                 } label: {
                     Text("User")
                         .font(.system(size: 20, weight: .semibold))
@@ -34,7 +34,7 @@ struct ChoiceUserView: View {
                 }
 
                 NavigationLink {
-                    LogInAndRegisterView()
+                    LogInAndRegisterView(role: .restaurant)
                 } label: {
                     Text("Restaurant")
                         .font(.system(size: 20, weight: .semibold))
@@ -62,3 +62,8 @@ struct ChoiceUserView: View {
 #Preview { ChoiceUserView() }
 
 
+
+enum UserType {
+    case user
+    case restaurant
+}
