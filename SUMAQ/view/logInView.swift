@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+import SwiftUI
+
 struct LoginView: View {
     let role: UserType
 
@@ -47,7 +49,11 @@ struct LoginView: View {
                 color: role == .user ? Palette.purple : Palette.teal,
                 textColor: .white
             ) {
-
+                if role == .restaurant {
+                    RestaurantHomeView()
+                } else {
+                    UserHomeView()
+                }
             }
             .padding(.horizontal, 32)
             
