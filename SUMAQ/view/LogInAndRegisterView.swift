@@ -14,7 +14,7 @@ struct LogInAndRegisterView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 28) {
-                Image("AppLogo")
+                Image("AppLogoUI")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 120, height: 120)
