@@ -1,66 +1,66 @@
-//
-//  HomeUser.swift
-//  SUMAQ
-//
-//  Created by Gabriela  Escobar Rojas on 19/09/25.
-//
-//
-//  HomeUser.swift
-//  SUMAQ
-//
-//  Created by Gabriela  Escobar Rojas on 19/09/25.
-//
 
 import SwiftUI
-import MapKit
 
-// MARK: - Home (sin navegación)
-struct UserHomeView: View {
+struct FavoritesUserView: View {
     @State private var searchText = ""
-    @State private var selectedFilter: FilterOptionHomeUserView? = nil
-    @State private var selectedTab = 0
+    @State private var selectedFilter: FilterOptionFavoritesView? = nil
+    @State private var selectedTab = 1   // 0: Home | 1: Favorites | 2: Offers | 3: Review
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 TopBar()
+
                 SegmentedTabs(selectedIndex: $selectedTab)
 
-                SearchFilterChatBar<FilterOptionHomeUserView>(
+                Rectangle()
+                    .fill(Palette.burgundy)
+                    .frame(height: 1)
+                    .padding(.horizontal, 16)
+
+
+                SearchFilterChatBar<FilterOptionFavoritesView>(
                     text: $searchText,
                     selectedFilter: $selectedFilter,
                     onChatTap: { /* abrir chatbot */ },
                     config: .init(
                         searchColor: Palette.orange,
-                        ringColor:   Palette.orange,
-                        diameter:    44,
-                        ringLineWidth: 2
+                        ringColor:   Palette.orange
                     )
-                    // options: [.withOffer, .withoutOffer] // <- (6) subset opcional
                 )
                 .padding(.horizontal, 16)
 
-                // Mapa OSM (zona Uniandes)
-                OSMMapView(center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                           span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
-                    .frame(height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding(.horizontal, 16)
-
                 VStack(spacing: 14) {
+
                     RestaurantCard(
-                        name: "La Puerta",
+                        name: "La puerta",
                         category: "Burgers restaurant",
                         tag: "Offers",
-                        rating: 4.5,
+                        rating: 4.0,
                         logoSystemName: "circle"
                     )
 
                     RestaurantCard(
                         name: "Chick & Chips",
                         category: "Chicken restaurant",
-                        tag: "Offers Tag",
+                        tag: "Offers",
                         rating: 5.0,
+                        logoSystemName: "circle"
+                    )
+
+                    RestaurantCard(
+                        name: "Chicken Lovers",
+                        category: "Chicken restaurant",
+                        tag: "Offers",
+                        rating: 4.0,
+                        logoSystemName: "circle"
+                    )
+
+                    RestaurantCard(
+                        name: "Lucille",
+                        category: "Sandwich",
+                        tag: "Offers",
+                        rating: 4.0,
                         logoSystemName: "circle"
                     )
                 }
@@ -73,4 +73,4 @@ struct UserHomeView: View {
     }
 }
 
-#Preview { UserHomeView() }
+#Preview { FavoritesUserView() }

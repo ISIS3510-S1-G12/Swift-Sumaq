@@ -6,7 +6,6 @@
 //
 import SwiftUI
 
-// MARK: - Restaurant Card
 struct RestaurantCard: View {
     let name: String
     let category: String
