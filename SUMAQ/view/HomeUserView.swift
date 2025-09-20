@@ -14,28 +14,23 @@
 import SwiftUI
 import MapKit
 
-
 // MARK: - Home (sin navegación)
 struct UserHomeView: View {
     @State private var searchText = ""
+    @State private var selectedFilter: FilterOption? = nil
+    @State private var selectedTab = 0   
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 TopBar()
+                SegmentedTabs(selectedIndex: $selectedTab)
 
-                SegmentedTabs() // UI estática (Home seleccionado)
-
-                HStack(spacing: 10) {
-                    SearchBar(text: $searchText)
-                    Button(action: {}) {
-                        Image(systemName: "bubble.right")
-                            .font(.system(size: 20, weight: .semibold))
-                            .padding(10)
-                            .overlay(Circle().stroke(Palette.orange, lineWidth: 2))
-                    }
-                    .foregroundStyle(Palette.orange)
-                }
+                SearchFilterChatBar(
+                    text: $searchText,
+                    selectedFilter: $selectedFilter,
+                    onChatTap: { /* abrir chatbot */ }
+                )
                 .padding(.horizontal, 16)
 
                 // Mapa OSM (zona Uniandes)
@@ -70,15 +65,5 @@ struct UserHomeView: View {
         .background(Color(.systemBackground).ignoresSafeArea())
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 #Preview { UserHomeView() }
