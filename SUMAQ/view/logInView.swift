@@ -24,8 +24,8 @@ struct LoginView: View {
                 .padding(.top, 24)
 
             Text("WELCOME")
-                .font(.system(size: 40, weight: .bold, design: .default))
-                .foregroundColor(Palette.teal)
+                .font(.custom("Mukta-ExtraBold", size: 36))
+                .foregroundColor(role == .restaurant ? Palette.teal : Palette.purple)
                 .tracking(1)
 
             VStack(alignment: .leading, spacing: 18) {
@@ -45,7 +45,7 @@ struct LoginView: View {
 
             SolidNavLink(
                 title: "Log In",
-                color: Palette.teal,
+                color: role == .restaurant ? Palette.teal : Palette.purple,
                 textColor: .white
             ) {
                 if role == .restaurant {
@@ -72,7 +72,7 @@ private struct LabeledInput: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
                 .font(.custom("Montserrat-Regular", size: 14))
-                .foregroundColor(Palette.teal)
+                .foregroundColor(Palette.burgundy)
 
             Group {
                 if isSecure {
