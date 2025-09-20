@@ -20,10 +20,11 @@
 		6612B9A52E7E44F300FFBBB0 /* HomeUserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B9A42E7E44F300FFBBB0 /* HomeUserView.swift */; };
 		6612B9A72E7E475900FFBBB0 /* TopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B9A62E7E475900FFBBB0 /* TopBar.swift */; };
 		6612B9A92E7E47E900FFBBB0 /* SegmentedTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B9A82E7E47E900FFBBB0 /* SegmentedTabs.swift */; };
-		6612B9AB2E7E483400FFBBB0 /* SearchBarUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B9AA2E7E483400FFBBB0 /* SearchBarUser.swift */; };
 		6612B9AD2E7E48CE00FFBBB0 /* RestaurantCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B9AC2E7E48CE00FFBBB0 /* RestaurantCard.swift */; };
 		6612B9AF2E7E490600FFBBB0 /* StarViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B9AE2E7E490600FFBBB0 /* StarViews.swift */; };
 		6612B9B12E7E497700FFBBB0 /* OSMMarkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6612B9B02E7E497700FFBBB0 /* OSMMarkView.swift */; };
+		66C949CE2E7F0228001159A2 /* SearchFilterChatBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C949CD2E7F0228001159A2 /* SearchFilterChatBar.swift */; };
+		66C949D02E7F02D1001159A2 /* FilterOptionsEnum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C949CF2E7F02D1001159A2 /* FilterOptionsEnum.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,10 +61,11 @@
 		6612B9A42E7E44F300FFBBB0 /* HomeUserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeUserView.swift; sourceTree = "<group>"; };
 		6612B9A62E7E475900FFBBB0 /* TopBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopBar.swift; sourceTree = "<group>"; };
 		6612B9A82E7E47E900FFBBB0 /* SegmentedTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentedTabs.swift; sourceTree = "<group>"; };
-		6612B9AA2E7E483400FFBBB0 /* SearchBarUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBarUser.swift; sourceTree = "<group>"; };
 		6612B9AC2E7E48CE00FFBBB0 /* RestaurantCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantCard.swift; sourceTree = "<group>"; };
 		6612B9AE2E7E490600FFBBB0 /* StarViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarViews.swift; sourceTree = "<group>"; };
 		6612B9B02E7E497700FFBBB0 /* OSMMarkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSMMarkView.swift; sourceTree = "<group>"; };
+		66C949CD2E7F0228001159A2 /* SearchFilterChatBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchFilterChatBar.swift; sourceTree = "<group>"; };
+		66C949CF2E7F02D1001159A2 /* FilterOptionsEnum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FilterOptionsEnum.swift; path = SUMAQ/view/FilterOptionsEnum.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,10 +168,10 @@
 				6612B9A42E7E44F300FFBBB0 /* HomeUserView.swift */,
 				6612B9A62E7E475900FFBBB0 /* TopBar.swift */,
 				6612B9A82E7E47E900FFBBB0 /* SegmentedTabs.swift */,
-				6612B9AA2E7E483400FFBBB0 /* SearchBarUser.swift */,
 				6612B9AC2E7E48CE00FFBBB0 /* RestaurantCard.swift */,
 				6612B9AE2E7E490600FFBBB0 /* StarViews.swift */,
 				6612B9B02E7E497700FFBBB0 /* OSMMarkView.swift */,
+				66C949CD2E7F0228001159A2 /* SearchFilterChatBar.swift */,
 			);
 			path = view;
 			sourceTree = "<group>";
@@ -177,6 +179,7 @@
 		49CA12222E7E256700939F90 /* model */ = {
 			isa = PBXGroup;
 			children = (
+				66C949CF2E7F02D1001159A2 /* FilterOptionsEnum.swift */,
 			);
 			path = model;
 			sourceTree = "<group>";
@@ -316,9 +319,10 @@
 				6612B9A32E7E420100FFBBB0 /* Colors.swift in Sources */,
 				6612B9AF2E7E490600FFBBB0 /* StarViews.swift in Sources */,
 				0EB15F8D2E7D0A0700CB69D5 /* ChoiceUserView.swift in Sources */,
-				6612B9AB2E7E483400FFBBB0 /* SearchBarUser.swift in Sources */,
+				66C949CE2E7F0228001159A2 /* SearchFilterChatBar.swift in Sources */,
 				6612B9A92E7E47E900FFBBB0 /* SegmentedTabs.swift in Sources */,
 				6612B99D2E7E378200FFBBB0 /* LogInAndRegisterView.swift in Sources */,
+				66C949D02E7F02D1001159A2 /* FilterOptionsEnum.swift in Sources */,
 				18A77B1A2E7CC6C200032509 /* SUMAQApp.swift in Sources */,
 				6612B9B12E7E497700FFBBB0 /* OSMMarkView.swift in Sources */,
 				6612B9AD2E7E48CE00FFBBB0 /* RestaurantCard.swift in Sources */,

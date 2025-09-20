@@ -5,6 +5,7 @@
 //  Created by Gabriela  Escobar Rojas on 19/09/25.
 //
 import SwiftUI
+
 // MARK: - Restaurant Card
 struct RestaurantCard: View {
     let name: String
@@ -24,11 +25,14 @@ struct RestaurantCard: View {
                     Text(name)
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(.white)
+
                     Text(category)
-                        .font(.system(size: 14))
+                        .font(.custom("Monserrat-Semibold", size:14, relativeTo: .headline))
                         .foregroundStyle(.white.opacity(0.9))
+
                     Text(tag)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.custom("Monserrat-Semibold", size:14, relativeTo: .footnote))
+
                         .foregroundStyle(.white.opacity(0.9))
                 }
             }
@@ -36,7 +40,7 @@ struct RestaurantCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(purple)
 
-            // Logo / imagen
+            // Logo / imagen; hay que cambiarla por fotos reales
             ZStack {
                 Color.white
                 Image(systemName: logoSystemName)
