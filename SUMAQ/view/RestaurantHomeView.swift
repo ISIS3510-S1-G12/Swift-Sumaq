@@ -9,12 +9,18 @@ import Foundation
 import SwiftUI
 import MapKit
 
+
+enum RestaurantHomeRoute: Hashable {
+    case offers
+}
+
 struct RestaurantHomeView: View {
-    @State private var selectedTab: Int = 0
+    @State private var selectedTab: Int = 0           // Menú por defecto
     @State private var searchText: String = ""
+    @State private var navPath = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
@@ -24,8 +30,17 @@ struct RestaurantHomeView: View {
                         .font(.custom("Montserrat-SemiBold", size: 22))
                         .foregroundColor(Palette.burgundy)
                         .padding(.horizontal, 16)
-                    RestaurantSegmentedTab(selectedIndex: $selectedTab)
-                        .frame(maxWidth: .infinity, alignment: .center)
+
+                   
+                    RestaurantSegmentedTab(selectedIndex: $selectedTab) { idx in
+                        switch idx {
+                        case 1:
+                            navPath.append(RestaurantHomeRoute.offers)
+                        default:
+                            break
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
 
                     // Mapa OSM
                     OSMMapView(
@@ -36,12 +51,10 @@ struct RestaurantHomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .padding(.horizontal, 16)
 
-    
+                    // Busiest Hours
                     HStack {
                         Spacer()
-                        Button {
-                           
-                        } label: {
+                        Button { } label: {
                             HStack(spacing: 8) {
                                 Text("Busiest Hours")
                                     .font(.custom("Montserrat-SemiBold", size: 14))
@@ -75,6 +88,7 @@ struct RestaurantHomeView: View {
                     }
                     .padding(.horizontal, 16)
 
+                    // Botones inferiores
                     HStack(spacing: 12) {
                         NavigationLink {
                             NewMenuView()
@@ -99,6 +113,16 @@ struct RestaurantHomeView: View {
                 .padding(.top, 8)
             }
             .background(Color.white.ignoresSafeArea())
+            // Destinos de navegación
+            .navigationDestination(for: RestaurantHomeRoute.self) { route in
+                switch route {
+                case .offers:
+                        RestaurantOffersView()
+                    default:
+                        RestaurantOffersView()
+        
+                }
+            }
         }
     }
 }
