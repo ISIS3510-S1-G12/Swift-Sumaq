@@ -5,102 +5,116 @@
 //  Created by RODRIGO PAZ LONDO�O on 20/09/25.
 //
 
-import Foundation
 import SwiftUI
 import MapKit
 
+private enum OffersRoute: Hashable {
+    case review
+}
+
 struct RestaurantOffersView: View {
-    @State private var selectedTab: Int = 1          // 1: Offers
+    @State private var selectedTab: Int = 1          // 1: Offers por defecto
     @State private var searchText: String = ""
-    @State private var goToReview: Bool = false
+    @State private var navPath = NavigationPath()
 
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        NavigationStack(path: $navPath) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
 
-                RestaurantTopBar(restaurantLogo: "AppLogoUI", appLogo: "AppLogoUI")
+                    RestaurantTopBar(restaurantLogo: "AppLogoUI", appLogo: "AppLogoUI")
 
-                Text("Lucille")
-                    .font(.custom("Montserrat-SemiBold", size: 22))
-                    .foregroundColor(Palette.burgundy)
+                    Text("Lucille")
+                        .font(.custom("Montserrat-SemiBold", size: 22))
+                        .foregroundColor(Palette.burgundy)
+                        .padding(.horizontal, 16)
+
+                    // Tabs
+                    RestaurantSegmentedTab(selectedIndex: $selectedTab) { idx in
+                        switch idx {
+                        case 0: // Menú
+                            dismiss()
+                        case 2: // Review
+                            navPath.append(OffersRoute.review)
+                        default:
+                            break
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                    // Mapa OSM
+                    OSMMapView(
+                        center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    )
+                    .frame(height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .padding(.horizontal, 16)
 
-        
-                RestaurantSegmentedTab(selectedIndex: $selectedTab) { idx in
-                    switch idx {
-                    case 0:  // Menú
-                        dismiss()
-                    case 2:  // Review
-                        goToReview = true
-                    default:
-                        break
+                    // Search bar naranja
+                    HStack {
+                        Spacer()
+                        SearchBar(text: $searchText, color: Palette.orangeAlt)
+                        Spacer()
                     }
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 16)
 
-
-                // Mapa OSM
-                OSMMapView(
-                    center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                )
-                .frame(height: 180)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .padding(.horizontal, 16)
-
-            
-                HStack {
-                    Spacer()
-                    SearchBar(text: $searchText, color: Palette.orangeAlt)
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-
-                // Cards de ofertas
-                VStack(spacing: 12) {
-                    RestaurantDishCard(
-                        title: "Extra Bacon",
-                        subtitle: "Hamburger with a free bacon addition",
-                        imageName: "Dish1",
-                        rating: 4
-                    )
-
-                    RestaurantDishCard(
-                        title: "Extra BBQ",
-                        subtitle: "Hamburger with a free BBQ addition",
-                        imageName: "Dish2",
-                        rating: 4
-                    )
-                }
-                .padding(.horizontal, 16)
-
-                // Botones inferiores
-                HStack(spacing: 12) {
-                    NavigationLink {
-                        NewOfferView()
-                    } label: {
-                        SmallCapsuleButton(title: "New Offer",
-                                           background: Palette.orangeAlt,
-                                           textColor: .white)
+                    // Cards de ofertas
+                    VStack(spacing: 12) {
+                        RestaurantDishCard(
+                            title: "Extra Bacon",
+                            subtitle: "Hamburger with a free bacon addition",
+                            imageName: "Dish1",
+                            rating: 4
+                        )
+                        RestaurantDishCard(
+                            title: "Extra BBQ",
+                            subtitle: "Hamburger with a free BBQ addition",
+                            imageName: "Dish2",
+                            rating: 4
+                        )
                     }
+                    .padding(.horizontal, 16)
 
-                    NavigationLink {
-                        EditOfferView()
-                    } label: {
-                        SmallCapsuleButton(title: "Edit Offer",
-                                           background: Color.gray.opacity(0.6),
-                                           textColor: .white)
+                    // Botones inferiores
+                    HStack(spacing: 12) {
+                        NavigationLink {
+                            NewOfferView()
+                        } label: {
+                            SmallCapsuleButton(
+                                title: "New Offer",
+                                background: Palette.orangeAlt,
+                                textColor: .white
+                            )
+                        }
+
+                        NavigationLink {
+                            EditOfferView()
+                        } label: {
+                            SmallCapsuleButton(
+                                title: "Edit Offer",
+                                background: Color.gray.opacity(0.6),
+                                textColor: .white
+                            )
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
+            .background(Color.white.ignoresSafeArea())
+            // Destino moderno (sin deprecations)
+            .navigationDestination(for: OffersRoute.self) { route in
+                switch route {
+                case .review:
+                    RestaurantReviewView()
+                }
+            }
         }
-        .background(Color.white.ignoresSafeArea())
     }
 }
 

@@ -5,18 +5,16 @@
 //  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 //
 
-import Foundation
 import SwiftUI
 import MapKit
 
-
-enum RestaurantHomeRoute: Hashable {
+enum RestaurantRoute: Hashable {
     case offers
+    case reviews
 }
 
 struct RestaurantHomeView: View {
-    @State private var selectedTab: Int = 0           // Menú por defecto
-    @State private var searchText: String = ""
+    @State private var selectedTab: Int = 0
     @State private var navPath = NavigationPath()
 
     var body: some View {
@@ -31,18 +29,16 @@ struct RestaurantHomeView: View {
                         .foregroundColor(Palette.burgundy)
                         .padding(.horizontal, 16)
 
-                   
                     RestaurantSegmentedTab(selectedIndex: $selectedTab) { idx in
                         switch idx {
-                        case 1:
-                            navPath.append(RestaurantHomeRoute.offers)
-                        default:
-                            break
+                        case 1: navPath.append(RestaurantRoute.offers)
+                        case 2: navPath.append(RestaurantRoute.reviews)
+                        default: break
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                    // Mapa OSM
+                    // --- CONTENIDO PRINCIPAL (Menú) ---
                     OSMMapView(
                         center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
                         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
@@ -51,15 +47,13 @@ struct RestaurantHomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .padding(.horizontal, 16)
 
-                    // Busiest Hours
                     HStack {
                         Spacer()
                         Button { } label: {
                             HStack(spacing: 8) {
                                 Text("Busiest Hours")
                                     .font(.custom("Montserrat-SemiBold", size: 14))
-                                Image(systemName: "chart.bar.fill")
-                                    .font(.subheadline)
+                                Image(systemName: "chart.bar.fill").font(.subheadline)
                             }
                             .foregroundColor(.white)
                             .padding(.vertical, 8)
@@ -70,7 +64,6 @@ struct RestaurantHomeView: View {
                         Spacer()
                     }
 
-                    // Cards
                     VStack(spacing: 12) {
                         RestaurantDishCard(
                             title: "Bacon Sandwich",
@@ -78,7 +71,6 @@ struct RestaurantHomeView: View {
                             imageName: "Dish1",
                             rating: 4
                         )
-
                         RestaurantDishCard(
                             title: "BBQ Sandwich",
                             subtitle: "Hamburger with a lot of BBQ.",
@@ -88,22 +80,20 @@ struct RestaurantHomeView: View {
                     }
                     .padding(.horizontal, 16)
 
-                    // Botones inferiores
                     HStack(spacing: 12) {
-                        NavigationLink {
-                            NewMenuView()
-                        } label: {
-                            SmallCapsuleButton(title: "New Menu",
-                                               background: Palette.orangeAlt,
-                                               textColor: .white)
+                        NavigationLink { NewMenuView() } label: {
+                            SmallCapsuleButton(
+                                title: "New Menu",
+                                background: Palette.orangeAlt,
+                                textColor: .white
+                            )
                         }
-
-                        NavigationLink {
-                            EditMenuView()
-                        } label: {
-                            SmallCapsuleButton(title: "Edit Menu",
-                                               background: Color.gray.opacity(0.6),
-                                               textColor: .white)
+                        NavigationLink { EditMenuView() } label: {
+                            SmallCapsuleButton(
+                                title: "Edit Menu",
+                                background: Color.gray.opacity(0.6),
+                                textColor: .white
+                            )
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -113,14 +103,12 @@ struct RestaurantHomeView: View {
                 .padding(.top, 8)
             }
             .background(Color.white.ignoresSafeArea())
-            // Destinos de navegación
-            .navigationDestination(for: RestaurantHomeRoute.self) { route in
+            .navigationDestination(for: RestaurantRoute.self) { route in
                 switch route {
                 case .offers:
-                        RestaurantOffersView()
-                    default:
-                        RestaurantOffersView()
-        
+                    RestaurantOffersView()
+                case .reviews:
+                    RestaurantReviewView()
                 }
             }
         }
@@ -131,7 +119,6 @@ private struct SmallCapsuleButton: View {
     let title: String
     let background: Color
     let textColor: Color
-
     var body: some View {
         Text(title)
             .font(.custom("Montserrat-SemiBold", size: 14))
