@@ -1,32 +1,52 @@
-//
 //  RestaurantTopBar.swift
 //  SUMAQ
 //
-//  Created by RODRIGO PAZ LONDO�O on 20/09/25.
+//  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 //
 
-import Foundation
 import SwiftUI
 
 struct RestaurantTopBar: View {
     var restaurantLogo: String
     var appLogo: String = "AppLogo"
-    private let lineColor: Color = Palette.burgundy   // cámbialo por Palette.purple / .orange, etc.
+    private let lineColor: Color = Palette.burgundy
     private let lineHeight: CGFloat = 1               // grosor de la línea
     private let sidePadding: CGFloat = 16
 
+    var showBack: Bool = false
+
+    var onBack: (() -> Void)? = nil
+
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        HStack {
-            // App Logo
-            Image(appLogo)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 36, height: 36)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        HStack(spacing: 12) {
+            // Izquierda: Back o App Logo
+            if showBack {
+                Button {
+                    if let onBack { onBack() } else { dismiss() }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.headline)
+                        Text("Back")
+                            .font(.system(size: 17, weight: .regular))
+                    }
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(Color.accentColor)
+                .padding(.vertical, 6)
+            } else {
+                Image(appLogo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
 
             Spacer()
 
-            // Restaurante logo
+            // Derecha: logo del restaurante
             Image(restaurantLogo)
                 .resizable()
                 .scaledToFit()
@@ -36,10 +56,13 @@ struct RestaurantTopBar: View {
                 .shadow(radius: 2, y: 1)
         }
         .padding(.horizontal, 16)
+        .padding(.top, 2)
+
         // Línea inferior
         Rectangle()
             .fill(lineColor)
             .frame(height: lineHeight)
             .padding(.horizontal, sidePadding)
+
     }
 }

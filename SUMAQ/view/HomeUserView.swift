@@ -48,6 +48,8 @@ struct UserHomeView: View {
                     .padding(.horizontal, 16)
 
                 VStack(spacing: 14) {
+
+
                     NavigationLink {
                         DetailRestauFromUserView()
                     } label: {
@@ -56,7 +58,7 @@ struct UserHomeView: View {
                             category: "Burgers restaurant",
                             tag: "Offers",
                             rating: 4.5,
-                            logoSystemName: "circle"
+                            image: Image("logo_puerta")
                         )
                     }
                     .buttonStyle(.plain)
@@ -65,7 +67,9 @@ struct UserHomeView: View {
                         category: "Chicken restaurant",
                         tag: "Offers Tag",
                         rating: 5.0,
-                        logoSystemName: "circle"
+                        image: Image("logo_chick")
+
+
                     )
                 }
                 .padding(.horizontal, 16)

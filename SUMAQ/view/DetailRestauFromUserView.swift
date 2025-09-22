@@ -64,13 +64,13 @@ struct DetailRestauFromUserView: View {
                             RestaurantDishCardGeneral(
                                 title: "Bacon Sandwich",
                                 subtitle: "Hamburger with a lot of bacon.",
-                                imageName: "Dish1",
+                                imageName: "sandwich",
                                 rating: 4
                             );
                             RestaurantDishCardGeneral(
                                 title: "BBQ Sandwich",
                                 subtitle: "Hamburger with a lot of BBQ.",
-                                imageName: "Dish2",
+                                imageName: "offer_bbq",
                                 rating: 4
                             )
                             

@@ -34,7 +34,7 @@ struct RestaurantDishCardGeneral: View {
             Image(imageName)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 140, height: 105)
+                .frame(width: 140, height: 103)
                 .clipped()
         }
         .frame(height: 110)
