@@ -8,109 +8,112 @@
 import SwiftUI
 import MapKit
 
-enum RestaurantRoute: Hashable {
-    case offers
-    case reviews
-}
-
 struct RestaurantHomeView: View {
+    // 0 = Menú, 1 = Offers, 2 = Review
     @State private var selectedTab: Int = 0
-    @State private var navPath = NavigationPath()
 
     var body: some View {
-        NavigationStack(path: $navPath) {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    RestaurantTopBar(restaurantLogo: "AppLogoUI", appLogo: "AppLogoUI")
+                    // Header
+                    RestaurantTopBar(restaurantLogo: "AppLogoUI", appLogo: "AppLogoUI",  showBack: true)
 
                     Text("Lucille")
                         .font(.custom("Montserrat-SemiBold", size: 22))
                         .foregroundColor(Palette.burgundy)
                         .padding(.horizontal, 16)
 
-                    RestaurantSegmentedTab(selectedIndex: $selectedTab) { idx in
-                        switch idx {
-                        case 1: navPath.append(RestaurantRoute.offers)
-                        case 2: navPath.append(RestaurantRoute.reviews)
-                        default: break
-                        }
+                    // Segmented control
+                    RestaurantSegmentedTab(selectedIndex: $selectedTab) { _ in
+                        
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                    // --- CONTENIDO PRINCIPAL (Menú) ---
-                    OSMMapView(
-                        center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                    )
-                    .frame(height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding(.horizontal, 16)
-
-                    HStack {
-                        Spacer()
-                        Button { } label: {
-                            HStack(spacing: 8) {
-                                Text("Busiest Hours")
-                                    .font(.custom("Montserrat-SemiBold", size: 14))
-                                Image(systemName: "chart.bar.fill").font(.subheadline)
-                            }
-                            .foregroundColor(.white)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 16)
-                            .background(Palette.teal)
-                            .clipShape(Capsule())
-                        }
-                        Spacer()
-                    }
-
-                    VStack(spacing: 12) {
-                        RestaurantDishCard(
-                            title: "Bacon Sandwich",
-                            subtitle: "Hamburger with a lot of bacon.",
-                            imageName: "Dish1",
-                            rating: 4
-                        )
-                        RestaurantDishCard(
-                            title: "BBQ Sandwich",
-                            subtitle: "Hamburger with a lot of BBQ.",
-                            imageName: "Dish2",
-                            rating: 4
-                        )
-                    }
-                    .padding(.horizontal, 16)
-
-                    HStack(spacing: 12) {
-                        NavigationLink { NewMenuView() } label: {
-                            SmallCapsuleButton(
-                                title: "New Menu",
-                                background: Palette.orangeAlt,
-                                textColor: .white
-                            )
-                        }
-                        NavigationLink { EditMenuView() } label: {
-                            SmallCapsuleButton(
-                                title: "Edit Menu",
-                                background: Color.gray.opacity(0.6),
-                                textColor: .white
-                            )
+                    Group {
+                        switch selectedTab {
+                        case 0:
+                            MenuContent()
+                        case 1:
+                            OffersContent()
+                        case 2:
+                            ReviewsContent()
+                        default:
+                            MenuContent()
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
                 }
                 .padding(.top, 8)
             }
             .background(Color.white.ignoresSafeArea())
-            .navigationDestination(for: RestaurantRoute.self) { route in
-                switch route {
-                case .offers:
-                    RestaurantOffersView()
-                case .reviews:
-                    RestaurantReviewView()
+        }
+    }
+}
+
+private struct MenuContent: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            OSMMapView(
+                center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            )
+            .frame(height: 240)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.horizontal, 16)
+
+            HStack {
+                Spacer()
+                Button { /* Busiest Hours */ } label: {
+                    HStack(spacing: 8) {
+                        Text("Busiest Hours")
+                            .font(.custom("Montserrat-SemiBold", size: 14))
+                        Image(systemName: "chart.bar.fill").font(.subheadline)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(Palette.teal)
+                    .clipShape(Capsule())
+                }
+                Spacer()
+            }
+
+            VStack(spacing: 12) {
+                RestaurantDishCard(
+                    title: "Bacon Sandwich",
+                    subtitle: "Hamburger with a lot of bacon.",
+                    imageName: "Dish1",
+                    rating: 4
+                )
+                RestaurantDishCard(
+                    title: "BBQ Sandwich",
+                    subtitle: "Hamburger with a lot of BBQ.",
+                    imageName: "Dish2",
+                    rating: 4
+                )
+            }
+            .padding(.horizontal, 16)
+
+            HStack(spacing: 12) {
+                NavigationLink { NewMenuView() } label: {
+                    SmallCapsuleButton(
+                        title: "New Menu",
+                        background: Palette.orangeAlt,
+                        textColor: .white
+                    )
+                }
+                NavigationLink { EditMenuView() } label: {
+                    SmallCapsuleButton(
+                        title: "Edit Menu",
+                        background: Color.gray.opacity(0.6),
+                        textColor: .white
+                    )
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
         }
     }
 }
