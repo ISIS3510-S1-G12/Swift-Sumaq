@@ -30,7 +30,7 @@ struct DetailRestauFromUserView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 18, weight: .semibold))
-                            Text("Lucille")
+                            Text("La Puerta")
                                 .font(.custom("Montserrat-SemiBold", size: 22))
                         }
                         .foregroundColor(Palette.burgundy)
