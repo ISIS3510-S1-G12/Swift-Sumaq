@@ -18,7 +18,7 @@ struct RestaurantHomeView: View {
                 VStack(alignment: .leading, spacing: 16) {
 
                     // Header
-                    RestaurantTopBar(restaurantLogo: "AppLogoUI", appLogo: "AppLogoUI",  showBack: true)
+                    RestaurantTopBar(restaurantLogo: "logo_lucille", appLogo: "AppLogoUI",  showBack: true)
 
                     Text("Lucille")
                         .font(.custom("Montserrat-SemiBold", size: 22))
@@ -83,13 +83,14 @@ private struct MenuContent: View {
                 RestaurantDishCard(
                     title: "Bacon Sandwich",
                     subtitle: "Hamburger with a lot of bacon.",
-                    imageName: "Dish1",
+                    imageName: "offer_lucille",
                     rating: 4
+                    
                 )
                 RestaurantDishCard(
                     title: "BBQ Sandwich",
                     subtitle: "Hamburger with a lot of BBQ.",
-                    imageName: "Dish2",
+                    imageName: "sandwich",
                     rating: 4
                 )
             }

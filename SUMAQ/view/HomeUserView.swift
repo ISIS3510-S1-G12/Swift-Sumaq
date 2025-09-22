@@ -48,20 +48,28 @@ struct UserHomeView: View {
                     .padding(.horizontal, 16)
 
                 VStack(spacing: 14) {
-                    RestaurantCard(
-                        name: "La Puerta",
-                        category: "Burgers restaurant",
-                        tag: "Offers",
-                        rating: 4.5,
-                        image: Image("logo_puerta")
-                    )
 
+
+                    NavigationLink {
+                        DetailRestauFromUserView()
+                    } label: {
+                        RestaurantCard(
+                            name: "La Puerta",
+                            category: "Burgers restaurant",
+                            tag: "Offers",
+                            rating: 4.5,
+                            image: Image("logo_puerta")
+                        )
+                    }
+                    .buttonStyle(.plain)
                     RestaurantCard(
                         name: "Chick & Chips",
                         category: "Chicken restaurant",
                         tag: "Offers Tag",
                         rating: 5.0,
                         image: Image("logo_chick")
+
+
                     )
                 }
                 .padding(.horizontal, 16)

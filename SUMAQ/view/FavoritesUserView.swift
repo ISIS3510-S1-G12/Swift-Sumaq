@@ -38,6 +38,7 @@ struct FavoritesUserView: View {
                         tag: "Offers",
                         rating: 4.0,
                         image: Image("logo_puerta")
+
                     )
 
                     RestaurantCard(
@@ -46,6 +47,7 @@ struct FavoritesUserView: View {
                         tag: "Offers",
                         rating: 5.0,
                         image: Image("logo_chick")
+
                     )
 
                     RestaurantCard(
@@ -54,6 +56,7 @@ struct FavoritesUserView: View {
                         tag: "Offers",
                         rating: 4.0,
                         image: Image("logo_chicken")
+
                     )
 
                     RestaurantCard(
@@ -62,6 +65,7 @@ struct FavoritesUserView: View {
                         tag: "Offers",
                         rating: 4.0,
                         image: Image("logo_lucille")
+
                     )
                 }
                 .padding(.horizontal, 16)

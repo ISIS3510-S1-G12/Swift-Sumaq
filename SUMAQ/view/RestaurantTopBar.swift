@@ -9,6 +9,9 @@ import SwiftUI
 struct RestaurantTopBar: View {
     var restaurantLogo: String
     var appLogo: String = "AppLogo"
+    private let lineColor: Color = Palette.burgundy
+    private let lineHeight: CGFloat = 1               // grosor de la línea
+    private let sidePadding: CGFloat = 16
 
     var showBack: Bool = false
 
@@ -54,5 +57,12 @@ struct RestaurantTopBar: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 2)
+
+        // Línea inferior
+        Rectangle()
+            .fill(lineColor)
+            .frame(height: lineHeight)
+            .padding(.horizontal, sidePadding)
+
     }
 }

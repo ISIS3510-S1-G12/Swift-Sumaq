@@ -14,8 +14,6 @@ struct OffersContent: View {
     var body: some View {
         VStack(spacing: 16) {
 
-            // Header
-            RestaurantTopBar(restaurantLogo: "AppLogoUI", appLogo: "AppLogoUI", showBack: true)
 
             // Mapa OSM
             OSMMapView(
@@ -39,19 +37,19 @@ struct OffersContent: View {
                 RestaurantDishCard(
                     title: "Extra Bacon",
                     subtitle: "Hamburger with a free bacon addition",
-                    imageName: "Dish1",
+                    imageName: "offer_lucille",
                     rating: 4
                 )
                 RestaurantDishCard(
                     title: "Extra BBQ",
                     subtitle: "Hamburger with a free BBQ addition",
-                    imageName: "Dish2",
+                    imageName: "sandwich",
                     rating: 4
                 )
             }
             .padding(.horizontal, 16)
 
-            // Botones inferiores (estos sí pueden navegar a pantallas internas)
+            // Botones inferiores
             HStack(spacing: 12) {
                 NavigationLink {
                     NewOfferView()
