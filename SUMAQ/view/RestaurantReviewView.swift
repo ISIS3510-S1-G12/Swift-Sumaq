@@ -11,8 +11,6 @@ struct ReviewsContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
 
-             // Header
-            RestaurantTopBar(restaurantLogo: "AppLogoUI", appLogo: "AppLogoUI", showBack: true)
 
             Text("Number of reviews: 100")
                 .font(.custom("Montserrat-SemiBold", size: 16))
