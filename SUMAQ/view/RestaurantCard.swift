@@ -1,9 +1,3 @@
-//
-//  RestaurantCard.swift
-//  SUMAQ
-//
-//  Created by Gabriela  Escobar Rojas on 19/09/25.
-//
 import SwiftUI
 
 struct RestaurantCard: View {
@@ -11,27 +5,29 @@ struct RestaurantCard: View {
     let category: String
     let tag: String
     let rating: Double
-    let logoSystemName: String
+    let image: Image
 
-    private let purple = Palette.purple // #792765
+    private let purple = Palette.purple
 
     var body: some View {
         HStack(spacing: 0) {
             // Panel morado (texto + estrellas)
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 StarsView(rating: rating)
-                VStack(alignment: .leading, spacing: 4) {
+
+                VStack(alignment: .leading, spacing: 6) {
                     Text(name)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.custom("Montserrat-SemiBold", size: 18))
                         .foregroundStyle(.white)
+                        .lineLimit(1)
 
                     Text(category)
-                        .font(.custom("Monserrat-Semibold", size:14, relativeTo: .headline))
-                        .foregroundStyle(.white.opacity(0.9))
+                        .font(.custom("Montserrat-Regular", size: 15))
+                        .foregroundStyle(.white.opacity(0.95))
+                        .lineLimit(1)
 
                     Text(tag)
-                        .font(.custom("Monserrat-Semibold", size:14, relativeTo: .footnote))
-
+                        .font(.custom("Montserrat-SemiBold", size: 14))
                         .foregroundStyle(.white.opacity(0.9))
                 }
             }
@@ -39,15 +35,15 @@ struct RestaurantCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(purple)
 
-            // Logo / imagen; hay que cambiarla por fotos reales
-            ZStack {
-                Color.white
-                Image(systemName: logoSystemName)
-                    .font(.system(size: 56))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(width: 120)
+            // Imagen
+            image
+                .resizable()
+                .scaledToFill()
+                .frame(width: 160, height: 124)
+                .clipped()
+                .background(Color.white)
         }
+        .frame(height: 140) // ⬅️ igual que OfferCard
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 8, y: 6)
     }

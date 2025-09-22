@@ -53,7 +53,7 @@ struct UserHomeView: View {
                         category: "Burgers restaurant",
                         tag: "Offers",
                         rating: 4.5,
-                        logoSystemName: "circle"
+                        image: Image("logo_puerta")
                     )
 
                     RestaurantCard(
@@ -61,7 +61,7 @@ struct UserHomeView: View {
                         category: "Chicken restaurant",
                         tag: "Offers Tag",
                         rating: 5.0,
-                        logoSystemName: "circle"
+                        image: Image("logo_chick")
                     )
                 }
                 .padding(.horizontal, 16)

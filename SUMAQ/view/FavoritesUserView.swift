@@ -37,7 +37,7 @@ struct FavoritesUserView: View {
                         category: "Burgers restaurant",
                         tag: "Offers",
                         rating: 4.0,
-                        logoSystemName: "circle"
+                        image: Image("logo_puerta")
                     )
 
                     RestaurantCard(
@@ -45,7 +45,7 @@ struct FavoritesUserView: View {
                         category: "Chicken restaurant",
                         tag: "Offers",
                         rating: 5.0,
-                        logoSystemName: "circle"
+                        image: Image("logo_chick")
                     )
 
                     RestaurantCard(
@@ -53,7 +53,7 @@ struct FavoritesUserView: View {
                         category: "Chicken restaurant",
                         tag: "Offers",
                         rating: 4.0,
-                        logoSystemName: "circle"
+                        image: Image("logo_chicken")
                     )
 
                     RestaurantCard(
@@ -61,7 +61,7 @@ struct FavoritesUserView: View {
                         category: "Sandwich",
                         tag: "Offers",
                         rating: 4.0,
-                        logoSystemName: "circle"
+                        image: Image("logo_lucille")
                     )
                 }
                 .padding(.horizontal, 16)

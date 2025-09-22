@@ -96,13 +96,14 @@ private struct MenuContent: View {
             .padding(.horizontal, 16)
 
             HStack(spacing: 12) {
-                NavigationLink { NewMenuView() } label: {
+                NavigationLink { UploadMenuView() } label: {
                     SmallCapsuleButton(
                         title: "New Menu",
                         background: Palette.orangeAlt,
                         textColor: .white
                     )
                 }
+
                 NavigationLink { EditMenuView() } label: {
                     SmallCapsuleButton(
                         title: "Edit Menu",
