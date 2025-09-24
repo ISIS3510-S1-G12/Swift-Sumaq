@@ -19,7 +19,7 @@ struct ChoiceUserView: View {
                
 
             Spacer()
-            // Botones abajo
+
             VStack(spacing: 16) {
                 NavigationLink {
                     LogInAndRegisterView(role: .user)
@@ -62,8 +62,3 @@ struct ChoiceUserView: View {
 #Preview { ChoiceUserView() }
 
 
-
-enum UserType {
-    case user
-    case restaurant
-}

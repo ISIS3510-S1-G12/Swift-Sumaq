@@ -10,56 +10,93 @@ import SwiftUI
 struct LoginView: View {
     let role: UserType
 
-    @State private var user: String = ""
+    // Inputs
+    @State private var user: String = ""   // email
     @State private var pass: String = ""
 
+    // UI state
+    @State private var isLoading = false
+    @State private var errorMsg: String?
+    @State private var goToUserHome = false
+    @State private var goToRestaurantHome = false
+
     var body: some View {
-        VStack(spacing: 28) {
-            Image("AppLogoUI")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 140, height: 140)
-                .cornerRadius(24)
-                .shadow(radius: 4, y: 2)
-                .padding(.top, 24)
+        NavigationStack {
+            VStack(spacing: 28) {
+                Image("AppLogoUI")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 140, height: 140)
+                    .cornerRadius(24)
+                    .shadow(radius: 4, y: 2)
+                    .padding(.top, 24)
 
-            Text("WELCOME")
-                .font(.system(size: 40, weight: .bold, design: .default))
-                .foregroundColor(role == .restaurant ? Palette.teal : Palette.purple)
-                .tracking(1)
+                Text("WELCOME")
+                    .font(.system(size: 40, weight: .bold, design: .default))
+                    .foregroundColor(role == .restaurant ? Palette.teal : Palette.purple)
+                    .tracking(1)
 
-            VStack(alignment: .leading, spacing: 18) {
-                LabeledInput(
-                    label: "Email or Username",
-                    text: $user,
-                    isSecure: false
-                )
+                VStack(alignment: .leading, spacing: 18) {
+                    LabeledInput(label: "Email", text: $user, isSecure: false)
+                    LabeledInput(label: "Password", text: $pass, isSecure: true)
+                }
+                .padding(.horizontal, 32)
 
-                LabeledInput(
-                    label: "Password",
-                    text: $pass,
-                    isSecure: true
-                )
+                Button {
+                    doLogin()
+                } label: {
+                    Text(isLoading ? "Signing in..." : "Log In")
+                        .font(.custom("Montserrat-SemiBold", size: 18))
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                }
+                .buttonStyle(PrimaryCapsuleButton(color: role == .restaurant ? Palette.teal : Palette.purple))
+                .padding(.horizontal, 32)
+                .disabled(isLoading || user.isEmpty || pass.isEmpty)
+
+                if let errorMsg {
+                    Text(errorMsg)
+                        .foregroundColor(.red)
+                        .font(.footnote)
+                        .padding(.horizontal, 32)
+                        .multilineTextAlignment(.center)
+                }
+
+                // Navegación programática
+                NavigationLink(destination: UserHomeView(),
+                               isActive: $goToUserHome) { EmptyView() }
+                    .hidden()
+
+                NavigationLink(destination: RestaurantHomeView(),
+                               isActive: $goToRestaurantHome) { EmptyView() }
+                    .hidden()
+
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 32)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.white.ignoresSafeArea())
+        }
+    }
 
-            SolidNavLink(
-                title: "Log In",
-                color: role == .restaurant ? Palette.teal : Palette.purple,
-                textColor: .white
-            ) {
-                if role == .restaurant {
-                    RestaurantHomeView()
-                } else {
-                    UserHomeView()
+    private func doLogin() {
+        errorMsg = nil
+        isLoading = true
+
+        login(email: user, password: pass) { result in
+            DispatchQueue.main.async {
+                isLoading = false
+                switch result {
+                case .success(let dest):
+                    switch dest {
+                    case .userHome:
+                        goToUserHome = true
+                    case .restaurantHome:
+                        goToRestaurantHome = true
+                    }
+                case .failure(let e):
+                    errorMsg = e.localizedDescription
                 }
             }
-            .padding(.horizontal, 32)
-
-            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea())
     }
 }
 
@@ -77,10 +114,13 @@ private struct LabeledInput: View {
             Group {
                 if isSecure {
                     SecureField("Value", text: $text)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
                 } else {
                     TextField("Value", text: $text)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled(true)
+                        .keyboardType(label.lowercased().contains("email") ? .emailAddress : .default)
                 }
             }
             .font(.custom("Montserrat-Regular", size: 16))

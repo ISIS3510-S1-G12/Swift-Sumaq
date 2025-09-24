@@ -3,27 +3,37 @@ import SwiftUI
 struct RegisterView: View {
     let role: UserType
 
+    // para usuario general en auth
     @State private var name: String = ""
     @State private var email: String = ""
     @State private var username: String = ""
     @State private var password: String = ""
 
-    // Navegación según rol
-    @State private var goToUserHome = false
-    @State private var goToRestaurantHome = false
+    // USER
+    @State private var budget: String = ""
+    @State private var diet: String = ""
+    @State private var profilePicture: String = ""
 
-    private var accentColor: Color {
-        role == .user ? Palette.purple : Palette.teal
-    }
-    private var buttonColor: Color {
-        role == .user ? Palette.purple : Palette.teal
-    }
+    // RESTAURANT
+    @State private var address: String = ""
+    @State private var openingTime: String = ""
+    @State private var closingTime: String = ""
+    @State private var location: String = ""
+    @State private var restaurantImage: String = ""
+    @State private var restaurantType: String = ""
+    @State private var busiestHoursText: String = ""
+
+    // UI / navegación
+    @State private var isLoading = false
+    @State private var errorMsg: String?
+    @State private var goToLogin = false
+
+    private var accentColor: Color { role == .user ? Palette.purple : Palette.teal }
+    private var buttonColor: Color { role == .user ? Palette.purple : Palette.teal }
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color(.systemBackground).ignoresSafeArea()
-
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
                     Spacer().frame(height: 40)
 
@@ -39,68 +49,59 @@ struct RegisterView: View {
                         .kerning(1)
 
                     VStack(alignment: .leading, spacing: 18) {
-                        LabeledField(
-                            title: "Name",
-                            text: $name,
-                            placeholder: "Value",
-                            keyboard: .default,
-                            autocap: .words,
-                            labelColor: Palette.burgundy
-                        )
+                        LabeledField(title: "Name", text: $name, placeholder: "Value", keyboard: .default, autocap: .words, labelColor: Palette.burgundy)
+                        LabeledField(title: "Email", text: $email, placeholder: "Value", keyboard: .emailAddress, autocap: .never, labelColor: Palette.burgundy)
+                            .textInputAutocapitalization(.never)
+                        LabeledField(title: "Username", text: $username, placeholder: "Value", keyboard: .default, autocap: .never, labelColor: Palette.burgundy)
+                            .textInputAutocapitalization(.never)
+                        LabeledSecureField(title: "Password", text: $password, placeholder: "Value", labelColor: Palette.burgundy)
+                            .textInputAutocapitalization(.never)
 
-                        LabeledField(
-                            title: "Email",
-                            text: $email,
-                            placeholder: "Value",
-                            keyboard: .emailAddress,
-                            autocap: .never,
-                            labelColor: Palette.burgundy
-                        )
-                        .textInputAutocapitalization(.never)
-
-                        LabeledField(
-                            title: "Username",
-                            text: $username,
-                            placeholder: "Value",
-                            keyboard: .default,
-                            autocap: .never,
-                            labelColor: Palette.burgundy
-                        )
-                        .textInputAutocapitalization(.never)
-
-                        LabeledSecureField(
-                            title: "Password",
-                            text: $password,
-                            placeholder: "Value",
-                            labelColor: Palette.burgundy
-                        )
-                        .textInputAutocapitalization(.never)
+                        if role == .user {
+                            Group {
+                                LabeledField(title: "Budget (int)", text: $budget, placeholder: "25000", keyboard: .numberPad, labelColor: Palette.burgundy)
+                                LabeledField(title: "Diet", text: $diet, placeholder: "vegetarian", keyboard: .default, labelColor: Palette.burgundy)
+                                LabeledField(title: "Profile picture", text: $profilePicture, placeholder: "url o id", keyboard: .default, labelColor: Palette.burgundy)
+                            }
+                        } else {
+                            Group {
+                                LabeledField(title: "Address", text: $address, placeholder: "Calle 123 #45-67", keyboard: .default, labelColor: Palette.burgundy)
+                                LabeledField(title: "Opening time (HHmm int)", text: $openingTime, placeholder: "900", keyboard: .numberPad, labelColor: Palette.burgundy)
+                                LabeledField(title: "Closing time (HHmm int)", text: $closingTime, placeholder: "1900", keyboard: .numberPad, labelColor: Palette.burgundy)
+                                LabeledField(title: "Location", text: $location, placeholder: "Usaquén", keyboard: .default, labelColor: Palette.burgundy)
+                                LabeledField(title: "Restaurant image", text: $restaurantImage, placeholder: "url o id", keyboard: .default, labelColor: Palette.burgundy)
+                                LabeledField(title: "Restaurant type", text: $restaurantType, placeholder: "Fast Food", keyboard: .default, labelColor: Palette.burgundy)
+                                LabeledField(title: "Busiest hours (comma list hour:level)", text: $busiestHoursText, placeholder: "1200:High,1500:Medium", keyboard: .default, labelColor: Palette.burgundy)
+                            }
+                        }
                     }
 
-                    // Botón Register -> navega según el rol
-                    Button(action: {
-                        // Aquí podrías validar / llamar API; si todo bien:
-                        if role == .user {
-                            goToUserHome = true
-                        } else {
-                            goToRestaurantHome = true
-                        }
-                    }) {
-                        Text("Register")
+                    if let errorMsg {
+                        Text(errorMsg)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+
+                    //  register -> si todo bien, va a login
+                    Button {
+                        submit()
+                    } label: {
+                        Text(isLoading ? "Creating..." : "Register")
                             .font(.custom("Montserrat-SemiBold", size: 18))
                             .frame(maxWidth: .infinity, minHeight: 56)
                     }
                     .buttonStyle(PrimaryCapsuleButton(color: buttonColor))
                     .padding(.top, 6)
+                    .disabled(isLoading || email.isEmpty || password.isEmpty || name.isEmpty)
 
-                    // Links de navegación ocultos
-                    NavigationLink(destination: UserHomeView(),
-                                   isActive: $goToUserHome) { EmptyView() }
-                        .hidden()
-
-                    NavigationLink(destination: RestaurantHomeView(),
-                                   isActive: $goToRestaurantHome) { EmptyView() }
-                        .hidden()
+                    // va pa login si todo bien
+                    NavigationLink(
+                        destination: LoginView(role: role),
+                        isActive: $goToLogin
+                    ) { EmptyView() }
+                    .hidden()
 
                     Spacer().frame(height: 24)
                 }
@@ -108,7 +109,79 @@ struct RegisterView: View {
             }
         }
     }
+
+    private func submit() {
+        errorMsg = nil
+        isLoading = true
+
+        if role == .user {
+            register(
+                email: email,
+                password: password,
+                name: name,
+                role: .user,
+                // restaurant
+                address: nil, openingTime: nil, closingTime: nil,
+                location: nil, restaurantImage: nil, restaurantType: nil, busiest_hours: nil,
+                // user
+                budget: Int(budget) ?? 0, diet: diet, profilePicture: profilePicture
+            ) { result in
+                DispatchQueue.main.async {
+                    isLoading = false
+                    switch result {
+                    case .success:
+                        goToLogin = true
+                    case .failure(let e):
+                        errorMsg = e.localizedDescription
+                    }
+                }
+            }
+        } else {
+            let openInt = Int(openingTime) ?? 0
+            let closeInt = Int(closingTime) ?? 0
+            let busiest = parseBusiestHours(busiestHoursText)
+
+            register(
+                email: email,
+                password: password,
+                name: name,
+                role: .restaurant,
+                // restaurant
+                address: address,
+                openingTime: openInt,
+                closingTime: closeInt,
+                location: location,
+                restaurantImage: restaurantImage,
+                restaurantType: restaurantType,
+                busiest_hours: busiest,
+                // user
+                budget: nil, diet: nil, profilePicture: nil
+            ) { result in
+                DispatchQueue.main.async {
+                    isLoading = false
+                    switch result {
+                    case .success:
+                        goToLogin = true
+                    case .failure(let e):
+                        errorMsg = e.localizedDescription
+                    }
+                }
+            }
+        }
+    }
+
+    // "1200:High,1500:Medium" -> ["1200":"High","1500":"Medium"]
+    private func parseBusiestHours(_ raw: String) -> [String:String] {
+        guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [:] }
+        var dict: [String:String] = [:]
+        raw.split(separator: ",").forEach { pair in
+            let parts = pair.split(separator: ":").map { String($0).trimmingCharacters(in: .whitespaces) }
+            if parts.count == 2 { dict[parts[0]] = parts[1] }
+        }
+        return dict
+    }
 }
+
 
 // MARK: - Campos reutilizables
 struct LabeledField: View {
@@ -180,14 +253,14 @@ struct PrimaryCapsuleButton: ButtonStyle {
     }
 }
 
-#Preview("Register – Usuario") {
-    RegisterView(role: .user)
-        .environment(\.colorScheme, .light)
-        .previewDevice("iPhone 15 Pro")
-}
-
-#Preview("Register – Restaurante") {
-    RegisterView(role: .restaurant)
-        .environment(\.colorScheme, .light)
-        .previewDevice("iPhone 15 Pro")
-}
+//#Preview("Register – Usuario") {
+//    RegisterView(role: .user)
+//        .environment(\.colorScheme, .light)
+//        .previewDevice("iPhone 15 Pro")
+//}
+//
+//#Preview("Register – Restaurante") {
+//    RegisterView(role: .restaurant)
+//        .environment(\.colorScheme, .light)
+//        .previewDevice("iPhone 15 Pro")
+//}
