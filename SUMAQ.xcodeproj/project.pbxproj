@@ -3,11 +3,19 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		0EB15F8D2E7D0A0700CB69D5 /* ChoiceUserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB15F8C2E7D0A0600CB69D5 /* ChoiceUserView.swift */; };
+		180C8F8F2E8C3AAD009B691C /* AuthController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F8E2E8C3AAD009B691C /* AuthController.swift */; };
+		180C8F912E8C3ABA009B691C /* HomeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F902E8C3ABA009B691C /* HomeController.swift */; };
+		180C8F932E8C3ACB009B691C /* FavoritesController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F922E8C3ACB009B691C /* FavoritesController.swift */; };
+		180C8F952E8C3ADD009B691C /* OffersController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F942E8C3ADD009B691C /* OffersController.swift */; };
+		180C8F992E8C3AFF009B691C /* ReviewsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F982E8C3AFF009B691C /* ReviewsController.swift */; };
+		180C8F9B2E8C3B16009B691C /* VisitsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F9A2E8C3B16009B691C /* VisitsController.swift */; };
+		180C8F9D2E8C3B2E009B691C /* MapController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F9C2E8C3B2E009B691C /* MapController.swift */; };
+		180C8F9F2E8C3B4F009B691C /* CrowdController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F9E2E8C3B4F009B691C /* CrowdController.swift */; };
 		186DDAF92E7EF5D20066CB9E /* SolidNavLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186DDAF82E7EF5D20066CB9E /* SolidNavLinkView.swift */; };
 		186DDAFB2E7F15AE0066CB9E /* OffersUserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186DDAFA2E7F15AE0066CB9E /* OffersUserView.swift */; };
 		186DDAFD2E7F18B10066CB9E /* OfferCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186DDAFC2E7F18B10066CB9E /* OfferCard.swift */; };
@@ -76,6 +84,14 @@
 
 /* Begin PBXFileReference section */
 		0EB15F8C2E7D0A0600CB69D5 /* ChoiceUserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChoiceUserView.swift; sourceTree = "<group>"; };
+		180C8F8E2E8C3AAD009B691C /* AuthController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthController.swift; path = SUMAQ/AuthController.swift; sourceTree = SOURCE_ROOT; };
+		180C8F902E8C3ABA009B691C /* HomeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HomeController.swift; path = SUMAQ/HomeController.swift; sourceTree = SOURCE_ROOT; };
+		180C8F922E8C3ACB009B691C /* FavoritesController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FavoritesController.swift; path = SUMAQ/FavoritesController.swift; sourceTree = SOURCE_ROOT; };
+		180C8F942E8C3ADD009B691C /* OffersController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OffersController.swift; path = SUMAQ/OffersController.swift; sourceTree = SOURCE_ROOT; };
+		180C8F982E8C3AFF009B691C /* ReviewsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ReviewsController.swift; path = SUMAQ/ReviewsController.swift; sourceTree = SOURCE_ROOT; };
+		180C8F9A2E8C3B16009B691C /* VisitsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VisitsController.swift; path = SUMAQ/VisitsController.swift; sourceTree = SOURCE_ROOT; };
+		180C8F9C2E8C3B2E009B691C /* MapController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MapController.swift; path = SUMAQ/MapController.swift; sourceTree = SOURCE_ROOT; };
+		180C8F9E2E8C3B4F009B691C /* CrowdController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CrowdController.swift; path = SUMAQ/CrowdController.swift; sourceTree = SOURCE_ROOT; };
 		186DDAF82E7EF5D20066CB9E /* SolidNavLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolidNavLinkView.swift; sourceTree = "<group>"; };
 		186DDAFA2E7F15AE0066CB9E /* OffersUserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffersUserView.swift; sourceTree = "<group>"; };
 		186DDAFC2E7F18B10066CB9E /* OfferCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferCard.swift; sourceTree = "<group>"; };
@@ -122,6 +138,10 @@
 		66F30B6D2E7F5546005EADC7 /* ReviewHistoryUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewHistoryUser.swift; sourceTree = "<group>"; };
 		66F30B6F2E7F57AA005EADC7 /* ReviewCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		180C8FB22E8C3EED009B691C /* repositories */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = repositories; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		18A77B132E7CC6C200032509 /* Frameworks */ = {
@@ -176,6 +196,7 @@
 		18A77B182E7CC6C200032509 /* SUMAQ */ = {
 			isa = PBXGroup;
 			children = (
+				180C8FB22E8C3EED009B691C /* repositories */,
 				49CA12222E7E256700939F90 /* model */,
 				49CA12212E7E255B00939F90 /* view */,
 				49CA12202E7E252F00939F90 /* control */,
@@ -214,6 +235,14 @@
 		49CA12202E7E252F00939F90 /* control */ = {
 			isa = PBXGroup;
 			children = (
+				180C8F8E2E8C3AAD009B691C /* AuthController.swift */,
+				180C8F902E8C3ABA009B691C /* HomeController.swift */,
+				180C8F922E8C3ACB009B691C /* FavoritesController.swift */,
+				180C8F942E8C3ADD009B691C /* OffersController.swift */,
+				180C8F982E8C3AFF009B691C /* ReviewsController.swift */,
+				180C8F9A2E8C3B16009B691C /* VisitsController.swift */,
+				180C8F9C2E8C3B2E009B691C /* MapController.swift */,
+				180C8F9E2E8C3B4F009B691C /* CrowdController.swift */,
 			);
 			path = control;
 			sourceTree = "<group>";
@@ -283,6 +312,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				180C8FB22E8C3EED009B691C /* repositories */,
 			);
 			name = SUMAQ;
 			productName = SUMAQ;
@@ -410,9 +442,11 @@
 				661B0E422E84950400F155FC /* Register.swift in Sources */,
 				495F6CE62E7F129E00A3A0FE /* LoginView.swift in Sources */,
 				495F6CEA2E7F217800A3A0FE /* RestaurantTopBar.swift in Sources */,
+				180C8F952E8C3ADD009B691C /* OffersController.swift in Sources */,
 				6612B9A32E7E420100FFBBB0 /* Colors.swift in Sources */,
 				186DDB012E7F3E080066CB9E /* FilterBar.swift in Sources */,
 				6612B9AF2E7E490600FFBBB0 /* StarViews.swift in Sources */,
+				180C8F992E8C3AFF009B691C /* ReviewsController.swift in Sources */,
 				186DDAFF2E7F24B40066CB9E /* SearchBar.swift in Sources */,
 				4904E3A82E7F661F009B174F /* RestaurantReviewView.swift in Sources */,
 				186DDB072E7F57E40066CB9E /* FavoritesUserView.swift in Sources */,
@@ -421,25 +455,31 @@
 				66C949CE2E7F0228001159A2 /* SearchFilterChatBar.swift in Sources */,
 				66F30B6E2E7F5546005EADC7 /* ReviewHistoryUser.swift in Sources */,
 				6612B9A92E7E47E900FFBBB0 /* SegmentedTabs.swift in Sources */,
+				180C8F9B2E8C3B16009B691C /* VisitsController.swift in Sources */,
 				186DDB092E7F5A260066CB9E /* UploadMenuView.swift in Sources */,
 				495F6CE82E7F208300A3A0FE /* RestaurantSegmentedTab.swift in Sources */,
 				186DDAF92E7EF5D20066CB9E /* SolidNavLinkView.swift in Sources */,
 				6612B99D2E7E378200FFBBB0 /* LogInAndRegisterView.swift in Sources */,
 				664B19ED2E7F70B8001EBDC2 /* RestaurantDishCardGeneral.swift in Sources */,
+				180C8F8F2E8C3AAD009B691C /* AuthController.swift in Sources */,
 				66C949D02E7F02D1001159A2 /* FilterOptionsEnum.swift in Sources */,
 				18A77B1A2E7CC6C200032509 /* SUMAQApp.swift in Sources */,
 				6612B9B12E7E497700FFBBB0 /* OSMMarkView.swift in Sources */,
+				180C8F932E8C3ACB009B691C /* FavoritesController.swift in Sources */,
 				661B0E462E84B5B800F155FC /* LogIn.swift in Sources */,
 				6612B9AD2E7E48CE00FFBBB0 /* RestaurantCard.swift in Sources */,
 				186DDAFB2E7F15AE0066CB9E /* OffersUserView.swift in Sources */,
 				186DDAFD2E7F18B10066CB9E /* OfferCard.swift in Sources */,
 				661B0E402E84818C00F155FC /* TestFirestoreView.swift in Sources */,
+				180C8F9D2E8C3B2E009B691C /* MapController.swift in Sources */,
+				180C8F912E8C3ABA009B691C /* HomeController.swift in Sources */,
 				664B19EB2E7F6C15001EBDC2 /* RestaurantDetsSegmentedTab.swift in Sources */,
 				6612B9A52E7E44F300FFBBB0 /* HomeUserView.swift in Sources */,
 				661B0E442E84954800F155FC /* UserTypeEnum.swift in Sources */,
 				495F6CEC2E7F23AE00A3A0FE /* RestaurantDishCard.swift in Sources */,
 				4904E3A52E7F6543009B174F /* RestaurantOffersView.swift in Sources */,
 				66F30B702E7F57AA005EADC7 /* ReviewCard.swift in Sources */,
+				180C8F9F2E8C3B4F009B691C /* CrowdController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
