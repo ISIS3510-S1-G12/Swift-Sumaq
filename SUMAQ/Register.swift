@@ -62,7 +62,7 @@ func register(
             ]
             base["favorite_restaurants"] = []
         } else {
-            // ----- RESTAURANTS (claves alineadas con tus screenshots) -----
+            // ----- RESTAURANTS -----
             base["address"]        = address ?? ""
             base["opening_time"]   = openingTime ?? 0
             base["closing_time"]   = closingTime ?? 0
