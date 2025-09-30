@@ -1,9 +1,11 @@
 import SwiftUI
+import Combine   //  .publisher de NotificationCenter
 
 struct RegisterView: View {
     let role: UserType
+    @StateObject private var controller = AuthController()   // Controller
 
-    // para usuario general en auth
+    // AUTH / comunes
     @State private var name: String = ""
     @State private var email: String = ""
     @State private var username: String = ""
@@ -18,15 +20,11 @@ struct RegisterView: View {
     @State private var address: String = ""
     @State private var openingTime: String = ""
     @State private var closingTime: String = ""
-    @State private var location: String = ""
-    @State private var restaurantImage: String = ""
-    @State private var restaurantType: String = ""
+    @State private var restaurantImage: String = ""   // -> imageUrl
+    @State private var restaurantType: String = ""    // -> typeOfFood
     @State private var busiestHoursText: String = ""
-
-    // UI / navegación
-    @State private var isLoading = false
-    @State private var errorMsg: String?
-    @State private var goToLogin = false
+    @State private var offer: Bool = false
+    @State private var ratingText: String = ""
 
     private var accentColor: Color { role == .user ? Palette.purple : Palette.teal }
     private var buttonColor: Color { role == .user ? Palette.purple : Palette.teal }
@@ -44,9 +42,8 @@ struct RegisterView: View {
                         .accessibilityLabel("App logo")
 
                     Text("Join SUMAQ")
-                        .font(.system(size: 40, weight: .bold, design: .default))
+                        .font(.system(size: 40, weight: .bold))
                         .foregroundStyle(accentColor)
-                        .kerning(1)
 
                     VStack(alignment: .leading, spacing: 18) {
                         LabeledField(title: "Name", text: $name, placeholder: "Value", keyboard: .default, autocap: .words, labelColor: Palette.burgundy)
@@ -68,38 +65,43 @@ struct RegisterView: View {
                                 LabeledField(title: "Address", text: $address, placeholder: "Calle 123 #45-67", keyboard: .default, labelColor: Palette.burgundy)
                                 LabeledField(title: "Opening time (HHmm int)", text: $openingTime, placeholder: "900", keyboard: .numberPad, labelColor: Palette.burgundy)
                                 LabeledField(title: "Closing time (HHmm int)", text: $closingTime, placeholder: "1900", keyboard: .numberPad, labelColor: Palette.burgundy)
-                                LabeledField(title: "Location", text: $location, placeholder: "Usaquén", keyboard: .default, labelColor: Palette.burgundy)
-                                LabeledField(title: "Restaurant image", text: $restaurantImage, placeholder: "url o id", keyboard: .default, labelColor: Palette.burgundy)
+                                LabeledField(title: "Restaurant image (URL)", text: $restaurantImage, placeholder: "url o id", keyboard: .default, labelColor: Palette.burgundy)
                                 LabeledField(title: "Restaurant type", text: $restaurantType, placeholder: "Fast Food", keyboard: .default, labelColor: Palette.burgundy)
+
+                                Toggle(isOn: $offer) {
+                                    Text("Has Offer")
+                                        .font(.custom("Montserrat-SemiBold", size: 16))
+                                        .foregroundColor(Palette.burgundy)
+                                }
+                                .tint(buttonColor)
+
+                                LabeledField(title: "Rating (0–5)", text: $ratingText, placeholder: "4.0", keyboard: .decimalPad, labelColor: Palette.burgundy)
+
                                 LabeledField(title: "Busiest hours (comma list hour:level)", text: $busiestHoursText, placeholder: "1200:High,1500:Medium", keyboard: .default, labelColor: Palette.burgundy)
                             }
                         }
                     }
 
-                    if let errorMsg {
-                        Text(errorMsg)
+                    if let msg = controller.errorMsg {
+                        Text(msg)
                             .foregroundColor(.red)
                             .font(.footnote)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
 
-                    //  register -> si todo bien, va a login
-                    Button {
-                        submit()
-                    } label: {
-                        Text(isLoading ? "Creating..." : "Register")
+                    Button { submit() } label: {
+                        Text(controller.isLoading ? "Creating..." : "Register")
                             .font(.custom("Montserrat-SemiBold", size: 18))
                             .frame(maxWidth: .infinity, minHeight: 56)
                     }
                     .buttonStyle(PrimaryCapsuleButton(color: buttonColor))
                     .padding(.top, 6)
-                    .disabled(isLoading || email.isEmpty || password.isEmpty || name.isEmpty)
+                    .disabled(controller.isLoading || email.isEmpty || password.isEmpty || name.isEmpty)
 
-                    // va pa login si todo bien
                     NavigationLink(
                         destination: LoginView(role: role),
-                        isActive: $goToLogin
+                        isActive: $controller.goToLogin
                     ) { EmptyView() }
                     .hidden()
 
@@ -108,79 +110,53 @@ struct RegisterView: View {
                 .padding(.horizontal, 24)
             }
         }
+        // OBSERVER: la vista se SUSCRIBE a los eventos del controller
+        .onReceive(NotificationCenter.default.publisher(for: .authDidRegister)) { _ in
+            //  cambiar el estado
+            controller.goToLogin = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .authDidFail)) { notif in
+            if let msg = notif.userInfo?["message"] as? String {
+                controller.errorMsg = msg
+            }
+        }
     }
 
     private func submit() {
-        errorMsg = nil
-        isLoading = true
-
         if role == .user {
-            register(
-                email: email,
-                password: password,
-                name: name,
-                role: .user,
-                // restaurant
-                address: nil, openingTime: nil, closingTime: nil,
-                location: nil, restaurantImage: nil, restaurantType: nil, busiest_hours: nil,
-                // user
-                budget: Int(budget) ?? 0, diet: diet, profilePicture: profilePicture
-            ) { result in
-                DispatchQueue.main.async {
-                    isLoading = false
-                    switch result {
-                    case .success:
-                        goToLogin = true
-                    case .failure(let e):
-                        errorMsg = e.localizedDescription
-                    }
-                }
-            }
+            controller.registerUser(
+                name: name, email: email, password: password,
+                budget: Int(budget) ?? 0,
+                diet: diet, profilePicture: profilePicture
+            )
         } else {
             let openInt = Int(openingTime) ?? 0
             let closeInt = Int(closingTime) ?? 0
             let busiest = parseBusiestHours(busiestHoursText)
+            let rating = Double(ratingText.replacingOccurrences(of: ",", with: ".")) ?? 0.0
 
-            register(
-                email: email,
-                password: password,
-                name: name,
-                role: .restaurant,
-                // restaurant
-                address: address,
-                openingTime: openInt,
-                closingTime: closeInt,
-                location: location,
-                restaurantImage: restaurantImage,
-                restaurantType: restaurantType,
-                busiest_hours: busiest,
-                // user
-                budget: nil, diet: nil, profilePicture: nil
-            ) { result in
-                DispatchQueue.main.async {
-                    isLoading = false
-                    switch result {
-                    case .success:
-                        goToLogin = true
-                    case .failure(let e):
-                        errorMsg = e.localizedDescription
-                    }
-                }
-            }
+            controller.registerRestaurant(
+                name: name, email: email, password: password,
+                address: address, opening: openInt, closing: closeInt,
+                imageUrl: restaurantImage, typeOfFood: restaurantType,
+                offer: offer, rating: rating, busiest: busiest
+            )
         }
     }
 
     // "1200:High,1500:Medium" -> ["1200":"High","1500":"Medium"]
     private func parseBusiestHours(_ raw: String) -> [String:String] {
-        guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [:] }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [:] }
         var dict: [String:String] = [:]
-        raw.split(separator: ",").forEach { pair in
+        trimmed.split(separator: ",").forEach { pair in
             let parts = pair.split(separator: ":").map { String($0).trimmingCharacters(in: .whitespaces) }
             if parts.count == 2 { dict[parts[0]] = parts[1] }
         }
         return dict
     }
 }
+
 
 
 // MARK: - Campos reutilizables
