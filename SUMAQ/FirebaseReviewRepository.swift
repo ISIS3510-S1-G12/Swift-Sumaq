@@ -8,8 +8,6 @@ final class FirebaseReviewRepository: ReviewRepository {
     private let db = Firestore.firestore()
     private let storage = Storage.storage()
 
-    private var datesDecoder: Firestore.Decoder { Firestore.Decoder() }
-
     private var reviewsCol: CollectionReference { db.collection("Reviews") }
 
     // MARK: - Streams (realtime)
@@ -49,21 +47,19 @@ final class FirebaseReviewRepository: ReviewRepository {
         comment: String,
         photo: UIImage?
     ) async throws -> String {
-        // create empty doc to get ID
+
         let newRef = reviewsCol.document()
         let reviewId = newRef.documentID
 
-        // if there's a photo, upload it first and get the URL
         var photoURL: URL? = nil
         if let photo {
             let jpegData = photo.jpegData(compressionQuality: 0.85) ?? Data()
-            let storageRef = storage.reference(withPath: "review_images/\(reviewId).jpg")
+            let storageRef = storage.reference(withPath: "review_images/\(userId)/\(reviewId).jpg")
             _ = try await storageRef.putDataAsync(jpegData, metadata: .init(contentType: "image/jpeg"))
             let url = try await storageRef.downloadURL()
             photoURL = url
         }
 
-        // save the document
         let review = Review(
             id: reviewId,
             userId: userId,
@@ -71,10 +67,14 @@ final class FirebaseReviewRepository: ReviewRepository {
             authorUsername: authorUsername,
             rating: rating,
             comment: comment,
-            createdAt: Date(),
+            createdAt: Date(),        
             photoURL: photoURL
         )
-        try await newRef.setData(review.asFirestore)
+
+        var data = review.asFirestore
+        data["createdAt"] = FieldValue.serverTimestamp() 
+        try await newRef.setData(data, merge: false)
         return reviewId
     }
 }
+

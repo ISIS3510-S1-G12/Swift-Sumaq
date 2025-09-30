@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFirestore   
 
 // model
 struct Review: Identifiable, Hashable {
@@ -16,8 +17,8 @@ extension Review {
     // write to Firestore
     var asFirestore: [String: Any] {
         var data: [String: Any] = [
-            "user_id": userId,                      
-            "restaurant_id": restaurantId,         
+            "user_id": userId,
+            "restaurant_id": restaurantId,
             "author_username": authorUsername,
             "stars": rating,
             "comment": comment,
@@ -29,17 +30,27 @@ extension Review {
 
     // read from Firestore
     static func fromFirestore(id: String, _ dict: [String: Any]) -> Review? {
+
         guard
             let userId = dict["user_id"] as? String ?? (dict["user_id"] as? NSObject)?.description,
             let restaurantId = dict["restaurant_id"] as? String ?? (dict["restaurant_id"] as? NSObject)?.description,
             let authorUsername = dict["author_username"] as? String ?? dict["author"] as? String ?? "",
-            let rating = (dict["stars"] as? NSNumber)?.doubleValue ?? dict["stars"] as? Double,
-            let comment = dict["comment"] as? String,
-            let ts = dict["createdAt"] as? Date ?? (dict["createdAt"] as? Timestamp)?.dateValue()
+            let rating = (dict["stars"] as? Double) ?? (dict["stars"] as? NSNumber)?.doubleValue,
+            let comment = dict["comment"] as? String
         else { return nil }
 
+        let createdAt: Date =
+            (dict["createdAt"] as? Date) ??
+            (dict["createdAt"] as? Timestamp)?.dateValue() ??
+            Date() 
+
+        // photoURL optional
         let photoURL: URL?
-        if let s = dict["photoURL"] as? String { photoURL = URL(string: s) } else { photoURL = nil }
+        if let s = dict["photoURL"] as? String {
+            photoURL = URL(string: s)
+        } else {
+            photoURL = nil
+        }
 
         return Review(
             id: id,
@@ -48,7 +59,7 @@ extension Review {
             authorUsername: authorUsername,
             rating: rating,
             comment: comment,
-            createdAt: ts,
+            createdAt: createdAt,
             photoURL: photoURL
         )
     }
