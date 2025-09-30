@@ -8,30 +8,47 @@
 import SwiftUI
 import MapKit
 
-// MARK: - OpenStreetMap wrapper (sin dependencias)
 struct OSMMapView: UIViewRepresentable {
-    var center: CLLocationCoordinate2D
-    var span: MKCoordinateSpan
+    var annotations: [MKAnnotation] = []
+    var center: CLLocationCoordinate2D? = nil
+    var span: MKCoordinateSpan? = nil
+    var showsUserLocation: Bool = true
 
     func makeUIView(context: Context) -> MKMapView {
-        let map = MKMapView()
-        map.isRotateEnabled = false
-        map.showsCompass = false
-        map.showsScale = false
+        let map = MKMapView(frame: .zero)
+        map.delegate = context.coordinator
+        map.showsUserLocation = showsUserLocation
 
+        // OSM tiles
         let template = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         let overlay = MKTileOverlay(urlTemplate: template)
         overlay.canReplaceMapContent = true
         map.addOverlay(overlay, level: .aboveLabels)
 
-        map.delegate = context.coordinator
+        // Atribución (obligatoria)
+        let label = UILabel()
+        label.text = "© OpenStreetMap contributors"
+        label.font = .systemFont(ofSize: 11)
+        label.textColor = .secondaryLabel
+        label.translatesAutoresizingMaskIntoConstraints = false
+        map.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.trailingAnchor.constraint(equalTo: map.trailingAnchor, constant: -8),
+            label.bottomAnchor.constraint(equalTo: map.bottomAnchor, constant: -8)
+        ])
 
-        let region = MKCoordinateRegion(center: center, span: span)
-        map.setRegion(region, animated: false)
         return map
     }
 
-    func updateUIView(_ uiView: MKMapView, context: Context) {}
+    func updateUIView(_ map: MKMapView, context: Context) {
+        map.removeAnnotations(map.annotations)
+        map.addAnnotations(annotations)
+
+        if let c = center {
+            let span = self.span ?? MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+            map.setRegion(MKCoordinateRegion(center: c, span: span), animated: false)
+        }
+    }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -44,3 +61,4 @@ struct OSMMapView: UIViewRepresentable {
         }
     }
 }
+
