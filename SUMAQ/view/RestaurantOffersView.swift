@@ -2,27 +2,20 @@
 //  RestaurantOffersView.swift
 //  SUMAQ
 //
-//  Created by RODRIGO PAZ LONDO�O on 20/09/25.
-//
 
 import SwiftUI
-import MapKit
+import FirebaseAuth
 
 struct OffersContent: View {
     @State private var searchText: String = ""
+    @State private var offers: [Offer] = []
+    @State private var loading = true
+    @State private var error: String?
+
+    private let repo = OffersRepository()
 
     var body: some View {
         VStack(spacing: 16) {
-
-
-            // Mapa OSM
-            OSMMapView(
-                center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            )
-            .frame(height: 180)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(.horizontal, 16)
 
             // Search bar naranja
             HStack {
@@ -32,53 +25,70 @@ struct OffersContent: View {
             }
             .padding(.horizontal, 16)
 
-            // Cards de ofertas
-            VStack(spacing: 12) {
-                RestaurantDishCard(
-                    title: "Extra Bacon",
-                    subtitle: "Hamburger with a free bacon addition",
-                    imageName: "offer_lucille",
-                    rating: 4
-                )
-                RestaurantDishCard(
-                    title: "Extra BBQ",
-                    subtitle: "Hamburger with a free BBQ addition",
-                    imageName: "sandwich",
-                    rating: 4
-                )
+            if loading {
+                ProgressView().padding()
+            } else if let error {
+                Text(error).foregroundColor(.red).padding(.horizontal, 16)
+            } else if filteredOffers.isEmpty {
+                Text("No offers yet").foregroundColor(.secondary).padding()
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(filteredOffers) { off in
+                        OfferCard(
+                            title: off.title,
+                            description: off.description,
+                            imageURL: off.image,
+                            trailingEdit: { /* abrir EditOfferView(off) DESPUES  */ },
+                            panelColor: Palette.tealLight           // para restaurante
+                        )
+                    }
+                }
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
 
-            // Botones inferiores
-            HStack(spacing: 12) {
-                NavigationLink {
-                    NewOfferView()
-                } label: {
+            // new offer botón centrado
+            HStack {
+                Spacer()
+                NavigationLink { NewOfferView(onCreated: reload) } label: {
                     SmallCapsuleButton(
                         title: "New Offer",
                         background: Palette.orangeAlt,
                         textColor: .white
                     )
                 }
-
-                NavigationLink {
-                    EditOfferView()
-                } label: {
-                    SmallCapsuleButton(
-                        title: "Edit Offer",
-                        background: Color.gray.opacity(0.6),
-                        textColor: .white
-                    )
-                }
+                Spacer()
             }
-            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
+        .task { await load() }
     }
+
+    private var filteredOffers: [Offer] {
+        let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !term.isEmpty else { return offers }
+        return offers.filter {
+            $0.title.lowercased().contains(term) ||
+            $0.description.lowercased().contains(term) ||
+            $0.tags.joined(separator: " ").lowercased().contains(term)
+        }
+    }
+
+    private func load() async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        loading = true; error = nil
+        do {
+            offers = try await repo.listForRestaurant(uid: uid)
+        } catch {
+            self.error = error.localizedDescription
+        }
+        loading = false
+    }
+
+    private func reload() { Task { await load() } }
 }
 
-// utilidades locales 
+// utilidades locales
 private struct SmallCapsuleButton: View {
     let title: String
     let background: Color
@@ -93,21 +103,5 @@ private struct SmallCapsuleButton: View {
             .background(background)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
-    }
-}
-
-struct NewOfferView: View {
-    var body: some View {
-        Text("New Offer")
-            .font(.title)
-            .padding()
-    }
-}
-
-struct EditOfferView: View {
-    var body: some View {
-        Text("Edit Offer")
-            .font(.title)
-            .padding()
     }
 }

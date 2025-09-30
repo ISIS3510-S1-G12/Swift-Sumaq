@@ -16,7 +16,6 @@ final class RestaurantsRepository: RestaurantsRepositoryType {
                     cont.resume(throwing: err)
                     return
                 }
-                // Evita ambigüedad con init(doc:)
                 let items: [Restaurant] = qs?.documents.compactMap { Restaurant(doc: $0) } ?? []
                 cont.resume(returning: items)
             }
