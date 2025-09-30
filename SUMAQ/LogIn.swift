@@ -53,7 +53,7 @@ func login(email: String,
 
             // 2) restaurante?
             db.collection("Restaurants")
-                .whereField("owner_uid", isEqualTo: uid)
+                .whereField("ownerUid", isEqualTo: uid)  
                 .limit(to: 1)
                 .getDocuments { qs, err in
                     if let err = err {

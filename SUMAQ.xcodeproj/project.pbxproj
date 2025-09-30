@@ -16,6 +16,7 @@
 		180C8F9B2E8C3B16009B691C /* VisitsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F9A2E8C3B16009B691C /* VisitsController.swift */; };
 		180C8F9D2E8C3B2E009B691C /* MapController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F9C2E8C3B2E009B691C /* MapController.swift */; };
 		180C8F9F2E8C3B4F009B691C /* CrowdController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F9E2E8C3B4F009B691C /* CrowdController.swift */; };
+		186CD1822E8C780600FADEB2 /* Restaurant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186CD1812E8C780600FADEB2 /* Restaurant.swift */; };
 		186DDAF92E7EF5D20066CB9E /* SolidNavLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186DDAF82E7EF5D20066CB9E /* SolidNavLinkView.swift */; };
 		186DDAFB2E7F15AE0066CB9E /* OffersUserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186DDAFA2E7F15AE0066CB9E /* OffersUserView.swift */; };
 		186DDAFD2E7F18B10066CB9E /* OfferCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186DDAFC2E7F18B10066CB9E /* OfferCard.swift */; };
@@ -92,6 +93,7 @@
 		180C8F9A2E8C3B16009B691C /* VisitsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VisitsController.swift; path = SUMAQ/VisitsController.swift; sourceTree = SOURCE_ROOT; };
 		180C8F9C2E8C3B2E009B691C /* MapController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MapController.swift; path = SUMAQ/MapController.swift; sourceTree = SOURCE_ROOT; };
 		180C8F9E2E8C3B4F009B691C /* CrowdController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CrowdController.swift; path = SUMAQ/CrowdController.swift; sourceTree = SOURCE_ROOT; };
+		186CD1812E8C780600FADEB2 /* Restaurant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Restaurant.swift; path = SUMAQ/Restaurant.swift; sourceTree = SOURCE_ROOT; };
 		186DDAF82E7EF5D20066CB9E /* SolidNavLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolidNavLinkView.swift; sourceTree = "<group>"; };
 		186DDAFA2E7F15AE0066CB9E /* OffersUserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffersUserView.swift; sourceTree = "<group>"; };
 		186DDAFC2E7F18B10066CB9E /* OfferCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferCard.swift; sourceTree = "<group>"; };
@@ -294,6 +296,7 @@
 				661B0E412E84950400F155FC /* Register.swift */,
 				661B0E432E84954800F155FC /* UserTypeEnum.swift */,
 				661B0E452E84B5B800F155FC /* LogIn.swift */,
+				186CD1812E8C780600FADEB2 /* Restaurant.swift */,
 			);
 			path = model;
 			sourceTree = "<group>";
@@ -470,6 +473,7 @@
 				6612B9AD2E7E48CE00FFBBB0 /* RestaurantCard.swift in Sources */,
 				186DDAFB2E7F15AE0066CB9E /* OffersUserView.swift in Sources */,
 				186DDAFD2E7F18B10066CB9E /* OfferCard.swift in Sources */,
+				186CD1822E8C780600FADEB2 /* Restaurant.swift in Sources */,
 				661B0E402E84818C00F155FC /* TestFirestoreView.swift in Sources */,
 				180C8F9D2E8C3B2E009B691C /* MapController.swift in Sources */,
 				180C8F912E8C3ABA009B691C /* HomeController.swift in Sources */,
@@ -643,7 +647,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"SUMAQ/Preview Content\"";
-				DEVELOPMENT_TEAM = 5RZG4SM8XG;
+				DEVELOPMENT_TEAM = 3B2664J725;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

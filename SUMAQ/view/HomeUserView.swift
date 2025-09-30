@@ -4,21 +4,15 @@
 //
 //  Created by Gabriela  Escobar Rojas on 19/09/25.
 //
-//
-//  HomeUser.swift
-//  SUMAQ
-//
-//  Created by Gabriela  Escobar Rojas on 19/09/25.
-//
-
 import SwiftUI
 import MapKit
 
-// MARK: - Home (sin navegación)
 struct UserHomeView: View {
     @State private var searchText = ""
     @State private var selectedFilter: FilterOptionHomeUserView? = nil
     @State private var selectedTab = 0
+
+    @StateObject private var mapCtrl = MapController()
 
     var body: some View {
         ScrollView {
@@ -36,20 +30,21 @@ struct UserHomeView: View {
                         diameter:    44,
                         ringLineWidth: 2
                     )
-                    // options: [.withOffer, .withoutOffer] // <- (6) subset opcional
                 )
                 .padding(.horizontal, 16)
 
-                // Mapa OSM (zona Uniandes)
-                OSMMapView(center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                           span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
-                    .frame(height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding(.horizontal, 16)
+                // Mapa con OSM y pins del repo
+                OSMMapView(
+                    annotations: mapCtrl.annotations,
+                    center: mapCtrl.center ?? CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
+                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
+                    showsUserLocation: true
+                )
+                .frame(height: 240)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.horizontal, 16)
 
                 VStack(spacing: 14) {
-
-
                     NavigationLink {
                         DetailRestauFromUserView()
                     } label: {
@@ -62,14 +57,13 @@ struct UserHomeView: View {
                         )
                     }
                     .buttonStyle(.plain)
+
                     RestaurantCard(
                         name: "Chick & Chips",
                         category: "Chicken restaurant",
                         tag: "Offers Tag",
                         rating: 5.0,
                         image: Image("logo_chick")
-
-
                     )
                 }
                 .padding(.horizontal, 16)
@@ -77,6 +71,7 @@ struct UserHomeView: View {
             }
             .padding(.top, 8)
         }
+        .task { await mapCtrl.loadRestaurants() }   // carga repo + geocodifica si falta lat/lon
         .background(Color(.systemBackground).ignoresSafeArea())
     }
 }
