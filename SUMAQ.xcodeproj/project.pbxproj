@@ -179,9 +179,8 @@
 				49CA12222E7E256700939F90 /* model */,
 				49CA12212E7E255B00939F90 /* view */,
 				49CA12202E7E252F00939F90 /* control */,
-				18A77B192E7CC6C200032509 /* SUMAQApp.swift */,
 				18A77B1D2E7CC6C300032509 /* Assets.xcassets */,
-				664197022E8302540039DBF6 /* GoogleService-Info.plist */,
+				18A77B192E7CC6C200032509 /* SUMAQApp.swift */,
 				18A77B1F2E7CC6C300032509 /* Preview Content */,
 			);
 			path = SUMAQ;
@@ -254,6 +253,7 @@
 				664B19EC2E7F70B8001EBDC2 /* RestaurantDishCardGeneral.swift */,
 				4904E3A42E7F6543009B174F /* RestaurantOffersView.swift */,
 				4904E3A72E7F661F009B174F /* RestaurantReviewView.swift */,
+				664197022E8302540039DBF6 /* GoogleService-Info.plist */,
 			);
 			path = view;
 			sourceTree = "<group>";

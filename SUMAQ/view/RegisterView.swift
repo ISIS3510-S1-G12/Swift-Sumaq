@@ -15,13 +15,16 @@ struct RegisterView: View {
     @State private var profilePicture: String = ""
 
     // RESTAURANT
+    // RESTAURANT
     @State private var address: String = ""
     @State private var openingTime: String = ""
     @State private var closingTime: String = ""
-    @State private var location: String = ""
-    @State private var restaurantImage: String = ""
-    @State private var restaurantType: String = ""
+    @State private var restaurantImage: String = ""   // se mapea a imageUrl
+    @State private var restaurantType: String = ""    // se mapea a typeOfFood
     @State private var busiestHoursText: String = ""
+    @State private var offer: Bool = false
+    @State private var ratingText: String = ""
+
 
     // UI / navegación
     @State private var isLoading = false
@@ -68,9 +71,16 @@ struct RegisterView: View {
                                 LabeledField(title: "Address", text: $address, placeholder: "Calle 123 #45-67", keyboard: .default, labelColor: Palette.burgundy)
                                 LabeledField(title: "Opening time (HHmm int)", text: $openingTime, placeholder: "900", keyboard: .numberPad, labelColor: Palette.burgundy)
                                 LabeledField(title: "Closing time (HHmm int)", text: $closingTime, placeholder: "1900", keyboard: .numberPad, labelColor: Palette.burgundy)
-                                LabeledField(title: "Location", text: $location, placeholder: "Usaquén", keyboard: .default, labelColor: Palette.burgundy)
-                                LabeledField(title: "Restaurant image", text: $restaurantImage, placeholder: "url o id", keyboard: .default, labelColor: Palette.burgundy)
+                                LabeledField(title: "Restaurant image (URL)", text: $restaurantImage, placeholder: "url o id", keyboard: .default, labelColor: Palette.burgundy)
                                 LabeledField(title: "Restaurant type", text: $restaurantType, placeholder: "Fast Food", keyboard: .default, labelColor: Palette.burgundy)
+                                Toggle(isOn: $offer) {
+                                    Text("Has Offer")
+                                        .font(.custom("Montserrat-SemiBold", size: 16))
+                                        .foregroundColor(Palette.burgundy)
+                                }.tint(buttonColor)
+
+                                LabeledField(title: "Rating (0–5)", text: $ratingText, placeholder: "4.0", keyboard: .decimalPad, labelColor: Palette.burgundy)
+
                                 LabeledField(title: "Busiest hours (comma list hour:level)", text: $busiestHoursText, placeholder: "1200:High,1500:Medium", keyboard: .default, labelColor: Palette.burgundy)
                             }
                         }
@@ -120,19 +130,16 @@ struct RegisterView: View {
                 password: password,
                 name: name,
                 role: .user,
-                // restaurant
-                address: nil, openingTime: nil, closingTime: nil,
-                location: nil, restaurantImage: nil, restaurantType: nil, busiest_hours: nil,
-                // user
-                budget: Int(budget) ?? 0, diet: diet, profilePicture: profilePicture
+                // solo user
+                budget: Int(budget) ?? 0,
+                diet: diet,
+                profilePicture: profilePicture
             ) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
-                    case .success:
-                        goToLogin = true
-                    case .failure(let e):
-                        errorMsg = e.localizedDescription
+                    case .success: goToLogin = true
+                    case .failure(let e): errorMsg = e.localizedDescription
                     }
                 }
             }
@@ -140,35 +147,35 @@ struct RegisterView: View {
             let openInt = Int(openingTime) ?? 0
             let closeInt = Int(closingTime) ?? 0
             let busiest = parseBusiestHours(busiestHoursText)
+            let rating = Double(ratingText.replacingOccurrences(of: ",", with: ".")) ?? 0.0
 
             register(
                 email: email,
                 password: password,
                 name: name,
                 role: .restaurant,
-                // restaurant
+                // restaurant (mismos estados, solo mapeo a los nuevos params del register)
                 address: address,
                 openingTime: openInt,
                 closingTime: closeInt,
-                location: location,
-                restaurantImage: restaurantImage,
-                restaurantType: restaurantType,
-                busiest_hours: busiest,
-                // user
-                budget: nil, diet: nil, profilePicture: nil
+                imageUrl: restaurantImage,
+                typeOfFood: restaurantType,
+                offer: offer,
+                rating: rating,
+                busiest_hours: busiest
+                // user: nil por defecto
             ) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
-                    case .success:
-                        goToLogin = true
-                    case .failure(let e):
-                        errorMsg = e.localizedDescription
+                    case .success: goToLogin = true
+                    case .failure(let e): errorMsg = e.localizedDescription
                     }
                 }
             }
         }
     }
+
 
     // "1200:High,1500:Medium" -> ["1200":"High","1500":"Medium"]
     private func parseBusiestHours(_ raw: String) -> [String:String] {
