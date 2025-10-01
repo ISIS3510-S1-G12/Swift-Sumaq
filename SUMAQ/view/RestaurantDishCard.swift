@@ -5,11 +5,15 @@
 //  Created by RODRIGO PAZ LONDO�O on 20/09/25.
 //
 
+//
+//  RestaurantDishCard.swift
+//  SUMAQ
+//
+
 import SwiftUI
 
-
 struct StarsRow: View {
-    let rating: Int                     
+    let rating: Int
     let max: Int = 5
     var body: some View {
         HStack(spacing: 6) {
@@ -25,17 +29,14 @@ struct StarsRow: View {
     }
 }
 
-
 struct RestaurantDishCard: View {
     let title: String
     let subtitle: String
-    let imageName: String
+    let imageURL: String           // dataURL
     let rating: Int
-    var onEdit: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 0) {
-
             VStack(alignment: .leading, spacing: 8) {
                 StarsRow(rating: rating)
                 Text(title)
@@ -49,33 +50,17 @@ struct RestaurantDishCard: View {
             .frame(maxWidth: .infinity,
                    maxHeight: .infinity,
                    alignment: .leading)
-            .background((Palette.tealLight ?? Palette.teal.opacity(0.95))) // fallback
+            .background(Palette.tealLight)
 
-            ZStack(alignment: .topTrailing) {
-                Image(imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 140, height: 110)
-                    .clipped()
-
-                Button(action: onEdit) {
-                    Text("Edit")
-                        .font(.custom("Montserrat-SemiBold", size: 12))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Palette.teal)
-                        .clipShape(Capsule())
-                        .shadow(radius: 1, y: 1)
-                        .padding(6)
-                }
-                .buttonStyle(.plain)
-            }
+            // Imagen remota
+            RemoteImage(urlString: imageURL)
+                .frame(width: 140, height: 110)
+                .clipped()
         }
         .frame(height: 110)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .compositingGroup()                            // evita líneas de aliasing
+        .compositingGroup()
         .shadow(color: .black.opacity(0.08), radius: 8, y: 6)
         .padding(.horizontal, 4)
     }
