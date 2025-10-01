@@ -5,8 +5,10 @@
 //  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 //
 
+
 import SwiftUI
 import MapKit
+import FirebaseAuth
 
 struct RestaurantHomeView: View {
     // 0 = Menú, 1 = Offers, 2 = Review
@@ -17,7 +19,6 @@ struct RestaurantHomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    // Header
                     RestaurantTopBar(restaurantLogo: "logo_lucille", appLogo: "AppLogoUI",  showBack: true)
 
                     Text("Lucille")
@@ -25,16 +26,13 @@ struct RestaurantHomeView: View {
                         .foregroundColor(Palette.burgundy)
                         .padding(.horizontal, 16)
 
-                    // Segmented control
-                    RestaurantSegmentedTab(selectedIndex: $selectedTab) { _ in
-                        
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    RestaurantSegmentedTab(selectedIndex: $selectedTab) { _ in }
+                        .frame(maxWidth: .infinity, alignment: .center)
 
                     Group {
                         switch selectedTab {
                         case 0:
-                            MenuContent()
+                            MenuContent()         // ⬅️ actualizado
                         case 1:
                             OffersContent()
                         case 2:
@@ -52,8 +50,14 @@ struct RestaurantHomeView: View {
 }
 
 private struct MenuContent: View {
+    @State private var dishes: [Dish] = []
+    @State private var loading = true
+    @State private var error: String?
+    private let repo = DishesRepository()
+
     var body: some View {
         VStack(spacing: 16) {
+            // Mapa
             OSMMapView(
                 center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
                 span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
@@ -79,45 +83,57 @@ private struct MenuContent: View {
                 Spacer()
             }
 
-            VStack(spacing: 12) {
-                RestaurantDishCard(
-                    title: "Bacon Sandwich",
-                    subtitle: "Hamburger with a lot of bacon.",
-                    imageName: "offer_lucille",
-                    rating: 4
-                    
-                )
-                RestaurantDishCard(
-                    title: "BBQ Sandwich",
-                    subtitle: "Hamburger with a lot of BBQ.",
-                    imageName: "sandwich",
-                    rating: 4
-                )
+            // Lista de Dishes
+            if loading {
+                ProgressView().padding()
+            } else if let error {
+                Text(error).foregroundColor(.red).padding(.horizontal, 16)
+            } else if dishes.isEmpty {
+                Text("No dishes yet").foregroundColor(.secondary).padding()
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(dishes) { d in
+                        RestaurantDishCard(
+                            title: d.name,
+                            subtitle: d.description,
+                            imageURL: d.imageUrl,
+                            rating: d.rating
+                        )
+                    }
+                }
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
 
-            HStack(spacing: 12) {
-                NavigationLink { UploadMenuView() } label: {
+            // Único botón centrado — "New Dish"
+            HStack {
+                Spacer()
+                NavigationLink { NewDishView(onCreated: reload) } label: {
                     SmallCapsuleButton(
-                        title: "New Menu",
+                        title: "New Dish",                 // ⬅️ renombrado
                         background: Palette.orangeAlt,
                         textColor: .white
                     )
                 }
-
-                NavigationLink { EditMenuView() } label: {
-                    SmallCapsuleButton(
-                        title: "Edit Menu",
-                        background: Color.gray.opacity(0.6),
-                        textColor: .white
-                    )
-                }
+                Spacer()
             }
-            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
+        .task { await load() }
     }
+
+    private func load() async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        loading = true; error = nil
+        do {
+            dishes = try await repo.listForRestaurant(uid: uid)
+        } catch {
+            self.error = error.localizedDescription
+        }
+        loading = false
+    }
+
+    private func reload() { Task { await load() } }
 }
 
 private struct SmallCapsuleButton: View {
@@ -133,21 +149,5 @@ private struct SmallCapsuleButton: View {
             .background(background)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
-    }
-}
-
-struct NewMenuView: View {
-    var body: some View {
-        Text("New Menu")
-            .font(.title)
-            .padding()
-    }
-}
-
-struct EditMenuView: View {
-    var body: some View {
-        Text("Edit Menu")
-            .font(.title)
-            .padding()
     }
 }

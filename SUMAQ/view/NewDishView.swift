@@ -1,35 +1,37 @@
 //
-//  NewOfferView.swift
+//  NewDishView.swift
 //  SUMAQ
 //
+//  Created by Maria Alejandra Pinzon Roncancio on 30/09/25.
+//
+
 
 import SwiftUI
 import FirebaseAuth
 
-struct NewOfferView: View {
+struct NewDishView: View {
     var onCreated: (() -> Void)? = nil
 
-    @State private var title = ""
+    @State private var name = ""
     @State private var description = ""
-    @State private var discount = "0"
-    @State private var image = ""          // url o dataURL
-    @State private var tagsText = ""       // "big,cheap"
-    @State private var validFrom = Date()
-    @State private var validTo   = Calendar.current.date(byAdding: .day, value: 7, to: Date())!
+    @State private var price = ""
+    @State private var rating = "0"
+    @State private var imageUrl = ""          // URL
+    @State private var dishType = "main"
+    @State private var tagsText = ""          // cosas como "good, spicy"
 
     @State private var isSaving = false
     @State private var error: String?
 
-    private let repo = OffersRepository()
+    private let repo = DishesRepository()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
 
-                // BASICS
-                LabeledField(title: "Title",
-                             text: $title,
-                             placeholder: "Title",
+                LabeledField(title: "Name",
+                             text: $name,
+                             placeholder: "Dish name",
                              keyboard: .default,
                              autocap: .words,
                              labelColor: Palette.teal)
@@ -39,29 +41,35 @@ struct NewOfferView: View {
                                 placeholder: "Write the description here",
                                 labelColor: Palette.teal)
 
-                LabeledField(title: "Discount %",
-                             text: $discount,
-                             placeholder: "0",
+                LabeledField(title: "Price",
+                             text: $price,
+                             placeholder: "20000",
+                             keyboard: .decimalPad,
+                             labelColor: Palette.teal)
+
+                LabeledField(title: "Rating (0–5)",
+                             text: $rating,
+                             placeholder: "4",
                              keyboard: .numberPad,
                              labelColor: Palette.teal)
 
-                // MEDIA
                 LabeledField(title: "Image",
-                             text: $image,
+                             text: $imageUrl,
                              placeholder: "Image URL or data:image/...base64",
                              keyboard: .URL,
                              labelColor: Palette.teal)
 
-                // TAGS
-                LabeledField(title: "Tags",
-                             text: $tagsText,
-                             placeholder: "big, cheap",
+                LabeledField(title: "Dish Type",
+                             text: $dishType,
+                             placeholder: "main / side / drink ...",
                              keyboard: .default,
                              labelColor: Palette.teal)
 
-                // VALIDITY
-                LabeledDatePickerField(title: "Valid from", date: $validFrom, labelColor: Palette.teal)
-                LabeledDatePickerField(title: "Valid to",   date: $validTo,   labelColor: Palette.teal)
+                LabeledField(title: "Tags",
+                             text: $tagsText,
+                             placeholder: "good, spicy",
+                             keyboard: .default,
+                             labelColor: Palette.teal)
 
                 if let error {
                     Text(error)
@@ -78,7 +86,7 @@ struct NewOfferView: View {
                         .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .buttonStyle(PrimaryCapsuleButton(color: Palette.teal))
-                .disabled(isSaving || title.isEmpty || description.isEmpty || image.isEmpty)
+                .disabled(isSaving || name.isEmpty || description.isEmpty || imageUrl.isEmpty || price.isEmpty)
                 .padding(.top, 4)
             }
             .padding(.horizontal, 24)
@@ -86,7 +94,7 @@ struct NewOfferView: View {
             .padding(.bottom, 24)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
-        .navigationTitle("New Offer")
+        .navigationTitle("New Dish")
     }
 
     private func save() async {
@@ -95,13 +103,13 @@ struct NewOfferView: View {
         do {
             try await repo.create(
                 forRestaurantUid: uid,
-                title: title,
+                name: name,
                 description: description,
-                discountPercentage: Int(discount) ?? 0,
-                image: image,
-                tags: tagsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) },
-                validFrom: validFrom,
-                validTo: validTo
+                price: Double(price.replacingOccurrences(of: ",", with: ".")) ?? 0,
+                rating: Int(rating) ?? 0,
+                imageUrl: imageUrl,
+                dishType: dishType,
+                dishesTags: tagsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             )
             isSaving = false
             onCreated?()
@@ -111,8 +119,6 @@ struct NewOfferView: View {
         }
     }
 }
-
-// MARK: - UI helpers
 
 private struct LabeledTextArea: View {
     let title: String
@@ -144,28 +150,6 @@ private struct LabeledTextArea: View {
             }
             .background(Palette.grayLight)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        }
-    }
-}
-
-private struct LabeledDatePickerField: View {
-    let title: String
-    @Binding var date: Date
-    var labelColor: Color = Palette.teal
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.custom("Montserrat-SemiBold", size: 16))
-                .foregroundColor(labelColor)
-
-            DatePicker("", selection: $date, displayedComponents: [.date, .hourAndMinute])
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .padding(.horizontal, 12)
-                .background(Palette.grayLight)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 }
