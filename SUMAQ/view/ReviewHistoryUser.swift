@@ -8,11 +8,16 @@
 import SwiftUI
 import MapKit
 
-// MARK: - Review History (sin navegación)
 struct ReviewHistoryUserView: View {
+
+    let userId: String
+    let authorUsername: String
+
     @State private var searchText = ""
     @State private var selectedFilter: FilterOptionReviewHistoryView? = nil
     @State private var selectedTab = 3
+
+    @StateObject private var controller = ReviewsController()
 
     var body: some View {
         ScrollView {
@@ -20,64 +25,67 @@ struct ReviewHistoryUserView: View {
                 TopBar()
                 SegmentedTabs(selectedIndex: $selectedTab)
 
-
-                
                 FilterBar<FilterOptionReviewHistoryView>(
                     text: $searchText,
                     selectedFilter: $selectedFilter
                 )
                 .padding(.horizontal, 16)
-                
 
-                
                 VStack(spacing: 14) {
-                    ReviewCard(
-                        author: "rpl_03",
-                        restaurant: "Centro de Japon",
-                        rating: 5,
-                        comment: "Best meal ever"
-                    )
+                    ForEach(filteredReviews) { r in
+                        ReviewCard(
+                            author: r.authorUsername,
+                            restaurant: r.restaurantId,
+                            rating: r.rating,
+                            comment: r.comment
+                        )
+                    }
 
-                    ReviewCard(
-                        author: "rpl_03",
-                        restaurant: "Monserrat",
-                        rating: 3,
-                        comment: "Its fine"
-                    )
+                    if filteredReviews.isEmpty, !controller.isLoading {
+                        Text("No hay reseñas que coincidan.")
+                            .font(.custom("Montserrat-Regular", size: 14))
+                            .foregroundColor(Palette.grayDark)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                    }
 
-                    ReviewCard(
-                        author: "rpl_03",
-                        restaurant: "Cunks BBQ",
-                        rating: 4,
-                        comment: "I really like this"
-                    )
-
-                    ReviewCard(
-                        author: "rpl_03",
-                        restaurant: "Mulita",
-                        rating: 1,
-                        comment: "I will not buy this again"
-                    )
-
-                    ReviewCard(
-                        author: "rpl_03",
-                        restaurant: "Jack Daniels",
-                        rating: 5,
-                        comment: "I loved this hamburger so much"
-                    )
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
-
+                    if let err = controller.errorMessage {
+                        Text(err)
+                            .font(.custom("Montserrat-Regular", size: 13))
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
-            .padding(.top, 8)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
         }
-        
+        .padding(.top, 8)
+        .onAppear {
+            controller.startListeningUserReviews(userId: userId)
+        }
+        .onDisappear {
+            controller.stop()
+        }
     }
 
+    // filtro: arreglar despues
+    private var filteredReviews: [Review] {
+        let base = controller.reviews
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return base }
+        let q = searchText.lowercased()
+        return base.filter { r in
+            r.comment.lowercased().contains(q) ||
+            r.authorUsername.lowercased().contains(q) ||
+            r.restaurantId.lowercased().contains(q)
+        }
+    }
+}
 
-#Preview { ReviewHistoryUserView() }
-
+#Preview {
+    // Pasa el uid y username del usuario logueado
+    ReviewHistoryUserView(userId: "demo_user_uid", authorUsername: "rpl_03")
+}
