@@ -1,7 +1,8 @@
 import SwiftUI
-import FirebaseFirestore
 
 struct OffersUserView: View {
+    var embedded: Bool = false
+
     @State private var searchText = ""
     @State private var selectedFilter: FilterOptionOffersView? = nil
     @State private var selectedTab = 2
@@ -17,8 +18,10 @@ struct OffersUserView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                TopBar()
-                SegmentedTabs(selectedIndex: $selectedTab)
+                if !embedded {
+                    TopBar()
+                    SegmentedTabs(selectedIndex: $selectedTab)
+                }
 
                 SearchFilterChatBar(
                     text: $searchText,
@@ -37,7 +40,7 @@ struct OffersUserView: View {
                     // Secciones por restaurante
                     ForEach(groupedByRestaurant.keys.sorted(), id: \.self) { rid in
                         Group {
-                            SectionHeader(title: restaurantsById[rid]?.name ?? "Restaurant")
+                            OffersSectionHeader(title: restaurantsById[rid]?.name ?? "Restaurant")
                             VStack(spacing: 12) {
                                 ForEach(groupedByRestaurant[rid] ?? []) { off in
                                     OfferCard(
@@ -54,7 +57,7 @@ struct OffersUserView: View {
 
                 Spacer(minLength: 24)
             }
-            .padding(.top, 8)
+            .padding(.top, embedded ? 0 : 8)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
         .task { await load() }
@@ -80,7 +83,6 @@ struct OffersUserView: View {
         do {
             let offs = try await offersRepo.listAll()
             self.offers = offs
-            // Prepara diccionario de restaurantes para títulos
             let rests = try await restaurantsRepo.all()
             self.restaurantsById = Dictionary(uniqueKeysWithValues: rests.map { ($0.id, $0) })
         } catch {
@@ -90,7 +92,7 @@ struct OffersUserView: View {
     }
 }
 
-private struct SectionHeader: View {
+private struct OffersSectionHeader: View {
     let title: String
     var body: some View {
         Text(title)

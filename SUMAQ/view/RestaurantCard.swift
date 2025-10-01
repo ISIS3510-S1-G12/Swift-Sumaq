@@ -5,45 +5,38 @@ struct RestaurantCard: View {
     let category: String
     let tag: String
     let rating: Double
-    let image: Image
-
-    private let purple = Palette.purple
+    let imageURL: String       
+    var panelColor: Color = Palette.purpleLight
 
     var body: some View {
         HStack(spacing: 0) {
-            // Panel morado (texto + estrellas)
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 StarsView(rating: rating)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(name)
-                        .font(.custom("Montserrat-SemiBold", size: 18))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
+                Text(name)
+                    .font(.custom("Montserrat-SemiBold", size: 18))
+                    .foregroundColor(.white)
 
-                    Text(category)
-                        .font(.custom("Montserrat-Regular", size: 15))
-                        .foregroundStyle(.white.opacity(0.95))
-                        .lineLimit(1)
+                Text(category)
+                    .font(.custom("Montserrat-Regular", size: 14))
+                    .foregroundColor(.white.opacity(0.95))
 
+                if !tag.isEmpty {
                     Text(tag)
-                        .font(.custom("Montserrat-SemiBold", size: 14))
-                        .foregroundStyle(.white.opacity(0.9))
+                        .font(.custom("Montserrat-Regular", size: 12))
+                        .foregroundColor(.white.opacity(0.9))
                 }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(purple)
+            .background(panelColor)
 
-            // Imagen
-            image
-                .resizable()
-                .scaledToFill()
-                .frame(width: 160, height: 124)
+            RemoteImage(urlString: imageURL)
+                .frame(width: 140, height: 120)
                 .clipped()
                 .background(Color.white)
         }
-        .frame(height: 140) // ⬅️ igual que OfferCard
+        .frame(height: 128)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 8, y: 6)
     }
