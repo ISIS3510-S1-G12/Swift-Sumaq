@@ -134,3 +134,19 @@ private extension UsersRepository {
         return flat
     }
 }
+//  Perfil actual
+extension UsersRepository {
+    func getCurrentUser() async throws -> AppUser? {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
+        }
+        let snap = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
+            db.collection(coll).document(uid).getDocument { doc, err in
+                if let err { cont.resume(throwing: err) }
+                else if let doc { cont.resume(returning: doc) }
+                else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+            }
+        }
+        return AppUser(doc: snap)
+    }
+}

@@ -1,9 +1,10 @@
 import SwiftUI
-import Combine   //  .publisher de NotificationCenter
+import Combine
+import PhotosUI     // NUEVO
 
 struct RegisterView: View {
     let role: UserType
-    @StateObject private var controller = AuthController()   // Controller
+    @StateObject private var controller = AuthController()
 
     // AUTH / comunes
     @State private var name: String = ""
@@ -14,17 +15,21 @@ struct RegisterView: View {
     // USER
     @State private var budget: String = ""
     @State private var diet: String = ""
-    @State private var profilePicture: String = ""
+    // NUEVO: imagen de usuario
+    @State private var userPhotoItem: PhotosPickerItem?
+    @State private var userPhotoData: Data?
 
     // RESTAURANT
     @State private var address: String = ""
     @State private var openingTime: String = ""
     @State private var closingTime: String = ""
-    @State private var restaurantImage: String = ""  
     @State private var restaurantType: String = ""
     @State private var busiestHoursText: String = ""
     @State private var offer: Bool = false
     @State private var ratingText: String = ""
+    // NUEVO: imagen de restaurante
+    @State private var restPhotoItem: PhotosPickerItem?
+    @State private var restPhotoData: Data?
 
     private var accentColor: Color { role == .user ? Palette.purple : Palette.teal }
     private var buttonColor: Color { role == .user ? Palette.purple : Palette.teal }
@@ -58,14 +63,29 @@ struct RegisterView: View {
                             Group {
                                 LabeledField(title: "Budget (int)", text: $budget, placeholder: "25000", keyboard: .numberPad, labelColor: Palette.burgundy)
                                 LabeledField(title: "Diet", text: $diet, placeholder: "vegetarian", keyboard: .default, labelColor: Palette.burgundy)
-                                LabeledField(title: "Profile picture", text: $profilePicture, placeholder: "url o id", keyboard: .default, labelColor: Palette.burgundy)
+
+                                // ===== Imagen de perfil (usuario) =====
+                                ImagePickerRow(
+                                    title: "Profile picture",
+                                    buttonColor: buttonColor,
+                                    imageData: $userPhotoData,
+                                    item: $userPhotoItem
+                                )
                             }
                         } else {
                             Group {
                                 LabeledField(title: "Address", text: $address, placeholder: "Calle 123 #45-67", keyboard: .default, labelColor: Palette.burgundy)
                                 LabeledField(title: "Opening time (HHmm int)", text: $openingTime, placeholder: "900", keyboard: .numberPad, labelColor: Palette.burgundy)
                                 LabeledField(title: "Closing time (HHmm int)", text: $closingTime, placeholder: "1900", keyboard: .numberPad, labelColor: Palette.burgundy)
-                                LabeledField(title: "Restaurant image (URL)", text: $restaurantImage, placeholder: "url o id", keyboard: .default, labelColor: Palette.burgundy)
+
+                                // ===== Imagen principal (restaurante) =====
+                                ImagePickerRow(
+                                    title: "Restaurant image",
+                                    buttonColor: buttonColor,
+                                    imageData: $restPhotoData,
+                                    item: $restPhotoItem
+                                )
+
                                 LabeledField(title: "Restaurant type", text: $restaurantType, placeholder: "Fast Food", keyboard: .default, labelColor: Palette.burgundy)
 
                                 Toggle(isOn: $offer) {
@@ -112,7 +132,6 @@ struct RegisterView: View {
         }
         // OBSERVER: la vista se SUSCRIBE a los eventos del controller
         .onReceive(NotificationCenter.default.publisher(for: .authDidRegister)) { _ in
-            //  cambiar el estado
             controller.goToLogin = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .authDidFail)) { notif in
@@ -120,14 +139,23 @@ struct RegisterView: View {
                 controller.errorMsg = msg
             }
         }
+        // Carga del ítem seleccionado (usuario)
+        .onChange(of: userPhotoItem) { _, newItem in
+            loadPhotoData(from: newItem) { data in userPhotoData = data }
+        }
+        // Carga del ítem seleccionado (restaurante)
+        .onChange(of: restPhotoItem) { _, newItem in
+            loadPhotoData(from: newItem) { data in restPhotoData = data }
+        }
     }
 
     private func submit() {
         if role == .user {
             controller.registerUser(
                 name: name, email: email, password: password,
-                budget: Int(budget) ?? 0,
-                diet: diet, profilePicture: profilePicture
+                budget: Int(budget) ?? 0, diet: diet,
+                profilePicture: "",
+                profileImageData: userPhotoData       
             )
         } else {
             let openInt = Int(openingTime) ?? 0
@@ -138,8 +166,9 @@ struct RegisterView: View {
             controller.registerRestaurant(
                 name: name, email: email, password: password,
                 address: address, opening: openInt, closing: closeInt,
-                imageUrl: restaurantImage, typeOfFood: restaurantType,
-                offer: offer, rating: rating, busiest: busiest
+                imageUrl: "",                         // ya no usamos URL
+                typeOfFood: restaurantType, offer: offer, rating: rating, busiest: busiest,
+                restaurantImageData: restPhotoData    // NUEVO
             )
         }
     }
@@ -155,8 +184,67 @@ struct RegisterView: View {
         }
         return dict
     }
+
+    private func loadPhotoData(from item: PhotosPickerItem?, done: @escaping (Data?) -> Void) {
+        guard let item = item else { return done(nil) }
+        Task {
+            // intentamos JPEG/PNG de forma transparente
+            if let data = try? await item.loadTransferable(type: Data.self) {
+                done(data)
+            } else {
+                done(nil)
+            }
+        }
+    }
 }
 
+// ====== Componente reutilizable para el picker de imágenes ======
+private struct ImagePickerRow: View {
+    let title: String
+    let buttonColor: Color
+    @Binding var imageData: Data?
+    @Binding var item: PhotosPickerItem?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.custom("Montserrat-SemiBold", size: 16))
+                .foregroundColor(Palette.burgundy)
+
+            HStack(spacing: 12) {
+                if let data = imageData, let ui = UIImage(data: data) {
+                    Image(uiImage: ui)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.secondary.opacity(0.2)))
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Palette.grayLight)
+                        .frame(width: 64, height: 64)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        )
+                }
+
+                PhotosPicker(selection: $item, matching: .images) {
+                    Text(imageData == nil ? "Choose photo" : "Change photo")
+                        .font(.custom("Montserrat-SemiBold", size: 16))
+                        .foregroundColor(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(buttonColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
 
 
 // MARK: - Campos reutilizables

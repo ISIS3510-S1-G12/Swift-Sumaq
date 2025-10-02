@@ -26,6 +26,8 @@ struct UserRestaurantDetailView: View {
     @State private var markingFavorite = false
     @State private var isFavorite = false
     @State private var favoriteError: String?
+    
+    @State private var showPeople = false
 
     // Mapa
     @State private var centerCoord: CLLocationCoordinate2D =
@@ -92,12 +94,10 @@ struct UserRestaurantDetailView: View {
                     FilledActionButton(
                         title: "People",
                         system: "bolt.horizontal.circle.fill",
-                        background: Palette.purple,
-                        textColor: .white,
-                        isEnabled: true
-                    ) { /* acción futura */ }
-                }
-                .padding(.horizontal, 16)
+                        background: Palette.purple
+                        ) { showPeople = true }
+                                    }
+                    .padding(.horizontal, 16)
 
                 if let favoriteError {
                     Text(favoriteError)
@@ -115,21 +115,25 @@ struct UserRestaurantDetailView: View {
                 )
                 .padding(.horizontal, 16)
 
-                // DO A REVIEW (centrado)
-                HStack {
-                    Spacer()
-                    FilledActionButton(
-                        title: "Do a review",
-                        system: "square.and.pencil",
-                        background: Palette.burgundy,
-                        textColor: .white,
-                        isEnabled: true
-                    ) {
-                        // Navegar a pantalla de review cuando esté
+                // DO A REVIEW 
+                NavigationLink {
+                    AddReviewView(restaurant: restaurant)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.pencil")
+                        Text("Do a review")
+                            .font(.custom("Montserrat-SemiBold", size: 16))
                     }
-                    Spacer()
+                    .foregroundColor(.white)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                    .background(Palette.burgundy)
+                    .clipShape(Capsule())
+                    .shadow(radius: 2, y: 1)
                 }
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, 16)
+                .padding(.top, 6)
 
                 // Contenido por tab
                 Group {
