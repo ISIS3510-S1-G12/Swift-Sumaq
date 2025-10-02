@@ -4,14 +4,14 @@
 //
 //  Created by Gabriela  Escobar Rojas on 20/09/25.
 //
-//
+// No se usa este archivo actualmente
 
 import Foundation
 import SwiftUI
 import MapKit
 
 struct DetailRestauFromUserView: View {
-    @Environment(\.dismiss) private var dismiss      // <- para volver
+    @Environment(\.dismiss) private var dismiss
 
     @State private var selectedTab: Int = 0
     @State private var searchText: String = ""
@@ -23,7 +23,6 @@ struct DetailRestauFromUserView: View {
 
                     TopBar()
 
-                    // Título como botón de regreso
                     Button {
                         dismiss()
                     } label: {
@@ -36,8 +35,8 @@ struct DetailRestauFromUserView: View {
                         .foregroundColor(Palette.burgundy)
                         .padding(.horizontal, 16)
                     }
-                    .buttonStyle(.plain)                 // sin estilo azul por defecto
-                    .contentShape(Rectangle())           // área táctil completa
+                    .buttonStyle(.plain)                 
+                    .contentShape(Rectangle())
                     RestaurantDetsSegmentedTab(selectedIndex: $selectedTab)
                         .frame(maxWidth: .infinity, alignment: .center)
 

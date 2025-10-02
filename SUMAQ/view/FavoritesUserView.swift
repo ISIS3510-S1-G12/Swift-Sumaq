@@ -1,3 +1,8 @@
+//
+//  FavoritesUserView.swift
+//  SUMAQ
+//
+
 import SwiftUI
 
 struct FavoritesUserView: View {
@@ -6,6 +11,15 @@ struct FavoritesUserView: View {
     @State private var searchText = ""
     @State private var selectedFilter: FilterOptionFavoritesView? = nil
     @State private var selectedTab = 1
+
+    // Data
+    @State private var favoriteIds: [String] = []
+    @State private var restaurants: [Restaurant] = []
+    @State private var loading = true
+    @State private var error: String?
+
+    private let usersRepo = UsersRepository()
+    private let restaurantsRepo = RestaurantsRepository()
 
     var body: some View {
         ScrollView {
@@ -27,20 +41,63 @@ struct FavoritesUserView: View {
                 )
                 .padding(.horizontal, 16)
 
-                // Mocks (luego reemplazamos por favoritos reales)
-                VStack(spacing: 14) {
-                    RestaurantCard(name: "La Puerta", category: "Burgers restaurant", tag: "Offers", rating: 4.0, imageURL: "logo_puerta", panelColor: Palette.purpleLight)
-                    RestaurantCard(name: "Chick & Chips", category: "Chicken restaurant", tag: "Offers", rating: 5.0, imageURL: "logo_chick", panelColor: Palette.purpleLight)
-                    RestaurantCard(name: "Chicken Lovers", category: "Chicken restaurant", tag: "Offers", rating: 4.0, imageURL: "logo_chicken", panelColor: Palette.purpleLight)
-                    RestaurantCard(name: "Lucille", category: "Sandwich", tag: "Offers", rating: 4.0, imageURL: "logo_lucille", panelColor: Palette.purpleLight)
+                if loading {
+                    ProgressView().padding()
+                } else if let error {
+                    Text(error).foregroundColor(.red).padding(.horizontal, 16)
+                } else if filtered.isEmpty {
+                    Text("No favorites yet").foregroundColor(.secondary).padding()
+                } else {
+                    VStack(spacing: 14) {
+                        ForEach(filtered, id: \.id) { r in
+                            NavigationLink {
+                                UserRestaurantDetailView(restaurant: r)
+                            } label: {
+                                RestaurantCard(
+                                    name: r.name,
+                                    category: r.typeOfFood.isEmpty ? "Restaurant" : "\(r.typeOfFood) restaurant",
+                                    tag: r.offer ? "Offers" : "",
+                                    rating: r.rating,
+                                    imageURL: r.imageUrl ?? "",
+                                    panelColor: Palette.purpleLight
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
             }
             .padding(.top, embedded ? 0 : 8)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
+        .task { await loadFavorites() }
+        // Cuando cambie cualquier favorito en la app, refrescamos
+        .onReceive(NotificationCenter.default.publisher(for: .userFavoritesDidChange)) { _ in
+            Task { await loadFavorites() }
+        }
+    }
+
+    // MARK: Helpers
+    private var filtered: [Restaurant] {
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return restaurants }
+        return restaurants.filter { r in
+            r.name.lowercased().contains(q)
+            || r.typeOfFood.lowercased().contains(q)
+            || (r.address ?? "").lowercased().contains(q)
+        }
+    }
+
+    private func loadFavorites() async {
+        loading = true; error = nil
+        do {
+            favoriteIds = try await usersRepo.listFavoriteRestaurantIds()
+            restaurants = try await restaurantsRepo.getMany(ids: favoriteIds)
+        } catch {
+            self.error = error.localizedDescription
+        }
+        loading = false
     }
 }
-
-#Preview { FavoritesUserView() }

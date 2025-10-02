@@ -9,8 +9,8 @@ import SwiftUI
 // MARK: - Top bar (logo + avatar) + línea inferior
 struct TopBar: View {
     // Config rápida de la línea
-    private let lineColor: Color = Palette.burgundy   // cámbialo por Palette.purple / .orange, etc.
-    private let lineHeight: CGFloat = 1               // grosor de la línea
+    private let lineColor: Color = Palette.burgundy
+    private let lineHeight: CGFloat = 1
     private let sidePadding: CGFloat = 16
 
     var body: some View {
@@ -30,7 +30,6 @@ struct TopBar: View {
             }
             .padding(.horizontal, sidePadding)
 
-            // Línea inferior
             Rectangle()
                 .fill(lineColor)
                 .frame(height: lineHeight)

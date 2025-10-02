@@ -56,7 +56,9 @@ struct UserHomeView: View {
                 } else {
                     VStack(spacing: 14) {
                         ForEach(filtered, id: \.id) { r in
-                            NavigationLink { DetailRestauFromUserView() } label: {
+                            NavigationLink {
+                                UserRestaurantDetailView(restaurant: r)   
+                            } label: {
                                 RestaurantCard(
                                     name: r.name,
                                     category: r.typeOfFood.isEmpty ? "Restaurant" : "\(r.typeOfFood) restaurant",
@@ -65,7 +67,8 @@ struct UserHomeView: View {
                                     imageURL: r.imageUrl ?? "",
                                     panelColor: Palette.purpleLight
                                 )
-                            }.buttonStyle(.plain)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 16)

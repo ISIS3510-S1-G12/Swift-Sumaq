@@ -60,7 +60,7 @@ func register(
                 "diet": diet ?? "none",
                 "profile_picture": profilePicture ?? ""
             ]
-            base["favorite_restaurants"] = []
+            base["favorite_restaurants"] = [String: Any]()   // mapa vacío
         } else {
             // ----- RESTAURANTS -----
             base["address"]        = address ?? ""

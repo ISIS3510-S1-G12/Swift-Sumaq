@@ -18,7 +18,7 @@ struct UserRootView: View {
             Group {
                 switch selectedTab {
                 case 0:
-                    UserHomeView(embedded: true)          // ⬅️ ahora incrustadas
+                    UserHomeView(embedded: true)          
                 case 1:
                     FavoritesUserView(embedded: true)
                 case 2:

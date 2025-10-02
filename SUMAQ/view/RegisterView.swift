@@ -20,8 +20,8 @@ struct RegisterView: View {
     @State private var address: String = ""
     @State private var openingTime: String = ""
     @State private var closingTime: String = ""
-    @State private var restaurantImage: String = ""   // -> imageUrl
-    @State private var restaurantType: String = ""    // -> typeOfFood
+    @State private var restaurantImage: String = ""  
+    @State private var restaurantType: String = ""
     @State private var busiestHoursText: String = ""
     @State private var offer: Bool = false
     @State private var ratingText: String = ""
@@ -229,14 +229,4 @@ struct PrimaryCapsuleButton: ButtonStyle {
     }
 }
 
-//#Preview("Register – Usuario") {
-//    RegisterView(role: .user)
-//        .environment(\.colorScheme, .light)
-//        .previewDevice("iPhone 15 Pro")
-//}
-//
-//#Preview("Register – Restaurante") {
-//    RegisterView(role: .restaurant)
-//        .environment(\.colorScheme, .light)
-//        .previewDevice("iPhone 15 Pro")
-//}
+

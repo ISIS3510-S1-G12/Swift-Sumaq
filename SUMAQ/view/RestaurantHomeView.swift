@@ -32,7 +32,7 @@ struct RestaurantHomeView: View {
                     Group {
                         switch selectedTab {
                         case 0:
-                            MenuContent()         // ⬅️ actualizado
+                            MenuContent()
                         case 1:
                             OffersContent()
                         case 2:
@@ -57,14 +57,6 @@ private struct MenuContent: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Mapa
-            OSMMapView(
-                center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            )
-            .frame(height: 240)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(.horizontal, 16)
 
             HStack {
                 Spacer()
@@ -104,12 +96,11 @@ private struct MenuContent: View {
                 .padding(.horizontal, 16)
             }
 
-            // Único botón centrado — "New Dish"
             HStack {
                 Spacer()
                 NavigationLink { NewDishView(onCreated: reload) } label: {
                     SmallCapsuleButton(
-                        title: "New Dish",                 // ⬅️ renombrado
+                        title: "New Dish",
                         background: Palette.orangeAlt,
                         textColor: .white
                     )

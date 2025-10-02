@@ -1,10 +1,6 @@
 import Foundation
 
 // Eventos (notificaciones) que emite AuthController
-extension Notification.Name {
-    static let authDidRegister = Notification.Name("AuthDidRegister")
-    static let authDidFail     = Notification.Name("AuthDidFail")
-}
 
 final class AuthController: ObservableObject {
     @Published var isLoading = false
