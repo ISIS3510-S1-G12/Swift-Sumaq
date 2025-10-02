@@ -152,6 +152,7 @@
 		18A3DB532E8F0E2100BA59B7 /* AddReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddReviewView.swift; sourceTree = "<group>"; };
 		18A3DB552E8F11E000BA59B7 /* BluetoothConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BluetoothConstants.swift; path = SUMAQ/BluetoothConstants.swift; sourceTree = SOURCE_ROOT; };
 		18A3DB572E8F120600BA59B7 /* PeopleNearbyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeopleNearbyView.swift; sourceTree = "<group>"; };
+		18A3DB6D2E8F163A00BA59B7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		18A77B162E7CC6C200032509 /* SUMAQ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SUMAQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18A77B192E7CC6C200032509 /* SUMAQApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SUMAQApp.swift; sourceTree = "<group>"; };
 		18A77B1B2E7CC6C200032509 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -272,6 +273,7 @@
 		18A77B182E7CC6C200032509 /* SUMAQ */ = {
 			isa = PBXGroup;
 			children = (
+				18A3DB6D2E8F163A00BA59B7 /* Info.plist */,
 				180C8FB22E8C3EED009B691C /* repositories */,
 				49CA12222E7E256700939F90 /* model */,
 				49CA12212E7E255B00939F90 /* view */,
@@ -758,6 +760,9 @@
 				DEVELOPMENT_TEAM = 3B2664J725;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SUMAQ/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -787,6 +792,9 @@
 				DEVELOPMENT_TEAM = 3B2664J725;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SUMAQ/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

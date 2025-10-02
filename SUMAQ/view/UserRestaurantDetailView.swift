@@ -26,7 +26,8 @@ struct UserRestaurantDetailView: View {
     @State private var markingFavorite = false
     @State private var isFavorite = false
     @State private var favoriteError: String?
-    
+
+    // People Nearby
     @State private var showPeople = false
 
     // Mapa
@@ -95,9 +96,11 @@ struct UserRestaurantDetailView: View {
                         title: "People",
                         system: "bolt.horizontal.circle.fill",
                         background: Palette.purple
-                        ) { showPeople = true }
-                                    }
-                    .padding(.horizontal, 16)
+                    ) {
+                        showPeople = true
+                    }
+                }
+                .padding(.horizontal, 16)
 
                 if let favoriteError {
                     Text(favoriteError)
@@ -115,7 +118,7 @@ struct UserRestaurantDetailView: View {
                 )
                 .padding(.horizontal, 16)
 
-                // DO A REVIEW 
+                // DO A REVIEW
                 NavigationLink {
                     AddReviewView(restaurant: restaurant)
                 } label: {
@@ -155,6 +158,12 @@ struct UserRestaurantDetailView: View {
         }
         .background(Color(.systemBackground).ignoresSafeArea())
 
+        // PRESENTACIÓN DE PEOPLE NEARBY
+        .sheet(isPresented: $showPeople) {
+            // Ajusta el inicializador si tu PeopleNearbyView requiere otros parámetros
+            PeopleNearbyView(restaurantName: restaurant.name)
+        }
+
         // Inicializaciones
         .task { await prepareMapLocation() }
         .task { await loadMenu() }
@@ -167,6 +176,7 @@ struct UserRestaurantDetailView: View {
         }
     }
 }
+
 
 // MARK: - Acciones / Datos
 extension UserRestaurantDetailView {
