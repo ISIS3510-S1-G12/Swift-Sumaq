@@ -8,15 +8,15 @@
 import Foundation
 
 extension Notification.Name {
-    // Auth
-    static let authDidRegister        = Notification.Name("AuthDidRegister")
-    static let authDidFail            = Notification.Name("AuthDidFail")
-    static let authDidLogin           = Notification.Name("AuthDidLogin")
+    // AUTH (ya usados por tu RegisterView)
+    static let authDidRegister          = Notification.Name("authDidRegister")
+    static let authDidFail              = Notification.Name("authDidFail")
 
-    // Session
-    static let sessionUserDidChange   = Notification.Name("SessionUserDidChange")
+    // Sesión viva (observer de FirebaseAuth)
+    static let authStateDidChange       = Notification.Name("authStateDidChange")
+    static let authDidLogin             = Notification.Name("authDidLogin")
+    static let authDidLogout            = Notification.Name("authDidLogout")
 
-    // Users / favoritos
-    static let userFavoritesDidChange = Notification.Name("UserFavoritesDidChange")
+    // Favoritos del usuario actual cambiaron en Firestore
+    static let userFavoritesDidChange   = Notification.Name("userFavoritesDidChange")
 }
-

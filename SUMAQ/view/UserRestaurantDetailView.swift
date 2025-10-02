@@ -27,7 +27,7 @@ struct UserRestaurantDetailView: View {
     @State private var isFavorite = false
     @State private var favoriteError: String?
 
-    // Mapa / ubicación puntual
+    // Mapa
     @State private var centerCoord: CLLocationCoordinate2D =
         CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661)
     @State private var annotations: [MKPointAnnotation] = []
@@ -40,7 +40,7 @@ struct UserRestaurantDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
 
-                // Encabezado: buttom de back + nombre
+                // Header
                 HStack(spacing: 8) {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
@@ -55,11 +55,10 @@ struct UserRestaurantDetailView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
 
-                // Tabs
                 RestaurantSegmentedTab(selectedIndex: $selectedTab)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                // Mapa con un pin del restaurante
+                // Mapa
                 OSMMapView(
                     annotations: annotations,
                     center: centerCoord,
@@ -70,25 +69,33 @@ struct UserRestaurantDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal, 16)
 
-                // Pills de acciones
+                // Favorite | Remove as fav | People
                 HStack(spacing: 10) {
-                    ActionPill(
-                        title: isFavorite ? "Favorited" : "Mark as favorite",
-                        system: isFavorite ? "heart.circle.fill" : "heart.fill",
-                        color: Palette.purple
-                    ) {
-                        Task { await markFavorite() }
-                    }
-                    .opacity(markingFavorite ? 0.6 : 1)
-                    .disabled(markingFavorite)
+                    FilledActionButton(
+                        title: "Favorite",
+                        system: "heart.fill",
+                        background: Palette.purple,
+                        textColor: .white,
+                        isEnabled: !isFavorite && !markingFavorite,
+                        isLoading: markingFavorite && !isFavorite
+                    ) { Task { await addToFavorites() } }
 
-                    ActionPill(title: "Do a review",
-                               system: "square.and.pencil",
-                               color: Palette.burgundy) { }
+                    FilledActionButton(
+                        title: "Remove as fav",
+                        system: "heart.slash.fill",
+                        background: Palette.grayLight,
+                        textColor: Palette.burgundy,
+                        isEnabled: isFavorite && !markingFavorite,
+                        isLoading: markingFavorite && isFavorite
+                    ) { Task { await removeFromFavorites() } }
 
-                    ActionPill(title: "People",
-                               system: "bolt.horizontal.circle",
-                               color: Palette.purple) { }
+                    FilledActionButton(
+                        title: "People",
+                        system: "bolt.horizontal.circle.fill",
+                        background: Palette.purple,
+                        textColor: .white,
+                        isEnabled: true
+                    ) { /* acción futura */ }
                 }
                 .padding(.horizontal, 16)
 
@@ -99,7 +106,7 @@ struct UserRestaurantDetailView: View {
                         .padding(.horizontal, 16)
                 }
 
-                // Info del restaurante
+                // INFO
                 InfoRowsView(
                     address: restaurant.address ?? "No address",
                     opening: restaurant.opening_time,
@@ -108,23 +115,33 @@ struct UserRestaurantDetailView: View {
                 )
                 .padding(.horizontal, 16)
 
+                // DO A REVIEW (centrado)
+                HStack {
+                    Spacer()
+                    FilledActionButton(
+                        title: "Do a review",
+                        system: "square.and.pencil",
+                        background: Palette.burgundy,
+                        textColor: .white,
+                        isEnabled: true
+                    ) {
+                        // Navegar a pantalla de review cuando esté
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+
                 // Contenido por tab
                 Group {
                     switch selectedTab {
                     case 0:
-                        MenuTab(dishes: dishes,
-                                loading: loadingMenu,
-                                error: errorMenu)
+                        MenuTab(dishes: dishes, loading: loadingMenu, error: errorMenu)
                     case 1:
-                        OffersTab(offers: offers,
-                                  loading: loadingOffers,
-                                  error: errorOffers)
+                        OffersTab(offers: offers, loading: loadingOffers, error: errorOffers)
                     case 2:
                         ReviewsTab()
                     default:
-                        MenuTab(dishes: dishes,
-                                loading: loadingMenu,
-                                error: errorMenu)
+                        MenuTab(dishes: dishes, loading: loadingMenu, error: errorMenu)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -134,16 +151,50 @@ struct UserRestaurantDetailView: View {
         }
         .background(Color(.systemBackground).ignoresSafeArea())
 
-        // Cargas iniciales
+        // Inicializaciones
         .task { await prepareMapLocation() }
         .task { await loadMenu() }
         .task { await loadOffers() }
         .task { await loadFavoriteState() }
+
+        // Si favoritos cambian desde otra pantalla, actualizar
+        .onReceive(NotificationCenter.default.publisher(for: .userFavoritesDidChange)) { _ in
+            Task { await loadFavoriteState() }
+        }
     }
 }
 
 // MARK: - Acciones / Datos
 extension UserRestaurantDetailView {
+    private func loadFavoriteState() async {
+        do { isFavorite = try await usersRepo.isFavorite(restaurantId: restaurant.id) }
+        catch { favoriteError = error.localizedDescription }
+    }
+
+    private func addToFavorites() async {
+        guard !isFavorite else { return }
+        markingFavorite = true; favoriteError = nil
+        do {
+            try await usersRepo.addFavorite(restaurantId: restaurant.id)
+            isFavorite = true
+        } catch {
+            favoriteError = error.localizedDescription
+        }
+        markingFavorite = false
+    }
+
+    private func removeFromFavorites() async {
+        guard isFavorite else { return }
+        markingFavorite = true; favoriteError = nil
+        do {
+            try await usersRepo.removeFavorite(restaurantId: restaurant.id)
+            isFavorite = false
+        } catch {
+            favoriteError = error.localizedDescription
+        }
+        markingFavorite = false
+    }
+
     private func loadMenu() async {
         loadingMenu = true; errorMenu = nil
         do { dishes = try await dishesRepo.listForRestaurant(uid: restaurant.id) }
@@ -156,23 +207,6 @@ extension UserRestaurantDetailView {
         do { offers = try await offersRepo.listForRestaurant(uid: restaurant.id) }
         catch { errorOffers = error.localizedDescription }
         loadingOffers = false
-    }
-
-    private func loadFavoriteState() async {
-        do { isFavorite = try await usersRepo.isFavorite(restaurantId: restaurant.id) }
-        catch { favoriteError = error.localizedDescription }
-    }
-
-    private func markFavorite() async {
-        guard !isFavorite else { return }  // ya marcado
-        markingFavorite = true; favoriteError = nil
-        do {
-            try await usersRepo.addFavorite(restaurantId: restaurant.id)
-            isFavorite = true
-        } catch {
-            favoriteError = error.localizedDescription
-        }
-        markingFavorite = false
     }
 }
 
@@ -253,56 +287,58 @@ private struct InfoRow: View {
     }
 }
 
-private struct ActionPill: View {
+private struct FilledActionButton: View {
     let title: String
     let system: String
-    let color: Color
+    let background: Color
+    var textColor: Color = .white
+    var isEnabled: Bool = true
+    var isLoading: Bool = false
     var action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: system)
-                    .font(.system(size: 15, weight: .semibold))
+        Button(action: { if isEnabled && !isLoading { action() } }) {
+            HStack(spacing: 8) {
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .frame(height: 16)
+                } else {
+                    Image(systemName: system)
+                        .font(.system(size: 15, weight: .semibold))
+                }
                 Text(title)
                     .font(.custom("Montserrat-SemiBold", size: 13))
             }
-            .foregroundColor(color)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
+            .foregroundColor(textColor)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 40)
             .background(
-                Capsule()
-                    .fill(Color.white)
-                    .overlay(Capsule().stroke(color.opacity(0.25), lineWidth: 1))
+                Capsule().fill(background)
             )
-            .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+            .shadow(color: .black.opacity(0.08), radius: 8, y: 6)
+            .opacity(isEnabled ? 1.0 : 0.55)
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled || isLoading)
     }
 }
 
-// Tab Menú (usuario, morado)
+// Tabs
 private struct MenuTab: View {
     let dishes: [Dish]
     let loading: Bool
     let error: String?
-
     var body: some View {
         VStack(spacing: 12) {
-            if loading {
-                ProgressView().padding()
-            } else if let error {
-                Text(error).foregroundColor(.red)
-            } else if dishes.isEmpty {
-                Text("No dishes yet")
-                    .foregroundColor(.secondary)
-            } else {
+            if loading { ProgressView().padding() }
+            else if let error { Text(error).foregroundColor(.red) }
+            else if dishes.isEmpty { Text("No dishes yet").foregroundColor(.secondary) }
+            else {
                 ForEach(dishes) { d in
                     UserRestaurantDishCard(
-                        title: d.name,
-                        subtitle: d.description,
-                        imageURL: d.imageUrl,
-                        rating: d.rating
+                        title: d.name, subtitle: d.description, imageURL: d.imageUrl, rating: d.rating
                     )
                 }
             }
@@ -310,35 +346,24 @@ private struct MenuTab: View {
     }
 }
 
-// Tab Offers (reutiliza OfferCard)
 private struct OffersTab: View {
     let offers: [Offer]
     let loading: Bool
     let error: String?
-
     var body: some View {
         VStack(spacing: 12) {
-            if loading {
-                ProgressView().padding()
-            } else if let error {
-                Text(error).foregroundColor(.red)
-            } else if offers.isEmpty {
-                Text("No offers available")
-                    .foregroundColor(.secondary)
-            } else {
+            if loading { ProgressView().padding() }
+            else if let error { Text(error).foregroundColor(.red) }
+            else if offers.isEmpty { Text("No offers available").foregroundColor(.secondary) }
+            else {
                 ForEach(offers) { off in
-                    OfferCard(
-                        title: off.title,
-                        description: off.description,
-                        imageURL: off.image
-                    )
+                    OfferCard(title: off.title, description: off.description, imageURL: off.image)
                 }
             }
         }
     }
 }
 
-// Tab Reviews — placeholder
 private struct ReviewsTab: View {
     var body: some View {
         VStack(spacing: 12) {

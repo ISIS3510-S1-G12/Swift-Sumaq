@@ -12,7 +12,6 @@ final class UsersRepository {
     private let coll = "Users"
     private let favField = "favorite_restaurants"
 
-    // MARK: - Helpers
     private func currentUid() -> String? { Auth.auth().currentUser?.uid }
 
     // MARK: - Favorites
@@ -21,12 +20,16 @@ final class UsersRepository {
         guard let uid = currentUid() else {
             throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
         }
+        // mapa: favorite_restaurants.<id> = serverTimestamp
         let path = "\(favField).\(restaurantId)"
         let data: [String: Any] = [path: FieldValue.serverTimestamp()]
 
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             db.collection(coll).document(uid).setData(data, merge: true) { err in
-                if let err { cont.resume(throwing: err) } else { cont.resume(returning: ()) }
+                if let err { cont.resume(throwing: err) } else {
+                    NotificationCenter.default.post(name: .userFavoritesDidChange, object: nil)
+                    cont.resume(returning: ())
+                }
             }
         }
     }
@@ -35,13 +38,41 @@ final class UsersRepository {
         guard let uid = currentUid() else {
             throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
         }
-        let path = "\(favField).\(restaurantId)"
-        let data: [String: Any] = [path: FieldValue.delete()]
 
+        // 1) Intento estándar (campo anidado): favorite_restaurants.<id> = delete
+        let nestedPathKey = "\(favField).\(restaurantId)"
+        let nestedDelete: [String: Any] = [nestedPathKey: FieldValue.delete()]
+
+        // 2) Intento para el **formato aplanado** firebase db:
+        //    clave literal "favorite_restaurants.<id>" (un solo segmento) -> FieldPath con array de 1 elemento
+        let flatFieldPath = FieldPath([nestedPathKey])
+        let flatDelete: [AnyHashable: Any] = [flatFieldPath: FieldValue.delete()]
+
+        // si el primero no borra, el segundo lo hará.
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            db.collection(coll).document(uid).updateData(data) { err in
-                if let err { cont.resume(throwing: err) } else { cont.resume(returning: ()) }
+            let ref = db.collection(coll).document(uid)
+
+            ref.updateData(nestedDelete) { _ in
+                // independientemente del resultado, borrar el plano
+                ref.updateData(flatDelete) { err in
+                    if let err { cont.resume(throwing: err) } else {
+                        NotificationCenter.default.post(name: .userFavoritesDidChange, object: nil)
+                        cont.resume(returning: ())
+                    }
+                }
             }
+        }
+    }
+
+    /// nuevo estado (true si quedó favorito).
+    @discardableResult
+    func toggleFavorite(restaurantId: String) async throws -> Bool {
+        if try await isFavorite(restaurantId: restaurantId) {
+            try await removeFavorite(restaurantId: restaurantId)
+            return false
+        } else {
+            try await addFavorite(restaurantId: restaurantId)
+            return true
         }
     }
 
@@ -57,14 +88,10 @@ final class UsersRepository {
             }
         }
 
-        let data = snap.data() ?? [:]
-        if let map = data[favField] as? [String: Any] {
-            return map.keys.contains(restaurantId)
-        }
-        return false
+        let map = Self.parseFavoritesMap(from: snap.data() ?? [:], favField: favField)
+        return map.keys.contains(restaurantId)
     }
 
-    /// Lista de IDs de restaurantes favoritos, ordenada por `serverTimestamp` descendente
     func listFavoriteRestaurantIds() async throws -> [String] {
         guard let uid = currentUid() else {
             throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
@@ -77,15 +104,33 @@ final class UsersRepository {
             }
         }
 
-        let data = snap.data() ?? [:]
-        guard let rawMap = data[favField] as? [String: Any], !rawMap.isEmpty else { return [] }
+        let map = Self.parseFavoritesMap(from: snap.data() ?? [:], favField: favField)
+        guard !map.isEmpty else { return [] }
 
-        let pairs: [(String, Date)] = rawMap.compactMap { (key, val) in
-            if let ts = val as? Timestamp { return (key, ts.dateValue()) }
-            if let d  = val as? Date      { return (key, d) }
-            return (key, Date.distantPast)
+        return map.sorted { $0.value > $1.value }.map { $0.key }
+    }
+}
+
+// MARK: - para `favorite_restaurants`
+private extension UsersRepository {
+
+    static func parseFavoritesMap(from data: [String: Any], favField: String) -> [String: Date] {
+        // Caso 1: mapa anidado normal
+        if let map = data[favField] as? [String: Any] {
+            var out: [String: Date] = [:]
+            for (k, v) in map {
+                if let ts = v as? Timestamp { out[k] = ts.dateValue() }
+                else if let d = v as? Date { out[k] = d }
+            }
+            if !out.isEmpty { return out }
         }
-
-        return pairs.sorted { $0.1 > $1.1 }.map { $0.0 }
+        // Caso 2: aplanado "favorite_restaurants.<id>"
+        var flat: [String: Date] = [:]
+        for (k, v) in data where k.hasPrefix(favField + ".") {
+            let id = String(k.dropFirst(favField.count + 1))
+            if let ts = v as? Timestamp { flat[id] = ts.dateValue() }
+            else if let d = v as? Date { flat[id] = d }
+        }
+        return flat
     }
 }

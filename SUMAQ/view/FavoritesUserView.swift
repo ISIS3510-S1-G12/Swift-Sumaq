@@ -12,7 +12,6 @@ struct FavoritesUserView: View {
     @State private var selectedFilter: FilterOptionFavoritesView? = nil
     @State private var selectedTab = 1
 
-    // Data
     @State private var favoriteIds: [String] = []
     @State private var restaurants: [Restaurant] = []
     @State private var loading = true
@@ -21,16 +20,15 @@ struct FavoritesUserView: View {
     private let usersRepo = UsersRepository()
     private let restaurantsRepo = RestaurantsRepository()
 
+    @ObservedObject private var session = SessionController.shared
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 if !embedded {
                     TopBar()
                     SegmentedTabs(selectedIndex: $selectedTab)
-                    Rectangle()
-                        .fill(Palette.burgundy)
-                        .frame(height: 1)
-                        .padding(.horizontal, 16)
+                    Rectangle().fill(Palette.burgundy).frame(height: 1).padding(.horizontal, 16)
                 }
 
                 SearchFilterChatBar<FilterOptionFavoritesView>(
@@ -72,9 +70,13 @@ struct FavoritesUserView: View {
             .padding(.top, embedded ? 0 : 8)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
+        // Cargar al entrar
         .task { await loadFavorites() }
-        // Cuando cambie cualquier favorito en la app, refrescamos
+        // Refrescar cuando se cambien favoritos o cambie la sesión
         .onReceive(NotificationCenter.default.publisher(for: .userFavoritesDidChange)) { _ in
+            Task { await loadFavorites() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .authStateDidChange)) { _ in
             Task { await loadFavorites() }
         }
     }
@@ -93,6 +95,10 @@ struct FavoritesUserView: View {
     private func loadFavorites() async {
         loading = true; error = nil
         do {
+            // Si no es un "user" logeado, muestra vacío
+            guard session.isAuthenticated, session.role == .user else {
+                favoriteIds = []; restaurants = []; loading = false; return
+            }
             favoriteIds = try await usersRepo.listFavoriteRestaurantIds()
             restaurants = try await restaurantsRepo.getMany(ids: favoriteIds)
         } catch {

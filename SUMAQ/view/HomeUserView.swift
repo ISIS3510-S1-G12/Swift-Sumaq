@@ -1,3 +1,8 @@
+//
+//  UserHomeView.swift
+//  SUMAQ
+//
+
 import SwiftUI
 import MapKit
 
@@ -57,7 +62,7 @@ struct UserHomeView: View {
                     VStack(spacing: 14) {
                         ForEach(filtered, id: \.id) { r in
                             NavigationLink {
-                                UserRestaurantDetailView(restaurant: r)   
+                                UserRestaurantDetailView(restaurant: r)
                             } label: {
                                 RestaurantCard(
                                     name: r.name,
