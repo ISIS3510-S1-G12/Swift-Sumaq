@@ -1,3 +1,6 @@
+// ReviewHistoryUserView.swift
+// SUMAQ
+
 import SwiftUI
 
 struct ReviewHistoryUserView: View {
@@ -47,8 +50,9 @@ struct ReviewHistoryUserView: View {
                                 restaurant: rname,
                                 rating: r.stars,
                                 comment: r.comment,
-                                avatarURL: "",                       // si luego usas avatar
-                                reviewImageURL: r.imageURL           // NUEVO (opcional)
+                                avatarURL: "",
+                                reviewImageURL: r.imageURL,               // remoto si existe
+                                reviewLocalPath: r.imageLocalPath        // o local si no hay remoto
                             )
                         }
                     }
@@ -77,15 +81,12 @@ struct ReviewHistoryUserView: View {
     private func load() async {
         loading = true; error = nil
         do {
-            // nombre del usuario
             if let u = try await usersRepo.getCurrentUser() {
                 userName = u.name
             }
-            // reviews del usuario
             let items = try await reviewsRepo.listMyReviews()
             self.reviews = items
 
-            // traer nombres de restaurantes
             let ids = Array(Set(items.map { $0.restaurantId }))
             let rests = try await restaurantsRepo.getMany(ids: ids)
             self.restaurantsById = Dictionary(uniqueKeysWithValues: rests.map { ($0.id, $0) })
@@ -95,3 +96,4 @@ struct ReviewHistoryUserView: View {
         loading = false
     }
 }
+

@@ -3,7 +3,7 @@
 //  SUMAQ
 //
 //  Created by Maria Alejandra Pinzon Roncancio on 2/10/25.
-//
+
 
 import Foundation
 import FirebaseFirestore
@@ -15,6 +15,7 @@ struct Review: Identifiable {
     let stars: Int
     let comment: String
     let imageURL: String?
+    let imageLocalPath: String?
     let createdAt: Date?
 
     init?(doc: DocumentSnapshot) {
@@ -25,7 +26,6 @@ struct Review: Identifiable {
             let starsAny = d["stars"]
         else { return nil }
 
-        // stars puede venir como Int/Double/NSNumber
         let starsVal: Int
         if let i = starsAny as? Int { starsVal = i }
         else if let n = starsAny as? NSNumber { starsVal = n.intValue }
@@ -38,6 +38,7 @@ struct Review: Identifiable {
         self.stars        = starsVal
         self.comment      = (d["comment"] as? String) ?? ""
         self.imageURL     = d["imageURL"] as? String
+        self.imageLocalPath = d["image_local_path"] as? String
         if let ts = d["createdAt"] as? Timestamp { self.createdAt = ts.dateValue() }
         else { self.createdAt = nil }
     }

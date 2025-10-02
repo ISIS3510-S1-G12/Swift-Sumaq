@@ -19,6 +19,8 @@
 		186CD1822E8C780600FADEB2 /* Restaurant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186CD1812E8C780600FADEB2 /* Restaurant.swift */; };
 		186CD19E2E8C8C9900FADEB2 /* Offer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186CD19D2E8C8C9900FADEB2 /* Offer.swift */; };
 		186CD1A32E8C8DC500FADEB2 /* NewOfferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186CD1A22E8C8DBD00FADEB2 /* NewOfferView.swift */; };
+		186D611F2E8F36D000F02DC8 /* CamaraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186D611E2E8F36B100F02DC8 /* CamaraPicker.swift */; };
+		186D61212E8F36F000F02DC8 /* LocalFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186D61202E8F36E900F02DC8 /* LocalFileStore.swift */; };
 		186DDAF92E7EF5D20066CB9E /* SolidNavLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186DDAF82E7EF5D20066CB9E /* SolidNavLinkView.swift */; };
 		186DDAFB2E7F15AE0066CB9E /* OffersUserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186DDAFA2E7F15AE0066CB9E /* OffersUserView.swift */; };
 		186DDAFD2E7F18B10066CB9E /* OfferCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186DDAFC2E7F18B10066CB9E /* OfferCard.swift */; };
@@ -133,6 +135,8 @@
 		186CD1812E8C780600FADEB2 /* Restaurant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Restaurant.swift; path = SUMAQ/Restaurant.swift; sourceTree = SOURCE_ROOT; };
 		186CD19D2E8C8C9900FADEB2 /* Offer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Offer.swift; path = SUMAQ/Offer.swift; sourceTree = SOURCE_ROOT; };
 		186CD1A22E8C8DBD00FADEB2 /* NewOfferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewOfferView.swift; sourceTree = "<group>"; };
+		186D611E2E8F36B100F02DC8 /* CamaraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CamaraPicker.swift; sourceTree = "<group>"; };
+		186D61202E8F36E900F02DC8 /* LocalFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFileStore.swift; sourceTree = "<group>"; };
 		186DDAF82E7EF5D20066CB9E /* SolidNavLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolidNavLinkView.swift; sourceTree = "<group>"; };
 		186DDAFA2E7F15AE0066CB9E /* OffersUserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffersUserView.swift; sourceTree = "<group>"; };
 		186DDAFC2E7F18B10066CB9E /* OfferCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferCard.swift; sourceTree = "<group>"; };
@@ -329,6 +333,8 @@
 		49CA12212E7E255B00939F90 /* view */ = {
 			isa = PBXGroup;
 			children = (
+				186D61202E8F36E900F02DC8 /* LocalFileStore.swift */,
+				186D611E2E8F36B100F02DC8 /* CamaraPicker.swift */,
 				18A3DB572E8F120600BA59B7 /* PeopleNearbyView.swift */,
 				18A3DB532E8F0E2100BA59B7 /* AddReviewView.swift */,
 				18A3DB1B2E8EE09E00BA59B7 /* RootView.swift */,
@@ -581,6 +587,7 @@
 				186DDAFB2E7F15AE0066CB9E /* OffersUserView.swift in Sources */,
 				186DDAFD2E7F18B10066CB9E /* OfferCard.swift in Sources */,
 				186CD1822E8C780600FADEB2 /* Restaurant.swift in Sources */,
+				186D61212E8F36F000F02DC8 /* LocalFileStore.swift in Sources */,
 				18A3DB182E8EDDCE00BA59B7 /* SessionController.swift in Sources */,
 				661B0E402E84818C00F155FC /* TestFirestoreView.swift in Sources */,
 				180C8F9D2E8C3B2E009B691C /* MapController.swift in Sources */,
@@ -593,6 +600,7 @@
 				495F6CEC2E7F23AE00A3A0FE /* RestaurantDishCard.swift in Sources */,
 				4904E3A52E7F6543009B174F /* RestaurantOffersView.swift in Sources */,
 				66F30B702E7F57AA005EADC7 /* ReviewCard.swift in Sources */,
+				186D611F2E8F36D000F02DC8 /* CamaraPicker.swift in Sources */,
 				180C8F9F2E8C3B4F009B691C /* CrowdController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

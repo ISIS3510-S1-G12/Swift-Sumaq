@@ -4,6 +4,8 @@
 //
 //  Created by Maria Alejandra Pinzon Roncancio on 30/09/25.
 //
+// ReviewsRepository.swift
+// SUMAQ
 
 import Foundation
 import FirebaseAuth
@@ -25,6 +27,7 @@ final class ReviewsRepository {
         let uid = try currentUid()
 
         let ref = db.collection(coll).document()
+
         var payload: [String: Any] = [
             "user_id": uid,
             "restaurant_id": restaurantId,
@@ -34,6 +37,18 @@ final class ReviewsRepository {
         ]
 
         if let data = imageData, !data.isEmpty {
+            do {
+                let localURL = try LocalFileStore.shared.save(
+                    data: data,
+                    fileName: "\(ref.documentID).jpg",
+                    subfolder: "reviews/\(uid)"
+                )
+                payload["image_local_path"] = localURL.path
+            } catch {
+                print("Local save error: \(error)")
+            }
+
+            //  Subir a Storage y escribir downloadURL
             let path = "reviews/\(uid)/\(ref.documentID).jpg"
             let urlString = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<String, Error>) in
                 StorageService.shared.uploadImageData(data, to: path, contentType: "image/jpeg") { res in
@@ -58,7 +73,6 @@ final class ReviewsRepository {
         }
     }
 
-    /// Lista todas las reviews del usuario logueado (ordenadas por fecha desc).
     func listMyReviews() async throws -> [Review] {
         let uid = try currentUid()
         let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
@@ -75,7 +89,6 @@ final class ReviewsRepository {
         return items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
     }
 
-    /// Reviews por restaurante.
     func listForRestaurant(_ restaurantId: String) async throws -> [Review] {
         let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
             db.collection(coll)
