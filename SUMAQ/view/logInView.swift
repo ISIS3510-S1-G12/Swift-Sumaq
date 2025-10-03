@@ -60,11 +60,11 @@ struct LoginView: View {
                         .padding(.horizontal, 32)
                         .multilineTextAlignment(.center)
                 }
-
-                // Navegación programática
-                NavigationLink(destination: UserHomeView(),
+                
+                NavigationLink(destination: UserRootView(),
                                isActive: $goToUserHome) { EmptyView() }
                     .hidden()
+
 
                 NavigationLink(destination: RestaurantHomeView(),
                                isActive: $goToRestaurantHome) { EmptyView() }

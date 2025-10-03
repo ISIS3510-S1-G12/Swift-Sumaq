@@ -1,59 +1,92 @@
-//
-//  ReviewCard.swift
-//  SUMAQ
-//
-//  Created by Gabriela  Escobar Rojas on 20/09/25.
-//
+// ReviewCard.swift
+// SUMAQ
+
 import SwiftUI
+import UIKit
 
 struct ReviewCard: View {
     let author: String
     let restaurant: String
-    let rating: Double
+    let rating: Int
     let comment: String
+    var avatarURL: String = ""
+
+    var reviewImageURL: String? = nil
+    var reviewLocalPath: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
 
-            // Encabezado: autor - restaurante  +  estrellas
-            HStack(alignment: .firstTextBaseline) {
-                HStack(spacing: 0) {
+            avatarView
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
                     Text(author)
-                        .font(.custom("Monserrat-Semibold", size:14, relativeTo: .headline))
-                        .foregroundStyle(.primary)
-
-                    Text(" - ")
-                        .font(.custom("Monserrat-Semibold", size:14, relativeTo: .headline))
-                        .foregroundStyle(.primary)
-
-                    Text(restaurant)
-                        .font(.custom("Monserrat-Semibold", size:14, relativeTo: .headline))
-                        .foregroundStyle(Palette.purple)
-                        .underline(true, color: Palette.purple)
+                        .font(.custom("Montserrat-SemiBold", size: 15))
+                        .foregroundColor(Palette.burgundy)
+                    Spacer(minLength: 8)
+                    StarsRow(rating: rating)
                 }
 
-                Spacer(minLength: 8)
+                Text(restaurant)
+                    .font(.custom("Montserrat-SemiBold", size: 14))
+                    .foregroundColor(.primary)
 
-                StarsView(
-                    rating: rating
-                )
+                reviewPhotoSection
+
+                Text(comment)
+                    .font(.custom("Montserrat-Regular", size: 14))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            // Comentario
-            Text(comment)
-                .font(.custom("Monserrat-Semibold", size:18, relativeTo: .headline))
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
+        .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.white)
+                .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Palette.grayLight, lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
+    }
+
+    // MARK: - Foto persona
+    @ViewBuilder
+    private var avatarView: some View {
+        let trimmed = avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            Image(systemName: "person.circle.fill")
+                .resizable()
+                .scaledToFit()
+                .foregroundColor(Palette.burgundy.opacity(0.85))
+        } else if trimmed.hasPrefix("http") || trimmed.hasPrefix("data:image") {
+            RemoteImage(urlString: trimmed).scaledToFill()
+        } else {
+            Image(trimmed).resizable().scaledToFill()
+        }
+    }
+
+    // MARK: - Foto de la review
+    //  si no hay foto, el ViewBuilder devuelve contenido vacío.
+    @ViewBuilder
+    private var reviewPhotoSection: some View {
+        if let url = reviewImageURL, !url.isEmpty {
+            RemoteImage(urlString: url)
+                .scaledToFill()
+                .frame(height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .clipped()
+                .padding(.vertical, 6)
+        } else if let path = reviewLocalPath, !path.isEmpty, let ui = UIImage(contentsOfFile: path) {
+            Image(uiImage: ui)
+                .resizable()
+                .scaledToFill()
+                .frame(height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .clipped()
+                .padding(.vertical, 6)
+        }
     }
 }

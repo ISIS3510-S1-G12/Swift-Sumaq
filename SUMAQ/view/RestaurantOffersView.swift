@@ -17,7 +17,6 @@ struct OffersContent: View {
     var body: some View {
         VStack(spacing: 16) {
 
-            // Search bar naranja
             HStack {
                 Spacer()
                 SearchBar(text: $searchText, color: Palette.orangeAlt)
@@ -46,7 +45,6 @@ struct OffersContent: View {
                 .padding(.horizontal, 16)
             }
 
-            // new offer botón centrado
             HStack {
                 Spacer()
                 NavigationLink { NewOfferView(onCreated: reload) } label: {

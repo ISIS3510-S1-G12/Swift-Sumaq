@@ -4,18 +4,26 @@
 //
 //  Created by Gabriela  Escobar Rojas on 19/09/25.
 //
+
 import SwiftUI
 
-// MARK: - Top bar (logo + avatar) + línea inferior
+// MARK: - Top bar (logo + nombre de sesión + avatar) + línea inferior
 struct TopBar: View {
-    // Config rápida de la línea
-    private let lineColor: Color = Palette.burgundy   // cámbialo por Palette.purple / .orange, etc.
-    private let lineHeight: CGFloat = 1               // grosor de la línea
+    private let lineColor: Color = Palette.burgundy
+    private let lineHeight: CGFloat = 1
     private let sidePadding: CGFloat = 16
+
+    @ObservedObject private var session = SessionController.shared
+
+    private var displayName: String {
+        if let n = session.currentUser?.name, !n.isEmpty { return n }
+        return "Mi sesión"
+    }
 
     var body: some View {
         VStack(spacing: 8) {
             HStack {
+                // Logo app
                 Image("AppLogoUI")
                     .resizable()
                     .scaledToFit()
@@ -24,13 +32,20 @@ struct TopBar: View {
 
                 Spacer()
 
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 36))
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    Text(displayName)
+                        .font(.custom("Montserrat-SemiBold", size: 16))
+                        .foregroundColor(Palette.burgundy)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(.horizontal, sidePadding)
 
-            // Línea inferior
             Rectangle()
                 .fill(lineColor)
                 .frame(height: lineHeight)

@@ -2,87 +2,56 @@
 //  Offer.swift
 //  SUMAQ
 //
-//  Created by Maria Alejandra Pinzon Roncancio on 30/09/25.
-//
-
-//
-//  Offer.swift
-//  SUMAQ
-//
 
 import Foundation
 import FirebaseFirestore
 
-struct Offer: Identifiable, Hashable {
+struct Offer: Identifiable {
     let id: String
     let title: String
     let description: String
-    let discountPercentage: Int
     let image: String
-    let restaurantPath: String       // por ej: "/Restaurants/<uid>"
     let tags: [String]
+    let discountPercentage: Int
+    let restaurantId: String            
     let validFrom: Date?
     let validTo: Date?
     let createdAt: Date?
 
-    var restaurantId: String {
-        // de "/Restaurants/<uid>" extrae "<uid>"
-        if let last = restaurantPath.split(separator: "/").last { return String(last) }
-        return restaurantPath
-    }
-
-    var isActiveNow: Bool {
-        let now = Date()
-        if let from = validFrom, now < from { return false }
-        if let to = validTo, now > to { return false }
-        return true
-    }
-}
-
-extension Offer {
     init?(doc: DocumentSnapshot) {
         let d = doc.data() ?? [:]
+
         guard
             let title = d["title"] as? String,
-            let description = d["description"] as? String,
-            let image = d["image"] as? String,
-            let restaurantPath = d["restaurant_id"] as? String
+            let desc  = d["description"] as? String,
+            let image = d["image"] as? String
         else { return nil }
-
-        // discount puede ser int o double
-        var discount = 0
-        if let i = d["discount_percentage"] as? Int { discount = i }
-        else if let n = d["discount_percentage"] as? NSNumber { discount = n.intValue }
-
-        func tsToDate(_ any: Any?) -> Date? {
-            if let t = any as? Timestamp { return t.dateValue() }
-            if let d = any as? Date { return d }
-            return nil
-        }
 
         self.id = doc.documentID
         self.title = title
-        self.description = description
-        self.discountPercentage = discount
+        self.description = desc
         self.image = image
-        self.restaurantPath = restaurantPath
         self.tags = d["tags"] as? [String] ?? []
-        self.validFrom = tsToDate(d["valid_from"])
-        self.validTo   = tsToDate(d["valid_to"])
-        self.createdAt = tsToDate(d["createdAt"])
+
+        if let p = d["discount_percentage"] as? Int {
+            self.discountPercentage = p
+        } else if let p = d["discount_percentage"] as? NSNumber {
+            self.discountPercentage = p.intValue
+        } else {
+            self.discountPercentage = 0
+        }
+
+        let rawRid = (d["restaurant_id"] as? String) ?? (d["restaurantId"] as? String) ?? ""
+        self.restaurantId = Offer.normalizeRestaurantId(rawRid)
+
+        if let ts = d["valid_from"] as? Timestamp { self.validFrom = ts.dateValue() } else { self.validFrom = nil }
+        if let ts = d["valid_to"]   as? Timestamp { self.validTo   = ts.dateValue() } else { self.validTo   = nil }
+        if let ts = d["createdAt"]  as? Timestamp { self.createdAt = ts.dateValue() } else { self.createdAt = nil }
     }
 
-    var asFirestore: [String: Any] {
-        [
-            "title": title,
-            "description": description,
-            "discount_percentage": discountPercentage,
-            "image": image,
-            "restaurant_id": restaurantPath,
-            "tags": tags,
-            "valid_from": validFrom.map { Timestamp(date: $0) } as Any,
-            "valid_to": validTo.map { Timestamp(date: $0) } as Any,
-            "createdAt": createdAt.map { Timestamp(date: $0) } ?? FieldValue.serverTimestamp()
-        ]
+    private static func normalizeRestaurantId(_ v: String) -> String {
+        guard !v.isEmpty else { return "" }
+        if let last = v.split(separator: "/").last { return String(last) }
+        return v
     }
 }

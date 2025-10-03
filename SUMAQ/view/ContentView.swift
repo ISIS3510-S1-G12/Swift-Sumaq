@@ -26,6 +26,7 @@ struct ContentView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
         }
+        .task { _ = SessionController.shared }
     }
 }
 

@@ -5,7 +5,6 @@
 //  Created by Gabriela  Escobar Rojas on 19/09/25.
 //
 
-// Estrellas (soporta medios puntos)
 import SwiftUI
 struct StarsView: View {
     let rating: Double // 0...5

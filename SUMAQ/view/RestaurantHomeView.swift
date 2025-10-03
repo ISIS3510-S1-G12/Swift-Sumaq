@@ -5,7 +5,6 @@
 //  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 //
 
-
 import SwiftUI
 import MapKit
 import FirebaseAuth
@@ -14,14 +13,30 @@ struct RestaurantHomeView: View {
     // 0 = Menú, 1 = Offers, 2 = Review
     @State private var selectedTab: Int = 0
 
+    // sesión
+    @ObservedObject private var session = SessionController.shared
+    @State private var showAccount = false
+    @State private var goToChoice = false
+
+    private var displayName: String {
+        session.currentRestaurant?.name ?? "My restaurant"
+    }
+    private var avatarURL: String? {
+        session.currentRestaurant?.imageUrl
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    RestaurantTopBar(restaurantLogo: "logo_lucille", appLogo: "AppLogoUI",  showBack: true)
+                    RestaurantTopBar(
+                        name: displayName,
+                        imageURL: avatarURL,
+                        onAvatarTap: { showAccount = true }
+                    )
 
-                    Text("Lucille")
+                    Text(displayName)
                         .font(.custom("Montserrat-SemiBold", size: 22))
                         .foregroundColor(Palette.burgundy)
                         .padding(.horizontal, 16)
@@ -32,7 +47,7 @@ struct RestaurantHomeView: View {
                     Group {
                         switch selectedTab {
                         case 0:
-                            MenuContent()         // ⬅️ actualizado
+                            MenuContent()
                         case 1:
                             OffersContent()
                         case 2:
@@ -45,9 +60,29 @@ struct RestaurantHomeView: View {
                 .padding(.top, 8)
             }
             .background(Color.white.ignoresSafeArea())
+            // Hoja de cuenta
+            .sheet(isPresented: $showAccount) {
+                RestaurantAccountSheet {
+                    // al cerrar sesión, navegar a Choice
+                    goToChoice = true
+                }
+            }
+            // Al detectar logout por otros medios, también navega
+            .onReceive(NotificationCenter.default.publisher(for: .authDidLogout)) { _ in
+                goToChoice = true
+            }
+            // Enlace a Choice
+            .background(
+                NavigationLink(
+                    destination: ChoiceUserView(),
+                    isActive: $goToChoice
+                ) { EmptyView() }
+                .hidden()
+            )
         }
     }
 }
+
 
 private struct MenuContent: View {
     @State private var dishes: [Dish] = []
@@ -57,14 +92,6 @@ private struct MenuContent: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Mapa
-            OSMMapView(
-                center: CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            )
-            .frame(height: 240)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(.horizontal, 16)
 
             HStack {
                 Spacer()
@@ -83,7 +110,6 @@ private struct MenuContent: View {
                 Spacer()
             }
 
-            // Lista de Dishes
             if loading {
                 ProgressView().padding()
             } else if let error {
@@ -104,12 +130,11 @@ private struct MenuContent: View {
                 .padding(.horizontal, 16)
             }
 
-            // Único botón centrado — "New Dish"
             HStack {
                 Spacer()
                 NavigationLink { NewDishView(onCreated: reload) } label: {
                     SmallCapsuleButton(
-                        title: "New Dish",                 // ⬅️ renombrado
+                        title: "New Dish",
                         background: Palette.orangeAlt,
                         textColor: .white
                     )

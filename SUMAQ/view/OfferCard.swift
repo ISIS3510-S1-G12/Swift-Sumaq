@@ -9,7 +9,6 @@ struct OfferCard: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Panel de color (configurable)
             VStack(alignment: .leading, spacing: 10) {
                 Text(title)
                     .font(.custom("Montserrat-SemiBold", size: 18))
@@ -46,7 +45,6 @@ struct OfferCard: View {
     }
 }
 
-// Cargador simple de imagen 
 struct RemoteImage: View {
     let urlString: String
     var body: some View {

@@ -14,9 +14,11 @@ final class MapController: ObservableObject {
         self.repo = repo
     }
 
-    /// Carga rrestaurantes y generar pins geocodificando con address.
+    /// Carga restaurantes y genera pins geocodificando con address.
     @MainActor
     func loadRestaurants() async {
+        let t0 = Date() // ANALYTICS: medir tiempo de carga de pins
+
         do {
             let list = try await repo.all()
 
@@ -37,7 +39,7 @@ final class MapController: ObservableObject {
                     a.subtitle = r.typeOfFood
                     pins.append(a)
 
-                    // Esto evita throttling de CLGeocoder cuando hay muchas direcciones
+                    // Evita throttling de CLGeocoder cuando hay muchas direcciones
                     try? await Task.sleep(nanoseconds: 150_000_000) // 0.15s
                 }
             }
@@ -45,6 +47,11 @@ final class MapController: ObservableObject {
             self.annotations = pins
             // Uniandes por defecto
             self.center = firstCoord ?? CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661)
+
+            // ANALYTICS: cuantos pins y cuánto tardó
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            AnalyticsService.shared.log(EventName.mapPinsLoaded, ["count": pins.count, "load_ms": ms])
+
         } catch {
             self.errorMsg = error.localizedDescription
         }
@@ -55,8 +62,7 @@ final class MapController: ObservableObject {
         try await withCheckedThrowingContinuation { cont in
             geocoder.geocodeAddressString(address) { placemarks, error in
                 if let error {
-                    cont.resume(throwing: error)
-                    return
+                    cont.resume(throwing: error); return
                 }
                 cont.resume(returning: placemarks?.first?.location?.coordinate)
             }

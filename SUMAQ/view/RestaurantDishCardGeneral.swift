@@ -16,7 +16,6 @@ struct RestaurantDishCardGeneral: View {
     var body: some View {
         HStack(spacing: 0) {
 
-            // Panel de texto y estrellas
             VStack(alignment: .leading, spacing: 8) {
                 StarsView(rating: rating)
                 Text(title)
@@ -30,7 +29,6 @@ struct RestaurantDishCardGeneral: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.purple)
 
-            // Imagen (sin botón)
             Image(imageName)
                 .resizable()
                 .scaledToFill()

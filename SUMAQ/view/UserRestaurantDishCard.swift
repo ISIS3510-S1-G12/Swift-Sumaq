@@ -1,37 +1,21 @@
 //
-//  RestaurantDishCard.swift
+//  UserRestaurantDishCard.swift
 //  SUMAQ
 //
-//  Created by RODRIGO PAZ LONDO�O on 20/09/25.
+//  Created by Maria Alejandra Pinzon Roncancio on 2/10/25.
 //
 
 import SwiftUI
 
-struct StarsRow: View {
-    let rating: Int
-    let max: Int = 5
-    var body: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<max, id: \.self) { i in
-                Image(systemName: i < rating ? "star.fill" : "star")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .opacity(i < rating ? 1 : 0.85)
-            }
-        }
-        .accessibilityLabel("Rating")
-        .accessibilityValue("\(rating) of \(max) stars")
-    }
-}
-
-struct RestaurantDishCard: View {
+struct UserRestaurantDishCard: View {
     let title: String
     let subtitle: String
-    let imageURL: String           // dataURL
+    let imageURL: String
     let rating: Int
 
     var body: some View {
         HStack(spacing: 0) {
+            // Panel morado (user)
             VStack(alignment: .leading, spacing: 8) {
                 StarsRow(rating: rating)
                 Text(title)
@@ -40,17 +24,17 @@ struct RestaurantDishCard: View {
                 Text(subtitle)
                     .font(.custom("Montserrat-Regular", size: 13))
                     .foregroundColor(.white.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(14)
-            .frame(maxWidth: .infinity,
-                   maxHeight: .infinity,
-                   alignment: .leading)
-            .background(Palette.tealLight)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Palette.purpleLight)
 
-  
+            // Imagen
             RemoteImage(urlString: imageURL)
                 .frame(width: 140, height: 110)
                 .clipped()
+                .background(Color.white)
         }
         .frame(height: 110)
         .background(Color.white)

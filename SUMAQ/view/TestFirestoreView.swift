@@ -35,12 +35,11 @@ struct TestFirestoreView: View {
             ]
         ]
 
-        // Guardar en la colección "Users"
         db.collection("Users").addDocument(data: nuevoUsuario) { error in
             if let error = error {
-                print("❌ Error al registrar usuario: \(error.localizedDescription)")
+                print("Error al registrar usuario: \(error.localizedDescription)")
             } else {
-                print("✅ Usuario de prueba agregado correctamente")
+                print("Usuario de prueba agregado correctamente")
             }
         }
         
