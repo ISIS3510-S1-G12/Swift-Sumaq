@@ -71,6 +71,13 @@
 		18A877932E8CACBB005A883F /* NewDishView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A877922E8CACA9005A883F /* NewDishView.swift */; };
 		18A8779F2E8CB9EE005A883F /* UserSegmentedTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A8779E2E8CB9DD005A883F /* UserSegmentedTab.swift */; };
 		18A877A12E8CBA15005A883F /* UserRootTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A877A02E8CBA11005A883F /* UserRootTab.swift */; };
+		18D6B63D2E8F3B56005CA8CC /* AnalyticsEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D6B63C2E8F3B55005CA8CC /* AnalyticsEvents.swift */; };
+		18D6B63F2E8F3CA3005CA8CC /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D6B63E2E8F3CA3005CA8CC /* AnalyticsService.swift */; };
+		18D6B6412E8F3CE5005CA8CC /* SessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D6B6402E8F3CE5005CA8CC /* SessionTracker.swift */; };
+		18D6B6432E8F3D05005CA8CC /* ScreenTrackerModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D6B6422E8F3CF9005CA8CC /* ScreenTrackerModifier.swift */; };
+		18D6B6452E8F3FE1005CA8CC /* LocationPermissionLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D6B6442E8F3FE1005CA8CC /* LocationPermissionLogger.swift */; };
+		18D6B6472E8F45CD005CA8CC /* RestaurantAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D6B6462E8F45C6005CA8CC /* RestaurantAccountSheet.swift */; };
+		18D6B6492E8F47C4005CA8CC /* AppRestaurant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D6B6482E8F47C4005CA8CC /* AppRestaurant.swift */; };
 		4904E3A52E7F6543009B174F /* RestaurantOffersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4904E3A42E7F6543009B174F /* RestaurantOffersView.swift */; };
 		4904E3A82E7F661F009B174F /* RestaurantReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4904E3A72E7F661F009B174F /* RestaurantReviewView.swift */; };
 		495F6CE62E7F129E00A3A0FE /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 495F6CE52E7F129E00A3A0FE /* LoginView.swift */; };
@@ -171,6 +178,13 @@
 		18A877922E8CACA9005A883F /* NewDishView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewDishView.swift; sourceTree = "<group>"; };
 		18A8779E2E8CB9DD005A883F /* UserSegmentedTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSegmentedTab.swift; sourceTree = "<group>"; };
 		18A877A02E8CBA11005A883F /* UserRootTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserRootTab.swift; sourceTree = "<group>"; };
+		18D6B63C2E8F3B55005CA8CC /* AnalyticsEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AnalyticsEvents.swift; path = SUMAQ/AnalyticsEvents.swift; sourceTree = SOURCE_ROOT; };
+		18D6B63E2E8F3CA3005CA8CC /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AnalyticsService.swift; path = SUMAQ/AnalyticsService.swift; sourceTree = SOURCE_ROOT; };
+		18D6B6402E8F3CE5005CA8CC /* SessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SessionTracker.swift; path = SUMAQ/SessionTracker.swift; sourceTree = SOURCE_ROOT; };
+		18D6B6422E8F3CF9005CA8CC /* ScreenTrackerModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTrackerModifier.swift; sourceTree = "<group>"; };
+		18D6B6442E8F3FE1005CA8CC /* LocationPermissionLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionLogger.swift; sourceTree = "<group>"; };
+		18D6B6462E8F45C6005CA8CC /* RestaurantAccountSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantAccountSheet.swift; sourceTree = "<group>"; };
+		18D6B6482E8F47C4005CA8CC /* AppRestaurant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppRestaurant.swift; path = SUMAQ/AppRestaurant.swift; sourceTree = SOURCE_ROOT; };
 		4904E3A42E7F6543009B174F /* RestaurantOffersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantOffersView.swift; sourceTree = "<group>"; };
 		4904E3A72E7F661F009B174F /* RestaurantReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantReviewView.swift; sourceTree = "<group>"; };
 		495F6CE52E7F129E00A3A0FE /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -326,6 +340,7 @@
 				180C8F9C2E8C3B2E009B691C /* MapController.swift */,
 				180C8F9E2E8C3B4F009B691C /* CrowdController.swift */,
 				18A3DB172E8EDDCE00BA59B7 /* SessionController.swift */,
+				18D6B6402E8F3CE5005CA8CC /* SessionTracker.swift */,
 			);
 			path = control;
 			sourceTree = "<group>";
@@ -333,6 +348,9 @@
 		49CA12212E7E255B00939F90 /* view */ = {
 			isa = PBXGroup;
 			children = (
+				18D6B6462E8F45C6005CA8CC /* RestaurantAccountSheet.swift */,
+				18D6B6442E8F3FE1005CA8CC /* LocationPermissionLogger.swift */,
+				18D6B6422E8F3CF9005CA8CC /* ScreenTrackerModifier.swift */,
 				186D61202E8F36E900F02DC8 /* LocalFileStore.swift */,
 				186D611E2E8F36B100F02DC8 /* CamaraPicker.swift */,
 				18A3DB572E8F120600BA59B7 /* PeopleNearbyView.swift */,
@@ -396,6 +414,9 @@
 				18A3DB1D2E8EF5F100BA59B7 /* StorageService.swift */,
 				18A3DB512E8F0D2500BA59B7 /* Review.swift */,
 				18A3DB552E8F11E000BA59B7 /* BluetoothConstants.swift */,
+				18D6B63C2E8F3B55005CA8CC /* AnalyticsEvents.swift */,
+				18D6B63E2E8F3CA3005CA8CC /* AnalyticsService.swift */,
+				18D6B6482E8F47C4005CA8CC /* AppRestaurant.swift */,
 			);
 			path = model;
 			sourceTree = "<group>";
@@ -539,12 +560,16 @@
 			files = (
 				186CD1A32E8C8DC500FADEB2 /* NewOfferView.swift in Sources */,
 				495F6CEE2E7F24AB00A3A0FE /* RestaurantHomeView.swift in Sources */,
+				18D6B6452E8F3FE1005CA8CC /* LocationPermissionLogger.swift in Sources */,
+				18D6B63F2E8F3CA3005CA8CC /* AnalyticsService.swift in Sources */,
 				6612B9A72E7E475900FFBBB0 /* TopBar.swift in Sources */,
 				18A77B1C2E7CC6C200032509 /* ContentView.swift in Sources */,
+				18D6B6472E8F45CD005CA8CC /* RestaurantAccountSheet.swift in Sources */,
 				18A877A12E8CBA15005A883F /* UserRootTab.swift in Sources */,
 				18944F6A2E7EE674003A92FD /* RegisterView.swift in Sources */,
 				661B0E422E84950400F155FC /* Register.swift in Sources */,
 				18A8779F2E8CB9EE005A883F /* UserSegmentedTab.swift in Sources */,
+				18D6B63D2E8F3B56005CA8CC /* AnalyticsEvents.swift in Sources */,
 				495F6CE62E7F129E00A3A0FE /* LoginView.swift in Sources */,
 				495F6CEA2E7F217800A3A0FE /* RestaurantTopBar.swift in Sources */,
 				180C8F952E8C3ADD009B691C /* OffersController.swift in Sources */,
@@ -578,6 +603,7 @@
 				18A3DB542E8F0E3200BA59B7 /* AddReviewView.swift in Sources */,
 				18A77B1A2E7CC6C200032509 /* SUMAQApp.swift in Sources */,
 				18A8778E2E8CAC26005A883F /* Dish.swift in Sources */,
+				18D6B6432E8F3D05005CA8CC /* ScreenTrackerModifier.swift in Sources */,
 				6612B9B12E7E497700FFBBB0 /* OSMMarkView.swift in Sources */,
 				18A3DB582E8F120E00BA59B7 /* PeopleNearbyView.swift in Sources */,
 				180C8F932E8C3ACB009B691C /* FavoritesController.swift in Sources */,
@@ -586,6 +612,7 @@
 				6612B9AD2E7E48CE00FFBBB0 /* RestaurantCard.swift in Sources */,
 				186DDAFB2E7F15AE0066CB9E /* OffersUserView.swift in Sources */,
 				186DDAFD2E7F18B10066CB9E /* OfferCard.swift in Sources */,
+				18D6B6492E8F47C4005CA8CC /* AppRestaurant.swift in Sources */,
 				186CD1822E8C780600FADEB2 /* Restaurant.swift in Sources */,
 				186D61212E8F36F000F02DC8 /* LocalFileStore.swift in Sources */,
 				18A3DB182E8EDDCE00BA59B7 /* SessionController.swift in Sources */,
@@ -594,6 +621,7 @@
 				180C8F912E8C3ABA009B691C /* HomeController.swift in Sources */,
 				664B19EB2E7F6C15001EBDC2 /* RestaurantDetsSegmentedTab.swift in Sources */,
 				18A3DB142E8EC9CE00BA59B7 /* UserRestaurantDishCard.swift in Sources */,
+				18D6B6412E8F3CE5005CA8CC /* SessionTracker.swift in Sources */,
 				6612B9A52E7E44F300FFBBB0 /* HomeUserView.swift in Sources */,
 				661B0E442E84954800F155FC /* UserTypeEnum.swift in Sources */,
 				18A3DB522E8F0D2500BA59B7 /* Review.swift in Sources */,

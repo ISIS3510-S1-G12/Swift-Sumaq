@@ -52,7 +52,6 @@ struct ReviewHistoryUserView: View {
                                 comment: r.comment,
                                 avatarURL: "",
                                 reviewImageURL: r.imageURL,               // remoto si existe
-                                reviewLocalPath: r.imageLocalPath        // o local si no hay remoto
                             )
                         }
                     }

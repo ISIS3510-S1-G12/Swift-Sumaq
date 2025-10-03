@@ -15,7 +15,6 @@ struct Review: Identifiable {
     let stars: Int
     let comment: String
     let imageURL: String?
-    let imageLocalPath: String?
     let createdAt: Date?
 
     init?(doc: DocumentSnapshot) {
@@ -38,7 +37,6 @@ struct Review: Identifiable {
         self.stars        = starsVal
         self.comment      = (d["comment"] as? String) ?? ""
         self.imageURL     = d["imageURL"] as? String
-        self.imageLocalPath = d["image_local_path"] as? String
         if let ts = d["createdAt"] as? Timestamp { self.createdAt = ts.dateValue() }
         else { self.createdAt = nil }
     }

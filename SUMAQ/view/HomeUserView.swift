@@ -1,8 +1,3 @@
-//
-//  UserHomeView.swift
-//  SUMAQ
-//
-
 import SwiftUI
 import MapKit
 
@@ -27,12 +22,25 @@ struct UserHomeView: View {
                 if !embedded {
                     TopBar()
                     SegmentedTabs(selectedIndex: $selectedTab)
+                        // ANALYTICS: tab seleccionada
+                        .onChange(of: selectedTab) { newValue in
+                            let name: String
+                            switch newValue {
+                            case 0: name = "Home"
+                            case 1: name = "Favorites"
+                            case 2: name = "Offers"
+                            case 3: name = "ReviewHistory"
+                            default: name = "Unknown"
+                            }
+                            AnalyticsService.shared.log(EventName.tabSelect,
+                                                        ["screen": ScreenName.home, "tab": name])
+                        }
                 }
 
                 SearchFilterChatBar<FilterOptionHomeUserView>(
                     text: $searchText,
                     selectedFilter: $selectedFilter,
-                    onChatTap: { },
+                    onChatTap: { /* (chatbot vendrá luego) */ },
                     config: .init(
                         searchColor: Palette.orange,
                         ringColor:   Palette.orange,
@@ -74,6 +82,14 @@ struct UserHomeView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            // ANALYTICS: apertura de restaurante desde Home (lista/mapa)
+                            .simultaneousGesture(TapGesture().onEnded {
+                                AnalyticsService.shared.log(EventName.restaurantOpen, [
+                                    "source": "home_list",
+                                    "restaurant_id": r.id,
+                                    "restaurant_name": r.name
+                                ])
+                            })
                         }
                     }
                     .padding(.horizontal, 16)
@@ -82,6 +98,16 @@ struct UserHomeView: View {
             }
             .padding(.top, embedded ? 0 : 8)
         }
+        // ANALYTICS: inicio/fin de pantalla Home
+        .onAppear {
+            AnalyticsService.shared.screenStart(ScreenName.home)
+            // Empezar a observar el permiso de ubicación (no pide permiso).
+            LocationPermissionLogger.shared.startObserving()
+        }
+        .onDisappear {
+            AnalyticsService.shared.screenEnd(ScreenName.home)
+        }
+
         .task { await mapCtrl.loadRestaurants() }
         .task { await loadRestaurants() }
         .background(Color(.systemBackground).ignoresSafeArea())

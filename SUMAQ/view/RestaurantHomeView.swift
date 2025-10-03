@@ -5,7 +5,6 @@
 //  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 //
 
-
 import SwiftUI
 import MapKit
 import FirebaseAuth
@@ -14,14 +13,30 @@ struct RestaurantHomeView: View {
     // 0 = Menú, 1 = Offers, 2 = Review
     @State private var selectedTab: Int = 0
 
+    // sesión
+    @ObservedObject private var session = SessionController.shared
+    @State private var showAccount = false
+    @State private var goToChoice = false
+
+    private var displayName: String {
+        session.currentRestaurant?.name ?? "My restaurant"
+    }
+    private var avatarURL: String? {
+        session.currentRestaurant?.imageUrl
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    RestaurantTopBar(restaurantLogo: "logo_lucille", appLogo: "AppLogoUI",  showBack: true)
+                    RestaurantTopBar(
+                        name: displayName,
+                        imageURL: avatarURL,
+                        onAvatarTap: { showAccount = true }
+                    )
 
-                    Text("Lucille")
+                    Text(displayName)
                         .font(.custom("Montserrat-SemiBold", size: 22))
                         .foregroundColor(Palette.burgundy)
                         .padding(.horizontal, 16)
@@ -45,9 +60,29 @@ struct RestaurantHomeView: View {
                 .padding(.top, 8)
             }
             .background(Color.white.ignoresSafeArea())
+            // Hoja de cuenta
+            .sheet(isPresented: $showAccount) {
+                RestaurantAccountSheet {
+                    // al cerrar sesión, navegar a Choice
+                    goToChoice = true
+                }
+            }
+            // Al detectar logout por otros medios, también navega
+            .onReceive(NotificationCenter.default.publisher(for: .authDidLogout)) { _ in
+                goToChoice = true
+            }
+            // Enlace a Choice
+            .background(
+                NavigationLink(
+                    destination: ChoiceUserView(),
+                    isActive: $goToChoice
+                ) { EmptyView() }
+                .hidden()
+            )
         }
     }
 }
+
 
 private struct MenuContent: View {
     @State private var dishes: [Dish] = []
@@ -75,7 +110,6 @@ private struct MenuContent: View {
                 Spacer()
             }
 
-            // Lista de Dishes
             if loading {
                 ProgressView().padding()
             } else if let error {

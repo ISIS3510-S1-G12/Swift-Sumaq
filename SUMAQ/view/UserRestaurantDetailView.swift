@@ -1,8 +1,3 @@
-//
-//  UserRestaurantDetailView.swift
-//  SUMAQ
-//
-
 import SwiftUI
 import MapKit
 import CoreLocation
@@ -97,6 +92,7 @@ struct UserRestaurantDetailView: View {
                         system: "bolt.horizontal.circle.fill",
                         background: Palette.purple
                     ) {
+                        AnalyticsService.shared.log(EventName.peopleTapped, ["screen": ScreenName.restaurantDetail])
                         showPeople = true
                     }
                 }
@@ -134,6 +130,12 @@ struct UserRestaurantDetailView: View {
                     .clipShape(Capsule())
                     .shadow(radius: 2, y: 1)
                 }
+                .simultaneousGesture(TapGesture().onEnded {
+                    AnalyticsService.shared.log(EventName.reviewTap, [
+                        "screen": ScreenName.restaurantDetail,
+                        "restaurant_id": restaurant.id
+                    ])
+                })
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, 16)
                 .padding(.top, 6)
@@ -160,7 +162,6 @@ struct UserRestaurantDetailView: View {
 
         // PRESENTACIÓN DE PEOPLE NEARBY
         .sheet(isPresented: $showPeople) {
-            // Ajusta el inicializador si tu PeopleNearbyView requiere otros parámetros
             PeopleNearbyView(restaurantName: restaurant.name)
         }
 
@@ -174,9 +175,20 @@ struct UserRestaurantDetailView: View {
         .onReceive(NotificationCenter.default.publisher(for: .userFavoritesDidChange)) { _ in
             Task { await loadFavoriteState() }
         }
+
+        // ANALYTICS: tiempo de pantalla + evento de visita (para lealtad)
+        .onAppear {
+            AnalyticsService.shared.screenStart(ScreenName.restaurantDetail)
+            AnalyticsService.shared.log(EventName.restaurantVisit, [
+                "restaurant_id": restaurant.id,
+                "restaurant_name": restaurant.name
+            ])
+        }
+        .onDisappear {
+            AnalyticsService.shared.screenEnd(ScreenName.restaurantDetail)
+        }
     }
 }
-
 
 // MARK: - Acciones / Datos
 extension UserRestaurantDetailView {
@@ -191,6 +203,7 @@ extension UserRestaurantDetailView {
         do {
             try await usersRepo.addFavorite(restaurantId: restaurant.id)
             isFavorite = true
+            AnalyticsService.shared.log(EventName.favoriteAdd, ["restaurant_id": restaurant.id])
         } catch {
             favoriteError = error.localizedDescription
         }
@@ -203,6 +216,7 @@ extension UserRestaurantDetailView {
         do {
             try await usersRepo.removeFavorite(restaurantId: restaurant.id)
             isFavorite = false
+            AnalyticsService.shared.log(EventName.favoriteRemove, ["restaurant_id": restaurant.id])
         } catch {
             favoriteError = error.localizedDescription
         }
@@ -257,7 +271,7 @@ extension UserRestaurantDetailView {
     }
 }
 
-// MARK: - Subvistas
+// MARK: - Subvistas (sin cambios funcionales)
 private struct InfoRowsView: View {
     let address: String
     let opening: Int?
@@ -328,9 +342,7 @@ private struct FilledActionButton: View {
             .padding(.vertical, 10)
             .padding(.horizontal, 14)
             .frame(minHeight: 40)
-            .background(
-                Capsule().fill(background)
-            )
+            .background(Capsule().fill(background))
             .shadow(color: .black.opacity(0.08), radius: 8, y: 6)
             .opacity(isEnabled ? 1.0 : 0.55)
         }
@@ -339,7 +351,7 @@ private struct FilledActionButton: View {
     }
 }
 
-// Tabs
+// Tabs (igual que antes)
 private struct MenuTab: View {
     let dishes: [Dish]
     let loading: Bool
@@ -386,4 +398,3 @@ private struct ReviewsTab: View {
         }
     }
 }
-

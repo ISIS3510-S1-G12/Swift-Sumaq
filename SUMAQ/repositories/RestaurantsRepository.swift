@@ -4,12 +4,14 @@
 //
 
 import Foundation
+import FirebaseAuth
 import FirebaseFirestore
 
 protocol RestaurantsRepositoryType {
     func all() async throws -> [Restaurant]
     func updateCoordinates(id: String, lat: Double, lon: Double) async throws
     func getMany(ids: [String]) async throws -> [Restaurant]
+    func getCurrentRestaurantProfile() async throws -> AppRestaurant? // NUEVO
 }
 
 final class RestaurantsRepository: RestaurantsRepositoryType {
@@ -55,6 +57,19 @@ final class RestaurantsRepository: RestaurantsRepositoryType {
 
         let order = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
         return result.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
+    }
+
+    // MARK: - NUEVO: perfil de restaurante actual (por UID logeado)
+    func getCurrentRestaurantProfile() async throws -> AppRestaurant? {
+        guard let uid = Auth.auth().currentUser?.uid else { return nil }
+        let snap = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
+            db.collection("Restaurants").document(uid).getDocument { doc, err in
+                if let err { cont.resume(throwing: err) }
+                else if let doc { cont.resume(returning: doc) }
+                else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+            }
+        }
+        return AppRestaurant(doc: snap)
     }
 }
 
