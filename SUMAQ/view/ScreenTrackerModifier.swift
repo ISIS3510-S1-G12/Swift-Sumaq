@@ -29,7 +29,6 @@ struct ScreenTracker: ViewModifier {
 }
 
 extension View {
-    /// `SomeView().trackScreen(ScreenName.home)`
     func trackScreen(_ name: String, extra: [String: Any] = [:]) -> some View {
         self.modifier(ScreenTracker(name: name, extra: extra))
     }

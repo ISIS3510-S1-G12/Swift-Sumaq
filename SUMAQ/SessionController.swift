@@ -47,7 +47,6 @@ final class SessionController: ObservableObject {
     private func resolveRoleAndLoadProfile(uid: String) {
         let db = Firestore.firestore()
 
-        // 1) ¿Existe en Users?
         db.collection("Users").document(uid).getDocument { [weak self] snap, _ in
             guard let self else { return }
 
@@ -58,7 +57,6 @@ final class SessionController: ObservableObject {
                 return
             }
 
-            // 2) Si no, se asume restaurante (documentId = uid)
             db.collection("Restaurants").document(uid).getDocument { [weak self] rdoc, _ in
                 guard let self else { return }
                 if let rdoc, rdoc.exists, let appRest = AppRestaurant(doc: rdoc) {
@@ -66,7 +64,6 @@ final class SessionController: ObservableObject {
                     self.currentRestaurant = appRest
                     self.currentUser = nil
                 } else {
-                    // Fallback: sin perfil; deja rol nulo
                     self.role = nil
                     self.currentRestaurant = nil
                     self.currentUser = nil
@@ -75,7 +72,6 @@ final class SessionController: ObservableObject {
         }
     }
 
-    /// Recarga explícita del perfil de usuario.
     func reloadCurrentUser() {
         guard let uid = firebaseUid, role == .user else { return }
         Firestore.firestore().collection("Users").document(uid).getDocument { [weak self] snap, _ in
@@ -86,7 +82,6 @@ final class SessionController: ObservableObject {
         }
     }
 
-    /// Recarga explícita del perfil de restaurante.
     func reloadCurrentRestaurant() {
         guard let uid = firebaseUid, role == .restaurant else { return }
         Firestore.firestore().collection("Restaurants").document(uid).getDocument { [weak self] snap, _ in

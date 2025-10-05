@@ -59,7 +59,6 @@ struct RegisterView: View {
                                 LabeledField(title: "Budget (int)", text: $budget, placeholder: "25000", keyboard: .numberPad, labelColor: Palette.burgundy)
                                 LabeledField(title: "Diet", text: $diet, placeholder: "vegetarian", keyboard: .default, labelColor: Palette.burgundy)
 
-                                // ===== Imagen de perfil (usuario) =====
                                 ImagePickerRow(
                                     title: "Profile picture",
                                     buttonColor: buttonColor,
@@ -73,7 +72,6 @@ struct RegisterView: View {
                                 LabeledField(title: "Opening time (HHmm int)", text: $openingTime, placeholder: "900", keyboard: .numberPad, labelColor: Palette.burgundy)
                                 LabeledField(title: "Closing time (HHmm int)", text: $closingTime, placeholder: "1900", keyboard: .numberPad, labelColor: Palette.burgundy)
 
-                                // ===== Imagen principal (restaurante) =====
                                 ImagePickerRow(
                                     title: "Restaurant image",
                                     buttonColor: buttonColor,
@@ -134,11 +132,9 @@ struct RegisterView: View {
                 controller.errorMsg = msg
             }
         }
-        // Carga del ítem seleccionado (usuario)
         .onChange(of: userPhotoItem) { _, newItem in
             loadPhotoData(from: newItem) { data in userPhotoData = data }
         }
-        // Carga del ítem seleccionado (restaurante)
         .onChange(of: restPhotoItem) { _, newItem in
             loadPhotoData(from: newItem) { data in restPhotoData = data }
         }
@@ -183,7 +179,6 @@ struct RegisterView: View {
     private func loadPhotoData(from item: PhotosPickerItem?, done: @escaping (Data?) -> Void) {
         guard let item = item else { return done(nil) }
         Task {
-            // intentamos JPEG/PNG de forma transparente
             if let data = try? await item.loadTransferable(type: Data.self) {
                 done(data)
             } else {
@@ -193,7 +188,6 @@ struct RegisterView: View {
     }
 }
 
-// ====== Componente reutilizable para el picker de imágenes ======
 private struct ImagePickerRow: View {
     let title: String
     let buttonColor: Color
@@ -242,7 +236,6 @@ private struct ImagePickerRow: View {
 }
 
 
-// MARK: - Campos reutilizables
 struct LabeledField: View {
     let title: String
     @Binding var text: String
@@ -294,7 +287,6 @@ struct LabeledSecureField: View {
     }
 }
 
-// MARK: - Botón principal
 struct PrimaryCapsuleButton: ButtonStyle {
     let color: Color
 

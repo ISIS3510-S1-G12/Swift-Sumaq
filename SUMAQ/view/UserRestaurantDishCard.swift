@@ -15,7 +15,6 @@ struct UserRestaurantDishCard: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Panel morado (user)
             VStack(alignment: .leading, spacing: 8) {
                 StarsRow(rating: rating)
                 Text(title)
@@ -30,7 +29,6 @@ struct UserRestaurantDishCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.purpleLight)
 
-            // Imagen
             RemoteImage(urlString: imageURL)
                 .frame(width: 140, height: 110)
                 .clipped()

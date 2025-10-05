@@ -8,7 +8,6 @@
 import Foundation
 import FirebaseFirestore
 
-/// Perfil simplificado de restaurante para sesión
 struct AppRestaurant: Identifiable {
     let id: String
     let name: String

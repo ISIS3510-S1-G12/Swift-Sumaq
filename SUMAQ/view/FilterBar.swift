@@ -1,4 +1,3 @@
-// FilterBar.swift (versión internal)
 
 import SwiftUI
 

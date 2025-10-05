@@ -61,7 +61,7 @@ final class DishesRepository: DishesRepositoryType {
                 .getDocuments { qs, err in
                     if let err { cont.resume(throwing: err); return }
                     let items = (qs?.documents.compactMap { Dish(doc: $0) } ?? [])
-                        .sorted {                       // ⬅️ orden local por fecha
+                        .sorted {                       // 
                             ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
                         }
                     cont.resume(returning: items)

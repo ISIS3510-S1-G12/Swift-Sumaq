@@ -1,3 +1,4 @@
+// este archivo tampoco es usado actualmente
 import SwiftUI
 
 struct UploadMenuView: View {

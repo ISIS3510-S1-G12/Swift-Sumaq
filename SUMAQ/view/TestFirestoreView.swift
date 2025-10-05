@@ -24,7 +24,6 @@ struct TestFirestoreView: View {
     func registrarUsuarioPrueba() {
         let db = Firestore.firestore()
 
-        // Datos de prueba
         let nuevoUsuario: [String: Any] = [
             "name": "Usuario Prueba",
             "email": "prueba@example.com",

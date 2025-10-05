@@ -25,7 +25,6 @@ struct AppUser: Identifiable {
         self.name = name
         self.email = email
 
-        // Soporta mapa correcto y “array legado” (lo trata como vacío)
         if let map = d["favorite_restaurants"] as? [String: Timestamp] {
             var out: [String: Date] = [:]
             map.forEach { out[$0.key] = $0.value.dateValue() }

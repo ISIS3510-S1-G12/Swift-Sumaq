@@ -13,13 +13,11 @@ final class ReviewsRepository {
     private let db = Firestore.firestore()
     private let coll = "Reviews"
 
-    // MARK: - Helpers
     private func currentUid() throws -> String {
         if let uid = Auth.auth().currentUser?.uid { return uid }
         throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
     }
 
-    // MARK: - Create
     func createReview(restaurantId: String,
                       stars: Int,
                       comment: String,
@@ -71,7 +69,6 @@ final class ReviewsRepository {
         }
     }
 
-    // MARK: - Query: mis reviews (sin orderBy para evitar índice)
     func listMyReviews() async throws -> [Review] {
         let uid = try currentUid()
         let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
@@ -88,7 +85,6 @@ final class ReviewsRepository {
         return items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
     }
 
-    // MARK: - Query: reviews por restaurante (sin orderBy para evitar índice)
     func listForRestaurant(restaurantId: String) async throws -> [Review] {
         let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
             db.collection(coll)

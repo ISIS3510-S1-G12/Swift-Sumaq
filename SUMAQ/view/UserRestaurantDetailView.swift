@@ -140,7 +140,6 @@ struct UserRestaurantDetailView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 6)
 
-                // Mark as visited
                 Button {
                     Task { await markVisited() }
                 } label: {
@@ -341,9 +340,6 @@ extension UserRestaurantDetailView {
         }
     }
 }
-
-// InfoRowsView / InfoRow / FilledActionButton / MenuTab / OffersTab / ReviewsTab
-// permanecen igual
 
 
 private struct InfoRowsView: View {

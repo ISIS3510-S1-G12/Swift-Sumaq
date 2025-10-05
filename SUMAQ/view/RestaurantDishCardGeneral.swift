@@ -3,7 +3,7 @@
 //  SUMAQ
 //
 //  Created by Gabriela  Escobar Rojas on 20/09/25.
-//
+// No se usa este archivo actualmente
 
 import SwiftUI
 
