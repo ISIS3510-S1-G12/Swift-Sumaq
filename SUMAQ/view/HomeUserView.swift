@@ -22,7 +22,6 @@ struct UserHomeView: View {
                 if !embedded {
                     TopBar()
                     SegmentedTabs(selectedIndex: $selectedTab)
-                        // ANALYTICS: tab seleccionada
                         .onChange(of: selectedTab) { newValue in
                             let name: String
                             switch newValue {
@@ -40,7 +39,7 @@ struct UserHomeView: View {
                 SearchFilterChatBar<FilterOptionHomeUserView>(
                     text: $searchText,
                     selectedFilter: $selectedFilter,
-                    onChatTap: { /* (chatbot vendrá luego) */ },
+                    onChatTap: { },
                     config: .init(
                         searchColor: Palette.orange,
                         ringColor:   Palette.orange,
@@ -59,6 +58,10 @@ struct UserHomeView: View {
                 .frame(height: 240)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal, 16)
+
+                // Banner dinámico por mealtime (Colombia)
+                MealTimeBanner(meal: MealTime.nowInColombia())
+                    .padding(.horizontal, 16)
 
                 if loading {
                     ProgressView().padding()
@@ -82,7 +85,6 @@ struct UserHomeView: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                            // ANALYTICS: apertura de restaurante desde Home (lista/mapa)
                             .simultaneousGesture(TapGesture().onEnded {
                                 AnalyticsService.shared.log(EventName.restaurantOpen, [
                                     "source": "home_list",
@@ -98,16 +100,13 @@ struct UserHomeView: View {
             }
             .padding(.top, embedded ? 0 : 8)
         }
-        // ANALYTICS: inicio/fin de pantalla Home
         .onAppear {
             AnalyticsService.shared.screenStart(ScreenName.home)
-            // Empezar a observar el permiso de ubicación (no pide permiso).
             LocationPermissionLogger.shared.startObserving()
         }
         .onDisappear {
             AnalyticsService.shared.screenEnd(ScreenName.home)
         }
-
         .task { await mapCtrl.loadRestaurants() }
         .task { await loadRestaurants() }
         .background(Color(.systemBackground).ignoresSafeArea())
@@ -132,3 +131,79 @@ struct UserHomeView: View {
 }
 
 #Preview { UserHomeView() }
+
+private enum MealTime {
+    case breakfast, lunch, dinner, other
+
+    static func nowInColombia(date: Date = Date()) -> MealTime {
+        let tz = TimeZone(identifier: "America/Bogota") ?? .current
+        var cal = Calendar.current
+        cal.timeZone = tz
+        let hour = cal.component(.hour, from: date)
+
+        // Franja típica en Colombia:
+        // Desayuno: 5:00–10:59, Almuerzo: 11:00–15:59, Cena: 18:00–22:59
+        switch hour {
+        case 5...10:   return .breakfast
+        case 11...15:  return .lunch
+        case 18...22:  return .dinner
+        default:       return .other
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .breakfast: return "Breakfast time"
+        case .lunch:     return "Lunch time"
+        case .dinner:    return "Dinner time"
+        case .other:     return "Feeling hungry?"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .breakfast: return "Start your day with energy."
+        case .lunch:     return "Recharge with something delicious."
+        case .dinner:    return "Treat yourself tonight."
+        case .other:     return "Discover great places nearby."
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .breakfast: return "cup.and.saucer.fill"
+        case .lunch:     return "fork.knife"
+        case .dinner:    return "moon.stars.fill"
+        case .other:     return "leaf.fill"
+        }
+    }
+}
+
+private struct MealTimeBanner: View {
+    let meal: MealTime
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: meal.icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 28, height: 28)
+                .background(.white.opacity(0.18))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(meal.title)
+                    .font(.custom("Montserrat-SemiBold", size: 16))
+                    .foregroundColor(.white)
+                Text(meal.message)
+                    .font(.custom("Montserrat-Regular", size: 13))
+                    .foregroundColor(.white.opacity(0.95))
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Palette.purple)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 6)
+    }
+}

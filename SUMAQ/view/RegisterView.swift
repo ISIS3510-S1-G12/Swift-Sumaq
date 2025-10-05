@@ -6,20 +6,16 @@ struct RegisterView: View {
     let role: UserType
     @StateObject private var controller = AuthController()
 
-    // AUTH / comunes
     @State private var name: String = ""
     @State private var email: String = ""
     @State private var username: String = ""
     @State private var password: String = ""
 
-    // USER
     @State private var budget: String = ""
     @State private var diet: String = ""
-    // NUEVO: imagen de usuario
     @State private var userPhotoItem: PhotosPickerItem?
     @State private var userPhotoData: Data?
 
-    // RESTAURANT
     @State private var address: String = ""
     @State private var openingTime: String = ""
     @State private var closingTime: String = ""
@@ -27,7 +23,6 @@ struct RegisterView: View {
     @State private var busiestHoursText: String = ""
     @State private var offer: Bool = false
     @State private var ratingText: String = ""
-    // NUEVO: imagen de restaurante
     @State private var restPhotoItem: PhotosPickerItem?
     @State private var restPhotoData: Data?
 

@@ -7,9 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00DA112C2E91EA340081DE63 /* ImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00DA112B2E91EA2D0081DE63 /* ImageCache.swift */; };
+		00DA112E2E91EA630081DE63 /* RemoteImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00DA112D2E91EA5F0081DE63 /* RemoteImage.swift */; };
 		0EB15F8D2E7D0A0700CB69D5 /* ChoiceUserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB15F8C2E7D0A0600CB69D5 /* ChoiceUserView.swift */; };
 		180C8F8F2E8C3AAD009B691C /* AuthController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F8E2E8C3AAD009B691C /* AuthController.swift */; };
-		180C8F912E8C3ABA009B691C /* HomeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F902E8C3ABA009B691C /* HomeController.swift */; };
 		180C8F932E8C3ACB009B691C /* FavoritesController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F922E8C3ACB009B691C /* FavoritesController.swift */; };
 		180C8F952E8C3ADD009B691C /* OffersController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F942E8C3ADD009B691C /* OffersController.swift */; };
 		180C8F992E8C3AFF009B691C /* ReviewsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180C8F982E8C3AFF009B691C /* ReviewsController.swift */; };
@@ -34,7 +35,6 @@
 		18A3DB162E8ED42D00BA59B7 /* AppUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A3DB152E8ED42D00BA59B7 /* AppUser.swift */; };
 		18A3DB182E8EDDCE00BA59B7 /* SessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A3DB172E8EDDCE00BA59B7 /* SessionController.swift */; };
 		18A3DB1A2E8EDFD100BA59B7 /* SharedNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A3DB192E8EDFC900BA59B7 /* SharedNotifications.swift */; };
-		18A3DB1C2E8EE0A600BA59B7 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A3DB1B2E8EE09E00BA59B7 /* RootView.swift */; };
 		18A3DB1E2E8EF5F100BA59B7 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A3DB1D2E8EF5F100BA59B7 /* StorageService.swift */; };
 		18A3DB2A2E8F011900BA59B7 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 18A3DB292E8F011900BA59B7 /* FirebaseAnalytics */; };
 		18A3DB2C2E8F011900BA59B7 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 18A3DB2B2E8F011900BA59B7 /* FirebaseAnalyticsCore */; };
@@ -130,9 +130,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		00DA112B2E91EA2D0081DE63 /* ImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCache.swift; sourceTree = "<group>"; };
+		00DA112D2E91EA5F0081DE63 /* RemoteImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteImage.swift; sourceTree = "<group>"; };
 		0EB15F8C2E7D0A0600CB69D5 /* ChoiceUserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChoiceUserView.swift; sourceTree = "<group>"; };
 		180C8F8E2E8C3AAD009B691C /* AuthController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthController.swift; path = SUMAQ/AuthController.swift; sourceTree = SOURCE_ROOT; };
-		180C8F902E8C3ABA009B691C /* HomeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HomeController.swift; path = SUMAQ/HomeController.swift; sourceTree = SOURCE_ROOT; };
 		180C8F922E8C3ACB009B691C /* FavoritesController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FavoritesController.swift; path = SUMAQ/FavoritesController.swift; sourceTree = SOURCE_ROOT; };
 		180C8F942E8C3ADD009B691C /* OffersController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OffersController.swift; path = SUMAQ/OffersController.swift; sourceTree = SOURCE_ROOT; };
 		180C8F982E8C3AFF009B691C /* ReviewsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ReviewsController.swift; path = SUMAQ/ReviewsController.swift; sourceTree = SOURCE_ROOT; };
@@ -157,7 +158,6 @@
 		18A3DB152E8ED42D00BA59B7 /* AppUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppUser.swift; path = SUMAQ/AppUser.swift; sourceTree = SOURCE_ROOT; };
 		18A3DB172E8EDDCE00BA59B7 /* SessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SessionController.swift; path = SUMAQ/SessionController.swift; sourceTree = SOURCE_ROOT; };
 		18A3DB192E8EDFC900BA59B7 /* SharedNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedNotifications.swift; sourceTree = "<group>"; };
-		18A3DB1B2E8EE09E00BA59B7 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		18A3DB1D2E8EF5F100BA59B7 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StorageService.swift; path = SUMAQ/StorageService.swift; sourceTree = SOURCE_ROOT; };
 		18A3DB512E8F0D2500BA59B7 /* Review.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Review.swift; path = SUMAQ/Review.swift; sourceTree = SOURCE_ROOT; };
 		18A3DB532E8F0E2100BA59B7 /* AddReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddReviewView.swift; sourceTree = "<group>"; };
@@ -332,7 +332,6 @@
 			isa = PBXGroup;
 			children = (
 				180C8F8E2E8C3AAD009B691C /* AuthController.swift */,
-				180C8F902E8C3ABA009B691C /* HomeController.swift */,
 				180C8F922E8C3ACB009B691C /* FavoritesController.swift */,
 				180C8F942E8C3ADD009B691C /* OffersController.swift */,
 				180C8F982E8C3AFF009B691C /* ReviewsController.swift */,
@@ -348,6 +347,8 @@
 		49CA12212E7E255B00939F90 /* view */ = {
 			isa = PBXGroup;
 			children = (
+				00DA112D2E91EA5F0081DE63 /* RemoteImage.swift */,
+				00DA112B2E91EA2D0081DE63 /* ImageCache.swift */,
 				18D6B6462E8F45C6005CA8CC /* RestaurantAccountSheet.swift */,
 				18D6B6442E8F3FE1005CA8CC /* LocationPermissionLogger.swift */,
 				18D6B6422E8F3CF9005CA8CC /* ScreenTrackerModifier.swift */,
@@ -355,7 +356,6 @@
 				186D611E2E8F36B100F02DC8 /* CamaraPicker.swift */,
 				18A3DB572E8F120600BA59B7 /* PeopleNearbyView.swift */,
 				18A3DB532E8F0E2100BA59B7 /* AddReviewView.swift */,
-				18A3DB1B2E8EE09E00BA59B7 /* RootView.swift */,
 				18A3DB192E8EDFC900BA59B7 /* SharedNotifications.swift */,
 				18A3DB132E8EC9C000BA59B7 /* UserRestaurantDishCard.swift */,
 				18A3DB112E8EC97B00BA59B7 /* UserRestaurantDetailView.swift */,
@@ -595,7 +595,7 @@
 				18A3DB122E8EC99300BA59B7 /* UserRestaurantDetailView.swift in Sources */,
 				495F6CE82E7F208300A3A0FE /* RestaurantSegmentedTab.swift in Sources */,
 				186DDAF92E7EF5D20066CB9E /* SolidNavLinkView.swift in Sources */,
-				18A3DB1C2E8EE0A600BA59B7 /* RootView.swift in Sources */,
+				00DA112E2E91EA630081DE63 /* RemoteImage.swift in Sources */,
 				6612B99D2E7E378200FFBBB0 /* LogInAndRegisterView.swift in Sources */,
 				664B19ED2E7F70B8001EBDC2 /* RestaurantDishCardGeneral.swift in Sources */,
 				180C8F8F2E8C3AAD009B691C /* AuthController.swift in Sources */,
@@ -618,9 +618,9 @@
 				18A3DB182E8EDDCE00BA59B7 /* SessionController.swift in Sources */,
 				661B0E402E84818C00F155FC /* TestFirestoreView.swift in Sources */,
 				180C8F9D2E8C3B2E009B691C /* MapController.swift in Sources */,
-				180C8F912E8C3ABA009B691C /* HomeController.swift in Sources */,
 				664B19EB2E7F6C15001EBDC2 /* RestaurantDetsSegmentedTab.swift in Sources */,
 				18A3DB142E8EC9CE00BA59B7 /* UserRestaurantDishCard.swift in Sources */,
+				00DA112C2E91EA340081DE63 /* ImageCache.swift in Sources */,
 				18D6B6412E8F3CE5005CA8CC /* SessionTracker.swift in Sources */,
 				6612B9A52E7E44F300FFBBB0 /* HomeUserView.swift in Sources */,
 				661B0E442E84954800F155FC /* UserTypeEnum.swift in Sources */,

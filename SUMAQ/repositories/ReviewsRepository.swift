@@ -4,8 +4,6 @@
 //
 //  Created by Maria Alejandra Pinzon Roncancio on 30/09/25.
 //
-// ReviewsRepository.swift
-// SUMAQ
 
 import Foundation
 import FirebaseAuth
@@ -15,17 +13,18 @@ final class ReviewsRepository {
     private let db = Firestore.firestore()
     private let coll = "Reviews"
 
+    // MARK: - Helpers
     private func currentUid() throws -> String {
         if let uid = Auth.auth().currentUser?.uid { return uid }
         throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
     }
 
+    // MARK: - Create
     func createReview(restaurantId: String,
                       stars: Int,
                       comment: String,
                       imageData: Data?) async throws {
         let uid = try currentUid()
-
         let ref = db.collection(coll).document()
 
         var payload: [String: Any] = [
@@ -48,7 +47,6 @@ final class ReviewsRepository {
                 print("Local save error: \(error)")
             }
 
-            //  Subir a Storage y escribir downloadURL
             let path = "reviews/\(uid)/\(ref.documentID).jpg"
             let urlString = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<String, Error>) in
                 StorageService.shared.uploadImageData(data, to: path, contentType: "image/jpeg") { res in
@@ -73,6 +71,7 @@ final class ReviewsRepository {
         }
     }
 
+    // MARK: - Query: mis reviews (sin orderBy para evitar índice)
     func listMyReviews() async throws -> [Review] {
         let uid = try currentUid()
         let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
@@ -89,7 +88,8 @@ final class ReviewsRepository {
         return items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
     }
 
-    func listForRestaurant(_ restaurantId: String) async throws -> [Review] {
+    // MARK: - Query: reviews por restaurante (sin orderBy para evitar índice)
+    func listForRestaurant(restaurantId: String) async throws -> [Review] {
         let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
             db.collection(coll)
                 .whereField("restaurant_id", isEqualTo: restaurantId)
@@ -99,6 +99,12 @@ final class ReviewsRepository {
                     else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
                 }
         }
-        return qs.documents.compactMap { Review(doc: $0) }
+
+        let items = qs.documents.compactMap { Review(doc: $0) }
+        return items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+    }
+
+    func listForRestaurant(_ restaurantId: String) async throws -> [Review] {
+        try await listForRestaurant(restaurantId: restaurantId)
     }
 }

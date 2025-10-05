@@ -2,7 +2,6 @@
 //  Offer.swift
 //  SUMAQ
 //
-
 import Foundation
 import FirebaseFirestore
 
@@ -13,14 +12,14 @@ struct Offer: Identifiable {
     let image: String
     let tags: [String]
     let discountPercentage: Int
-    let restaurantId: String            
+    let price: Int
+    let restaurantId: String
     let validFrom: Date?
     let validTo: Date?
     let createdAt: Date?
 
     init?(doc: DocumentSnapshot) {
         let d = doc.data() ?? [:]
-
         guard
             let title = d["title"] as? String,
             let desc  = d["description"] as? String,
@@ -39,6 +38,16 @@ struct Offer: Identifiable {
             self.discountPercentage = p.intValue
         } else {
             self.discountPercentage = 0
+        }
+
+        if let pr = d["price"] as? Int {
+            self.price = pr
+        } else if let pr = d["price"] as? NSNumber {
+            self.price = pr.intValue
+        } else if let pr = d["price"] as? Double {
+            self.price = Int(pr)
+        } else {
+            self.price = 0
         }
 
         let rawRid = (d["restaurant_id"] as? String) ?? (d["restaurantId"] as? String) ?? ""

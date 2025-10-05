@@ -19,4 +19,6 @@ enum EventName {
     static let peopleTapped      = "people_tap"              // screen
     static let reviewTap         = "review_tap"              // screen, restaurant_id
     static let locationAuth      = "location_permission"     // status, granted(bool)
+    static let restaurantMarkedVisited = "restaurant_marked_visited"
+
 }

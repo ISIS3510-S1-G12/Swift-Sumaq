@@ -5,21 +5,19 @@
 //  Created by Maria Alejandra Pinzon Roncancio on 30/09/25.
 //
 
+
 import Foundation
 import CoreBluetooth
 
 final class CrowdController: NSObject, ObservableObject {
-    // Estado público (observer)
     @Published var isScanning = false
     @Published var isAdvertising = false
     @Published var nearbyCount = 0
     @Published var lastError: String?
 
-    // CoreBluetooth
     private var central: CBCentralManager!
     private var peripheral: CBPeripheralManager!
 
-    // Periféricos únicos vistos durante el escaneo actual
     private var seen: Set<UUID> = []
     private var scanTimer: Timer?
 
@@ -29,23 +27,24 @@ final class CrowdController: NSObject, ObservableObject {
         peripheral = CBPeripheralManager(delegate: self, queue: .main)
     }
 
-    // MARK: - API
+    deinit {
+        stop()
+        scanTimer?.invalidate()
+        scanTimer = nil
+    }
+
     func startQuickScan(duration: TimeInterval = 10) {
         lastError = nil
         seen.removeAll()
         nearbyCount = 0
         NotificationCenter.default.post(name: .crowdScanDidStart, object: nil)
 
-        // Empezamos a anunciar para que otros también nos cuenten
         startAdvertising()
 
         if central.state == .poweredOn {
             startScan()
-        } else {
-            // Se iniciará en centralManagerDidUpdateState cuando encienda
         }
 
-        // Autostop
         scanTimer?.invalidate()
         scanTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
             self?.stopScan()
@@ -56,14 +55,15 @@ final class CrowdController: NSObject, ObservableObject {
         stopScan()
         stopAdvertising()
         lastError = nil
+        scanTimer?.invalidate()
+        scanTimer = nil
     }
 
-    // MARK: - Internos
     private func startScan() {
         guard !isScanning else { return }
         isScanning = true
-        let opts: [String: Any] = [CBCentralManagerScanOptionAllowDuplicatesKey: false]
-        central.scanForPeripherals(withServices: [CrowdBLE.serviceUUID], options: opts)
+        central.scanForPeripherals(withServices: [CrowdBLE.serviceUUID],
+                                   options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
     }
 
     private func stopScan() {
@@ -76,15 +76,11 @@ final class CrowdController: NSObject, ObservableObject {
 
     private func startAdvertising() {
         guard !isAdvertising else { return }
-        guard peripheral.state == .poweredOn else {
-            // se arrancará en peripheralManagerDidUpdateState
-            return
-        }
-        let data: [String: Any] = [
+        guard peripheral.state == .poweredOn else { return }
+        peripheral.startAdvertising([
             CBAdvertisementDataServiceUUIDsKey: [CrowdBLE.serviceUUID],
             CBAdvertisementDataLocalNameKey: "SUMAQ"
-        ]
-        peripheral.startAdvertising(data)
+        ])
         isAdvertising = true
     }
 
@@ -95,20 +91,15 @@ final class CrowdController: NSObject, ObservableObject {
     }
 }
 
-// MARK: - CBCentralManagerDelegate
 extension CrowdController: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .poweredOn:
             if isScanning { startScan() }
-        case .unauthorized:
-            lastError = "Bluetooth permission denied."
-        case .unsupported:
-            lastError = "Bluetooth unsupported on this device."
-        case .poweredOff:
-            lastError = "Bluetooth is off."
-        default:
-            break
+        case .unauthorized: lastError = "Bluetooth permission denied."
+        case .unsupported:  lastError = "Bluetooth unsupported on this device."
+        case .poweredOff:   lastError = "Bluetooth is off."
+        default: break
         }
     }
 
@@ -117,32 +108,24 @@ extension CrowdController: CBCentralManagerDelegate {
                         advertisementData: [String : Any],
                         rssi RSSI: NSNumber) {
 
-        // contamos “cerca”
         guard RSSI.intValue > CrowdBLE.rssiCloseThreshold else { return }
-
         if seen.insert(peripheral.identifier).inserted {
             nearbyCount = seen.count
-            NotificationCenter.default.post(name: .crowdScanDidUpdate, object: nil,
-                                            userInfo: ["count": nearbyCount])
+            NotificationCenter.default.post(name: .crowdScanDidUpdate,
+                                            object: nil, userInfo: ["count": nearbyCount])
         }
     }
 }
 
-// MARK: - CBPeripheralManagerDelegate
 extension CrowdController: CBPeripheralManagerDelegate {
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         switch peripheral.state {
         case .poweredOn:
             if isAdvertising == false { startAdvertising() }
-        case .unauthorized:
-            lastError = "Bluetooth permission denied."
-        case .unsupported:
-            lastError = "Peripheral unsupported on this device."
-        case .poweredOff:
-            // si apagan BT, paramos todo
-            stop()
-        default:
-            break
+        case .unauthorized: lastError = "Bluetooth permission denied."
+        case .unsupported:  lastError = "Peripheral unsupported on this device."
+        case .poweredOff:   stop()
+        default: break
         }
     }
 }

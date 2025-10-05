@@ -1,14 +1,9 @@
-//
-//  RestaurantAccountSheet.swift
-//  SUMAQ
-//
-//  Created by Maria Alejandra Pinzon Roncancio on 2/10/25.
-//
+// RestaurantAccountSheet.swift
+// SUMAQ
 
 import SwiftUI
 import FirebaseAuth
 
-/// Hoja simple con acciones de cuenta para restaurante.
 struct RestaurantAccountSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var error: String?

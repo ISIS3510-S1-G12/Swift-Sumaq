@@ -4,15 +4,27 @@ struct OfferCard: View {
     let title: String
     let description: String
     let imageURL: String
+    let price: Int
     var trailingEdit: (() -> Void)? = nil
-    var panelColor: Color = Palette.purpleLight   //  (por defecto morado para user)
+    var panelColor: Color = Palette.purpleLight
+
+    private var priceText: String {
+        if price <= 0 { return "" }
+        return "$\(price)"
+    }
 
     var body: some View {
         HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(title)
                     .font(.custom("Montserrat-SemiBold", size: 18))
                     .foregroundStyle(.white)
+
+                if !priceText.isEmpty {
+                    Text(priceText)
+                        .font(.custom("Montserrat-Bold", size: 16))
+                        .foregroundStyle(.white.opacity(0.95))
+                }
 
                 Text(description)
                     .font(.custom("Montserrat-Regular", size: 15))
@@ -21,7 +33,7 @@ struct OfferCard: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(panelColor)              // depende del elegido azul o morado por restaurant o user
+            .background(panelColor)
 
             ZStack(alignment: .topTrailing) {
                 RemoteImage(urlString: imageURL)
@@ -42,31 +54,5 @@ struct OfferCard: View {
         .frame(height: 140)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 8, y: 6)
-    }
-}
-
-struct RemoteImage: View {
-    let urlString: String
-    var body: some View {
-        if let url = URL(string: urlString), url.scheme?.hasPrefix("http") == true {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let img): img.resizable().scaledToFill()
-                case .failure(_): Color.gray.opacity(0.2)
-                case .empty: ProgressView()
-                @unknown default: Color.gray.opacity(0.2)
-                }
-            }
-        } else if urlString.starts(with: "data:image") {
-            if let comma = urlString.firstIndex(of: ","),
-               let data = Data(base64Encoded: String(urlString[urlString.index(after: comma)...])),
-               let ui = UIImage(data: data) {
-                Image(uiImage: ui).resizable().scaledToFill()
-            } else {
-                Color.gray.opacity(0.2)
-            }
-        } else {
-            Image(urlString).resizable().scaledToFill() // fallback a assets
-        }
     }
 }
