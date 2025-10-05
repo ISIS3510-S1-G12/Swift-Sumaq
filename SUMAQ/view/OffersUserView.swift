@@ -37,7 +37,6 @@ struct OffersUserView: View {
                 } else if offersFiltered.isEmpty {
                     Text("No offers available").foregroundColor(.secondary).padding()
                 } else {
-                    // Secciones por restaurante
                     ForEach(groupedByRestaurant.keys.sorted(), id: \.self) { rid in
                         Group {
                             OffersSectionHeader(title: restaurantsById[rid]?.name ?? "Restaurant")
@@ -46,7 +45,8 @@ struct OffersUserView: View {
                                     OfferCard(
                                         title: off.title,
                                         description: off.description,
-                                        imageURL: off.image
+                                        imageURL: off.image,
+                                        price: off.price
                                     )
                                 }
                             }
@@ -63,7 +63,6 @@ struct OffersUserView: View {
         .task { await load() }
     }
 
-    // MARK: helpers
     private var offersFiltered: [Offer] {
         let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !term.isEmpty else { return offers }

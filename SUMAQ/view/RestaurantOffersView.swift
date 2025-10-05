@@ -1,8 +1,3 @@
-//
-//  RestaurantOffersView.swift
-//  SUMAQ
-//
-
 import SwiftUI
 import FirebaseAuth
 
@@ -16,7 +11,6 @@ struct OffersContent: View {
 
     var body: some View {
         VStack(spacing: 16) {
-
             HStack {
                 Spacer()
                 SearchBar(text: $searchText, color: Palette.orangeAlt)
@@ -37,8 +31,9 @@ struct OffersContent: View {
                             title: off.title,
                             description: off.description,
                             imageURL: off.image,
-                            trailingEdit: { /* abrir EditOfferView(off) DESPUES  */ },
-                            panelColor: Palette.tealLight           // para restaurante
+                            price: off.price,
+                            trailingEdit: { },
+                            panelColor: Palette.tealLight
                         )
                     }
                 }
@@ -86,7 +81,6 @@ struct OffersContent: View {
     private func reload() { Task { await load() } }
 }
 
-// utilidades locales
 private struct SmallCapsuleButton: View {
     let title: String
     let background: Color

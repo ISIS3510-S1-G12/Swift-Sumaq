@@ -8,7 +8,6 @@ struct UserRestaurantDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: Int = 0
 
-    // Data
     @State private var dishes: [Dish] = []
     @State private var offers: [Offer] = []
     @State private var loadingMenu = true
@@ -16,29 +15,34 @@ struct UserRestaurantDetailView: View {
     @State private var errorMenu: String?
     @State private var errorOffers: String?
 
-    // Favoritos
+    @State private var reviews: [Review] = []
+    @State private var loadingReviews = true
+    @State private var errorReviews: String?
+    @State private var userNamesById: [String: String] = [:]
+
     private let usersRepo = UsersRepository()
     @State private var markingFavorite = false
     @State private var isFavorite = false
     @State private var favoriteError: String?
 
-    // People Nearby
+    private let visitsRepo = VisitsRepository()
+    @State private var markingVisited = false
+    @State private var hasVisited = false
+    @State private var visitError: String?
+
     @State private var showPeople = false
 
-    // Mapa
     @State private var centerCoord: CLLocationCoordinate2D =
         CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661)
     @State private var annotations: [MKPointAnnotation] = []
 
-    // Repos
     private let dishesRepo = DishesRepository()
     private let offersRepo  = OffersRepository()
+    private let reviewsRepo = ReviewsRepository()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-
-                // Header
                 HStack(spacing: 8) {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
@@ -56,7 +60,6 @@ struct UserRestaurantDetailView: View {
                 RestaurantSegmentedTab(selectedIndex: $selectedTab)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                // Mapa
                 OSMMapView(
                     annotations: annotations,
                     center: centerCoord,
@@ -67,7 +70,6 @@ struct UserRestaurantDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal, 16)
 
-                // Favorite | Remove as fav | People
                 HStack(spacing: 10) {
                     FilledActionButton(
                         title: "Favorite",
@@ -105,7 +107,6 @@ struct UserRestaurantDetailView: View {
                         .padding(.horizontal, 16)
                 }
 
-                // INFO
                 InfoRowsView(
                     address: restaurant.address ?? "No address",
                     opening: restaurant.opening_time,
@@ -114,7 +115,6 @@ struct UserRestaurantDetailView: View {
                 )
                 .padding(.horizontal, 16)
 
-                // DO A REVIEW
                 NavigationLink {
                     AddReviewView(restaurant: restaurant)
                 } label: {
@@ -140,7 +140,41 @@ struct UserRestaurantDetailView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 6)
 
-                // Contenido por tab
+                // Mark as visited
+                Button {
+                    Task { await markVisited() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if markingVisited {
+                            ProgressView().progressViewStyle(.circular)
+                        } else {
+                            Image(systemName: hasVisited ? "checkmark.circle.fill" : "mappin.and.ellipse")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        Text(hasVisited ? "Visited" : "Mark as visited")
+                            .font(.custom("Montserrat-SemiBold", size: 16))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                    .background(Palette.orange)
+                    .clipShape(Capsule())
+                    .shadow(radius: 2, y: 1)
+                    .opacity(hasVisited || markingVisited ? 0.85 : 1.0)
+                }
+                .buttonStyle(.plain)
+                .disabled(hasVisited || markingVisited)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 16)
+
+                if let visitError {
+                    Text(visitError)
+                        .foregroundColor(.red)
+                        .font(.footnote)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.horizontal, 16)
+                }
+
                 Group {
                     switch selectedTab {
                     case 0:
@@ -148,7 +182,10 @@ struct UserRestaurantDetailView: View {
                     case 1:
                         OffersTab(offers: offers, loading: loadingOffers, error: errorOffers)
                     case 2:
-                        ReviewsTab()
+                        ReviewsTab(reviews: reviews,
+                                   loading: loadingReviews,
+                                   error: errorReviews,
+                                   userNamesById: userNamesById)
                     default:
                         MenuTab(dishes: dishes, loading: loadingMenu, error: errorMenu)
                     }
@@ -159,24 +196,16 @@ struct UserRestaurantDetailView: View {
             .padding(.top, 8)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
-
-        // PRESENTACIÓN DE PEOPLE NEARBY
         .sheet(isPresented: $showPeople) {
             PeopleNearbyView(restaurantName: restaurant.name)
         }
-
-        // Inicializaciones
-        .task { await prepareMapLocation() }
-        .task { await loadMenu() }
-        .task { await loadOffers() }
-        .task { await loadFavoriteState() }
-
-        // Si favoritos cambian desde otra pantalla, actualizar
+        .task { await initialLoad() }
+        .onReceive(NotificationCenter.default.publisher(for: .userReviewsDidChange)) { _ in
+            Task { await loadReviews() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .userFavoritesDidChange)) { _ in
             Task { await loadFavoriteState() }
         }
-
-        // ANALYTICS: tiempo de pantalla + evento de visita (para lealtad)
         .onAppear {
             AnalyticsService.shared.screenStart(ScreenName.restaurantDetail)
             AnalyticsService.shared.log(EventName.restaurantVisit, [
@@ -190,8 +219,35 @@ struct UserRestaurantDetailView: View {
     }
 }
 
-// MARK: - Acciones / Datos
 extension UserRestaurantDetailView {
+    private func initialLoad() async {
+        async let a: Void = prepareMapLocation()
+        async let b: Void = loadMenu()
+        async let c: Void = loadOffers()
+        async let d: Void = loadFavoriteState()
+        async let e: Void = loadReviews()
+        async let f: Void = loadVisitedState()
+        _ = await (a, b, c, d, e, f)
+    }
+
+    private func loadVisitedState() async {
+        hasVisited = await visitsRepo.hasVisited(restaurantId: restaurant.id)
+    }
+
+    private func markVisited() async {
+        guard !hasVisited else { return }
+        markingVisited = true; visitError = nil
+        defer { markingVisited = false }
+        do {
+            try await visitsRepo.markVisited(restaurantId: restaurant.id)
+            hasVisited = true
+            // ← Aquí estaba el error: ahora existe la constante.
+            AnalyticsService.shared.log(EventName.restaurantMarkedVisited, ["restaurant_id": restaurant.id])
+        } catch {
+            visitError = error.localizedDescription
+        }
+    }
+
     private func loadFavoriteState() async {
         do { isFavorite = try await usersRepo.isFavorite(restaurantId: restaurant.id) }
         catch { favoriteError = error.localizedDescription }
@@ -200,6 +256,7 @@ extension UserRestaurantDetailView {
     private func addToFavorites() async {
         guard !isFavorite else { return }
         markingFavorite = true; favoriteError = nil
+        defer { markingFavorite = false }
         do {
             try await usersRepo.addFavorite(restaurantId: restaurant.id)
             isFavorite = true
@@ -207,12 +264,12 @@ extension UserRestaurantDetailView {
         } catch {
             favoriteError = error.localizedDescription
         }
-        markingFavorite = false
     }
 
     private func removeFromFavorites() async {
         guard isFavorite else { return }
         markingFavorite = true; favoriteError = nil
+        defer { markingFavorite = false }
         do {
             try await usersRepo.removeFavorite(restaurantId: restaurant.id)
             isFavorite = false
@@ -220,25 +277,40 @@ extension UserRestaurantDetailView {
         } catch {
             favoriteError = error.localizedDescription
         }
-        markingFavorite = false
     }
 
     private func loadMenu() async {
         loadingMenu = true; errorMenu = nil
+        defer { loadingMenu = false }
         do { dishes = try await dishesRepo.listForRestaurant(uid: restaurant.id) }
         catch { errorMenu = error.localizedDescription }
-        loadingMenu = false
     }
 
     private func loadOffers() async {
         loadingOffers = true; errorOffers = nil
+        defer { loadingOffers = false }
         do { offers = try await offersRepo.listForRestaurant(uid: restaurant.id) }
         catch { errorOffers = error.localizedDescription }
-        loadingOffers = false
+    }
+
+    private func loadReviews() async {
+        loadingReviews = true; errorReviews = nil
+        defer { loadingReviews = false }
+        do {
+            let list = try await reviewsRepo.listForRestaurant(restaurant.id)
+            self.reviews = list
+            let ids = Array(Set(list.map { $0.userId }))
+            guard !ids.isEmpty else { self.userNamesById = [:]; return }
+            let users = try await usersRepo.getManyBasic(ids: ids)
+            var map: [String: String] = [:]
+            for u in users { map[u.id] = u.name }
+            self.userNamesById = map
+        } catch {
+            self.errorReviews = error.localizedDescription
+        }
     }
 }
 
-// MARK: - Mapa
 extension UserRestaurantDetailView {
     private func prepareMapLocation() async {
         if let la = restaurant.lat, let lo = restaurant.lon {
@@ -252,7 +324,6 @@ extension UserRestaurantDetailView {
     private func updateMap(lat: Double, lon: Double) {
         let coord = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         centerCoord = coord
-
         let pin = MKPointAnnotation()
         pin.title = restaurant.name
         pin.coordinate = coord
@@ -271,7 +342,10 @@ extension UserRestaurantDetailView {
     }
 }
 
-// MARK: - Subvistas (sin cambios funcionales)
+// InfoRowsView / InfoRow / FilledActionButton / MenuTab / OffersTab / ReviewsTab
+// permanecen igual
+
+
 private struct InfoRowsView: View {
     let address: String
     let opening: Int?
@@ -351,7 +425,6 @@ private struct FilledActionButton: View {
     }
 }
 
-// Tabs (igual que antes)
 private struct MenuTab: View {
     let dishes: [Dish]
     let loading: Bool
@@ -383,7 +456,7 @@ private struct OffersTab: View {
             else if offers.isEmpty { Text("No offers available").foregroundColor(.secondary) }
             else {
                 ForEach(offers) { off in
-                    OfferCard(title: off.title, description: off.description, imageURL: off.image)
+                    OfferCard(title: off.title, description: off.description, imageURL: off.image, price: off.price)
                 }
             }
         }
@@ -391,10 +464,29 @@ private struct OffersTab: View {
 }
 
 private struct ReviewsTab: View {
+    let reviews: [Review]
+    let loading: Bool
+    let error: String?
+    let userNamesById: [String: String]
+
     var body: some View {
         VStack(spacing: 12) {
-            ReviewCard(author: "User123", restaurant: "—", rating: 5, comment: "Great place!")
-            ReviewCard(author: "Foodie", restaurant: "—", rating: 4, comment: "Nice service and tasty dishes.")
+            if loading { ProgressView().padding() }
+            else if let error { Text(error).foregroundColor(.red) }
+            else if reviews.isEmpty { Text("No reviews yet").foregroundColor(.secondary) }
+            else {
+                ForEach(reviews) { r in
+                    let author = userNamesById[r.userId] ?? "#\(r.userId.suffix(5))"
+                    ReviewCard(
+                        author: author,
+                        restaurant: "—",
+                        rating: r.stars,
+                        comment: r.comment,
+                        avatarURL: "",
+                        reviewImageURL: r.imageURL
+                    )
+                }
+            }
         }
     }
 }
