@@ -29,7 +29,7 @@ func register(
     openingTime: Int? = nil,
     closingTime: Int? = nil,
     imageUrl: String? = nil,                 
-    restaurantImageData: Data? = nil,        //imagen local desde el dispositivo
+    restaurantImageData: Data? = nil,
     typeOfFood: String? = nil,
     offer: Bool? = nil,
     rating: Double? = nil,
@@ -37,8 +37,8 @@ func register(
     // --- SOLO USER ---
     budget: Int? = nil,
     diet: String? = nil,
-    profilePicture: String? = nil,           // opcional (URL remota) — fallback
-    profileImageData: Data? = nil,           // NUEVO: imagen local desde el dispositivo
+    profilePicture: String? = nil,
+    profileImageData: Data? = nil,
     completion: @escaping (Result<Void, RegisterError>) -> Void
 ) {
     Auth.auth().createUser(withEmail: email, password: password) { res, err in
@@ -77,15 +77,13 @@ func register(
         }
 
         if role == .user {
-            // ----- USERS -----
             var prefs: [String: Any] = [
                 "budget": budget ?? 0,
                 "diet": diet ?? "none",
                 "profile_picture": ""
             ]
-            base["favorite_restaurants"] = [String: Any]()   // mapa vacío
+            base["favorite_restaurants"] = [String: Any]()
 
-            // 1) Si viene imagen local -> subirla
             if let data = profileImageData, !data.isEmpty {
                 StorageService.shared.uploadImageData(
                     data,
@@ -102,10 +100,9 @@ func register(
                 return
             }
 
-            // 2) Si viene URL remota -> copiar a Storage
             copyRemoteIfNeeded(remote: profilePicture, to: "users/\(uid)/profile.jpg") { url in
                 if let url { prefs["profile_picture"] = url }
-                else if let raw = profilePicture, !raw.isEmpty { prefs["profile_picture"] = raw } // fallback
+                else if let raw = profilePicture, !raw.isEmpty { prefs["profile_picture"] = raw }
                 base["preferences"] = prefs
                 write(base)
             }
@@ -121,7 +118,6 @@ func register(
             base["rating"]         = rating ?? 0.0
             base["busiest_hours"]  = busiest_hours ?? [:]
 
-            // 1) Imagen local (picker)
             if let data = restaurantImageData, !data.isEmpty {
                 StorageService.shared.uploadImageData(
                     data,
@@ -134,7 +130,6 @@ func register(
                 return
             }
 
-            // 2) URL remota (fallback)
             copyRemoteIfNeeded(remote: imageUrl, to: "restaurants/\(uid)/image1.jpg") { url in
                 if let url { base["imageUrl"] = url }
                 else if let raw = imageUrl, !raw.isEmpty { base["imageUrl"] = raw }

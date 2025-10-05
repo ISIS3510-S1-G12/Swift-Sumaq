@@ -15,7 +15,6 @@ struct FavoritesUserView: View {
     @State private var loading = true
     @State private var error: String?
 
-    // Stats
     @State private var stats: FavoritesStats = .init(total: 0, withOffers: 0, percentWithOffers: 0, restaurantsWithOffers: [])
 
     private let usersRepo = UsersRepository()
@@ -132,7 +131,6 @@ struct FavoritesUserView: View {
     }
 }
 
-// MARK: - Stats Card UI
 
 private struct FavoritesStatsCard: View {
     let stats: FavoritesStats

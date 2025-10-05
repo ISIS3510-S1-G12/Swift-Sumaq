@@ -10,7 +10,6 @@ struct ReviewHistoryUserView: View {
     @State private var selectedFilter: FilterOptionReviewHistoryView? = nil
     @State private var selectedTab = 3
 
-    // Datos
     @State private var loading = true
     @State private var error: String?
     @State private var reviews: [Review] = []

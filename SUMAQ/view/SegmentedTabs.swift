@@ -11,7 +11,6 @@ struct SegmentedTabs: View {
     private let items = ["Home", "Favorites", "Offers", "Review History"]
     @Binding var selectedIndex: Int
 
-    // Destino de navegación
     private enum TabDest: Hashable { case home, favorites, offers, review }
     @State private var navTarget: TabDest?
 
@@ -37,7 +36,6 @@ struct SegmentedTabs: View {
                 }
                 .buttonStyle(.plain)
 
-                // divisor entre ítems
                 if idx < items.count - 1 {
                     Rectangle()
                         .fill(Color(.separator))

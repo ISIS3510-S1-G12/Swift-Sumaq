@@ -12,7 +12,6 @@ final class AnalyticsService {
         Analytics.logEvent(name, parameters: params)
     }
 
-    // MARK: Screen timing
     func screenStart(_ screen: String, extra: [String: Any] = [:]) {
         queue.sync { screenStarts[screen] = Date() }
         var p = extra; p["screen"] = screen

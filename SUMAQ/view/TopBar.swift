@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-// MARK: - Top bar (logo + nombre de sesión + avatar) + línea inferior
 struct TopBar: View {
     private let lineColor: Color = Palette.burgundy
     private let lineHeight: CGFloat = 1

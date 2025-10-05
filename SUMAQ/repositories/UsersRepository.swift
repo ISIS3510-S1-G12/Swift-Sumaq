@@ -14,13 +14,11 @@ final class UsersRepository {
 
     private func currentUid() -> String? { Auth.auth().currentUser?.uid }
 
-    // MARK: - Favorites
 
     func addFavorite(restaurantId: String) async throws {
         guard let uid = currentUid() else {
             throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
         }
-        // mapa: favorite_restaurants.<id> = serverTimestamp
         let path = "\(favField).\(restaurantId)"
         let data: [String: Any] = [path: FieldValue.serverTimestamp()]
 
@@ -39,21 +37,17 @@ final class UsersRepository {
             throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
         }
 
-        // 1) Intento estándar (campo anidado): favorite_restaurants.<id> = delete
         let nestedPathKey = "\(favField).\(restaurantId)"
         let nestedDelete: [String: Any] = [nestedPathKey: FieldValue.delete()]
 
-        // 2) Intento para el **formato aplanado** firebase db:
-        //    clave literal "favorite_restaurants.<id>" (un solo segmento) -> FieldPath con array de 1 elemento
+
         let flatFieldPath = FieldPath([nestedPathKey])
         let flatDelete: [AnyHashable: Any] = [flatFieldPath: FieldValue.delete()]
 
-        // si el primero no borra, el segundo lo hará.
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             let ref = db.collection(coll).document(uid)
 
             ref.updateData(nestedDelete) { _ in
-                // independientemente del resultado, borrar el plano
                 ref.updateData(flatDelete) { err in
                     if let err { cont.resume(throwing: err) } else {
                         NotificationCenter.default.post(name: .userFavoritesDidChange, object: nil)
@@ -64,7 +58,6 @@ final class UsersRepository {
         }
     }
 
-    /// nuevo estado (true si quedó favorito).
     @discardableResult
     func toggleFavorite(restaurantId: String) async throws -> Bool {
         if try await isFavorite(restaurantId: restaurantId) {
@@ -111,7 +104,6 @@ final class UsersRepository {
     }
 }
 
-// MARK: - para `favorite_restaurants`
 private extension UsersRepository {
 
     static func parseFavoritesMap(from data: [String: Any], favField: String) -> [String: Date] {
@@ -124,7 +116,6 @@ private extension UsersRepository {
             }
             if !out.isEmpty { return out }
         }
-        // Caso 2: aplanado "favorite_restaurants.<id>"
         var flat: [String: Date] = [:]
         for (k, v) in data where k.hasPrefix(favField + ".") {
             let id = String(k.dropFirst(favField.count + 1))
@@ -134,7 +125,6 @@ private extension UsersRepository {
         return flat
     }
 }
-//  Perfil actual
 extension UsersRepository {
     func getCurrentUser() async throws -> AppUser? {
         guard let uid = Auth.auth().currentUser?.uid else {
@@ -172,7 +162,6 @@ extension UsersRepository {
        }
    }
 
-   // Pequeña utilidad local para trocear arreglos
    private extension Array {
        func chunked(into size: Int) -> [[Element]] {
            guard size > 0 else { return [self] }

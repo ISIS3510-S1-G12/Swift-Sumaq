@@ -52,7 +52,6 @@ struct ReviewCard: View {
         )
     }
 
-    // MARK: - Foto persona
     @ViewBuilder
     private var avatarView: some View {
         let trimmed = avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -68,8 +67,7 @@ struct ReviewCard: View {
         }
     }
 
-    // MARK: - Foto de la review
-    //  si no hay foto, el ViewBuilder devuelve contenido vacío.
+
     @ViewBuilder
     private var reviewPhotoSection: some View {
         if let url = reviewImageURL, !url.isEmpty {

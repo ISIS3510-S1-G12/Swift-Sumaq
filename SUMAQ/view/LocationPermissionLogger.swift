@@ -23,7 +23,6 @@ final class LocationPermissionLogger: NSObject, CLLocationManagerDelegate {
         m.delegate = self
         manager = m
 
-        // Loguea estado inicial (no solicita permiso).
         let status = type(of: self).statusToString(CLLocationManager.authorizationStatus())
         let granted = type(of: self).isGranted(CLLocationManager.authorizationStatus())
         AnalyticsService.shared.log(EventName.locationAuth, ["status": status, "granted": granted])

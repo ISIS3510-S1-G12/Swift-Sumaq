@@ -15,7 +15,6 @@ struct PeopleNearbyView: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            // Encabezado
             VStack(spacing: 6) {
                 Text("People near \(restaurantName)")
                     .font(.custom("Montserrat-SemiBold", size: 20))
@@ -27,7 +26,6 @@ struct PeopleNearbyView: View {
                     .padding(.horizontal, 16)
             }
 
-            // Conteo grande
             ZStack {
                 Circle()
                     .fill(Palette.purple.opacity(0.08))
@@ -56,7 +54,6 @@ struct PeopleNearbyView: View {
                     .font(.footnote)
             }
 
-            // Botones
             HStack(spacing: 12) {
                 Button {
                     crowd.startQuickScan(duration: 12)

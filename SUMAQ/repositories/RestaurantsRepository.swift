@@ -11,7 +11,7 @@ protocol RestaurantsRepositoryType {
     func all() async throws -> [Restaurant]
     func updateCoordinates(id: String, lat: Double, lon: Double) async throws
     func getMany(ids: [String]) async throws -> [Restaurant]
-    func getCurrentRestaurantProfile() async throws -> AppRestaurant? // NUEVO
+    func getCurrentRestaurantProfile() async throws -> AppRestaurant?
 }
 
 final class RestaurantsRepository: RestaurantsRepositoryType {
@@ -59,7 +59,6 @@ final class RestaurantsRepository: RestaurantsRepositoryType {
         return result.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
     }
 
-    // MARK: - NUEVO: perfil de restaurante actual (por UID logeado)
     func getCurrentRestaurantProfile() async throws -> AppRestaurant? {
         guard let uid = Auth.auth().currentUser?.uid else { return nil }
         let snap = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
@@ -73,7 +72,6 @@ final class RestaurantsRepository: RestaurantsRepositoryType {
     }
 }
 
-// MARK: - Array helper
 private extension Array {
     func chunked(into size: Int) -> [[Element]] {
         guard size > 0 else { return [self] }
