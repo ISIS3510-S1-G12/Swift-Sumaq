@@ -21,6 +21,7 @@ struct NewDishView: View {
     @State private var photoItem: PhotosPickerItem? = nil
     @State private var showCamera = false
     @State private var cameraUnavailableAlert = false
+    @State private var showSuccessAlert = false
     @State private var dishType = "main"
     @State private var tagsText = ""          // cosas como "good, spicy"
 
@@ -162,6 +163,13 @@ struct NewDishView: View {
         } message: {
             Text("Camera is not available on this device.")
         }
+        .alert("Dish Created Successfully!", isPresented: $showSuccessAlert) {
+            Button("OK") {
+                onCreated?()
+            }
+        } message: {
+            Text("Your dish has been added to the menu successfully.")
+        }
     }
 
     private func save() async {
@@ -180,7 +188,7 @@ struct NewDishView: View {
                 dishesTags: tagsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             )
             isSaving = false
-            onCreated?()
+            showSuccessAlert = true
         } catch {
             self.error = error.localizedDescription
             isSaving = false
