@@ -19,6 +19,8 @@ struct NewDishView: View {
     @State private var rating = "0"
     @State private var imageData: Data? = nil
     @State private var photoItem: PhotosPickerItem? = nil
+    @State private var showCamera = false
+    @State private var cameraUnavailableAlert = false
     @State private var dishType = "main"
     @State private var tagsText = ""          // cosas como "good, spicy"
 
@@ -60,27 +62,48 @@ struct NewDishView: View {
                         .font(.custom("Montserrat-SemiBold", size: 16))
                         .foregroundColor(Palette.teal)
 
-                    PhotosPicker(selection: $photoItem, matching: .images) {
-                        HStack {
-                            if let imageData, let ui = UIImage(data: imageData) {
-                                Image(uiImage: ui)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(height: 140)
-                                    .clipped()
-                                    .cornerRadius(12)
-                            } else {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "photo.on.rectangle")
-                                    Text("Pick an image")
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 56)
-                                .background(Palette.grayLight)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    if let imageData, let ui = UIImage(data: imageData) {
+                        Image(uiImage: ui)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 140)
+                            .clipped()
+                            .cornerRadius(12)
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Palette.grayLight)
+                                .frame(height: 140)
+                            
+                            VStack(spacing: 12) {
+                                Image(systemName: "photo.on.rectangle")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.secondary)
+                                
+                                Text("No image selected")
+                                    .font(.custom("Montserrat-Regular", size: 16))
+                                    .foregroundColor(.secondary)
                             }
                         }
                     }
-                    .buttonStyle(.plain)
+
+                    HStack(spacing: 12) {
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Text("Choose from Library")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(PrimaryCapsuleButton(color: Palette.purple))
+
+                        Button {
+                            Task { await openCamera() }
+                        } label: {
+                            Text("Take Photo")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(PrimaryCapsuleButton(color: Palette.orange))
+                    }
                     .onChange(of: photoItem) { _, newItem in
                         guard let newItem else { return }
                         Task {
@@ -127,6 +150,18 @@ struct NewDishView: View {
         }
         .background(Color(.systemBackground).ignoresSafeArea())
         .navigationTitle("New Dish")
+        .fullScreenCover(isPresented: $showCamera) {
+            ImagePicker(sourceType: .camera) { image in
+                if let imageData = image.jpegData(compressionQuality: 0.8) {
+                    self.imageData = imageData
+                }
+            }
+        }
+        .alert("Camera Unavailable", isPresented: $cameraUnavailableAlert) {
+            Button("OK") { }
+        } message: {
+            Text("Camera is not available on this device.")
+        }
     }
 
     private func save() async {
@@ -150,6 +185,14 @@ struct NewDishView: View {
             self.error = error.localizedDescription
             isSaving = false
         }
+    }
+    
+    private func openCamera() async {
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            cameraUnavailableAlert = true
+            return
+        }
+        showCamera = true
     }
 }
 
@@ -183,6 +226,48 @@ private struct LabeledTextArea: View {
             }
             .background(Palette.grayLight)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+}
+
+struct ImagePicker: UIViewControllerRepresentable {
+    enum SourceType {
+        case camera
+        case photoLibrary
+    }
+    
+    let sourceType: SourceType
+    let onImagePicked: (UIImage) -> Void
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType == .camera ? .camera : .photoLibrary
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImagePicked: onImagePicked)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onImagePicked: (UIImage) -> Void
+        
+        init(onImagePicked: @escaping (UIImage) -> Void) {
+            self.onImagePicked = onImagePicked
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                onImagePicked(image)
+            }
+            picker.dismiss(animated: true)
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
         }
     }
 }
