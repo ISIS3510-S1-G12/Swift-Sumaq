@@ -145,11 +145,11 @@ struct UserHomeView: View {
     private func loadNewRestaurantNotification() async {
         lastNewRestaurantVisit = await visitsRepo.getLastNewRestaurantVisit()
         
-        // Mostrar la notificación si han pasado más de 7 días desde la última visita a un restaurante nuevo
-        // o si nunca ha visitado un restaurante nuevo
+        // Solo mostrar la notificación si han pasado más de 7 días desde la última visita a un restaurante nuevo
+        // Si nunca ha visitado un restaurante nuevo, también mostrar la notificación
         if let lastVisit = lastNewRestaurantVisit {
             let daysSince = daysSinceLastVisit(lastVisit)
-            showNewRestaurantNotification = daysSince >= 7
+            showNewRestaurantNotification = daysSince > 7  // Más de 7 días (no incluye el día 7)
         } else {
             // Si nunca ha visitado un restaurante nuevo, mostrar la notificación
             showNewRestaurantNotification = true
