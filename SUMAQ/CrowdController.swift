@@ -125,7 +125,12 @@ final class CrowdController: NSObject, ObservableObject {
     }
     
     func debugStatus() -> String {
-        let isSimulator = TARGET_OS_SIMULATOR != 0
+        #if targetEnvironment(simulator)
+        let isSimulator = true
+        #else
+        let isSimulator = false
+        #endif
+        
         return """
         Central State: \(central.state.rawValue) (\(stateDescription(central.state)))
         Peripheral State: \(peripheral.state.rawValue) (\(stateDescription(peripheral.state)))
