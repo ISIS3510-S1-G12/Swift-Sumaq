@@ -21,6 +21,8 @@ extension Notification.Name {
     static let userReviewsDidChange     = Notification.Name("userReviewsDidChange")
     static let reviewDidCreate          = Notification.Name("reviewDidCreate")
     
+    static let restaurantMarkedVisited  = Notification.Name("restaurantMarkedVisited")
+    
     static let crowdScanDidStart  = Notification.Name("crowdScanDidStart")
     static let crowdScanDidUpdate = Notification.Name("crowdScanDidUpdate") // userInfo["count"] = Int
     static let crowdScanDidFinish = Notification.Name("crowdScanDidFinish") // userInfo["count"] = Int

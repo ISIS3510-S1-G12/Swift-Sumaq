@@ -59,6 +59,10 @@ struct UserHomeView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal, 16)
 
+                // Notificación de última visita
+                LastVisitNotification()
+                    .padding(.horizontal, 16)
+
                 // Banner dinámico por mealtime (Colombia)
                 MealTimeBanner(meal: MealTime.nowInColombia())
                     .padding(.horizontal, 16)

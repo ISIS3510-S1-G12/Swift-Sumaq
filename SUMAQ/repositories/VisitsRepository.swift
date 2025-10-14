@@ -42,8 +42,28 @@ final class VisitsRepository {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             db.collection(coll).document(id).setData(payload, merge: true) { err in
                 if let err { cont.resume(throwing: err) }
-                else { cont.resume(returning: ()) }
+                else { 
+                    NotificationCenter.default.post(name: .restaurantMarkedVisited, object: nil)
+                    cont.resume(returning: ()) 
+                }
             }
         }
+    }
+    
+    func getAllUserVisits() async throws -> [Visit] {
+        let uid = try currentUid()
+        let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
+            db.collection(coll)
+                .whereField("userId", isEqualTo: "/Users/\(uid)")
+                .order(by: "visitedAt", descending: true)
+                .getDocuments { qs, err in
+                    if let err { cont.resume(throwing: err) }
+                    else if let qs { cont.resume(returning: qs) }
+                    else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+                }
+        }
+        
+        let visits = qs.documents.compactMap { Visit(doc: $0) }
+        return visits
     }
 }
