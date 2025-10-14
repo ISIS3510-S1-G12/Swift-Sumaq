@@ -32,7 +32,7 @@ struct OfferCard: View {
                     .lineLimit(3)
             }
             .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(panelColor)
 
             ZStack(alignment: .topTrailing) {

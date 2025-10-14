@@ -26,7 +26,7 @@ struct UserRestaurantDishCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(Palette.purpleLight)
 
             RemoteImage(urlString: imageURL)

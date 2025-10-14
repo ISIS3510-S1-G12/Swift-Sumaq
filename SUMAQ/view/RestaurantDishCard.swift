@@ -42,9 +42,7 @@ struct RestaurantDishCard: View {
                     .foregroundColor(.white.opacity(0.9))
             }
             .padding(14)
-            .frame(maxWidth: .infinity,
-                   maxHeight: .infinity,
-                   alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(Palette.tealLight)
 
             RemoteImage(urlString: imageURL)
