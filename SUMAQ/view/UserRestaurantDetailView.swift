@@ -60,15 +60,18 @@ struct UserRestaurantDetailView: View {
                 RestaurantSegmentedTab(selectedIndex: $selectedTab)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                OSMMapView(
-                    annotations: annotations,
-                    center: centerCoord,
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
-                    showsUserLocation: false
-                )
-                .frame(height: 240)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .padding(.horizontal, 16)
+                // Solo mostrar el mapa cuando la pestaña "Menú" esté seleccionada
+                if selectedTab == 0 {
+                    OSMMapView(
+                        annotations: annotations,
+                        center: centerCoord,
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
+                        showsUserLocation: false
+                    )
+                    .frame(height: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 16)
+                }
 
                 HStack(spacing: 10) {
                     FilledActionButton(
