@@ -59,6 +59,13 @@ struct PeopleNearbyView: View {
                         .font(.footnote)
                         .foregroundColor(.blue)
                     }
+                    
+                    // Debug info temporal
+                    Text(crowd.debugStatus())
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.leading)
+                        .padding(.horizontal, 16)
                 }
             } else if crowd.isScanning || crowd.isAdvertising {
                 VStack(spacing: 4) {
@@ -67,14 +74,30 @@ struct PeopleNearbyView: View {
                     Text(crowd.isScanning ? "Scanning for nearby devices..." : "Advertising presence...")
                         .font(.footnote)
                         .foregroundColor(.secondary)
+                    
+                    // Debug info temporal
+                    Text(crowd.debugStatus())
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.leading)
+                        .padding(.horizontal, 16)
                 }
                 .padding(.top, 4)
             } else {
-                Text("Tap 'Scan' to detect nearby SUMAQ users.")
-                    .foregroundColor(.secondary)
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
+                VStack(spacing: 8) {
+                    Text("Tap 'Scan' to detect nearby SUMAQ users.")
+                        .foregroundColor(.secondary)
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                    
+                    // Debug info temporal
+                    Text(crowd.debugStatus())
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.leading)
+                        .padding(.horizontal, 16)
+                }
             }
 
             HStack(spacing: 12) {
