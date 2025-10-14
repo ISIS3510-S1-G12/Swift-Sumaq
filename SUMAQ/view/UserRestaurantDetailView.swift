@@ -115,30 +115,33 @@ struct UserRestaurantDetailView: View {
                 )
                 .padding(.horizontal, 16)
 
-                NavigationLink {
-                    AddReviewView(restaurant: restaurant)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "square.and.pencil")
-                        Text("Do a review")
-                            .font(.custom("Montserrat-SemiBold", size: 16))
+                // Solo mostrar el botón "Do a review" cuando la pestaña "Review" esté seleccionada
+                if selectedTab == 2 {
+                    NavigationLink {
+                        AddReviewView(restaurant: restaurant)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.pencil")
+                            Text("Do a review")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 24)
+                        .background(Palette.burgundy)
+                        .clipShape(Capsule())
+                        .shadow(radius: 2, y: 1)
                     }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 24)
-                    .background(Palette.burgundy)
-                    .clipShape(Capsule())
-                    .shadow(radius: 2, y: 1)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        AnalyticsService.shared.log(EventName.reviewTap, [
+                            "screen": ScreenName.restaurantDetail,
+                            "restaurant_id": restaurant.id
+                        ])
+                    })
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 6)
                 }
-                .simultaneousGesture(TapGesture().onEnded {
-                    AnalyticsService.shared.log(EventName.reviewTap, [
-                        "screen": ScreenName.restaurantDetail,
-                        "restaurant_id": restaurant.id
-                    ])
-                })
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
 
                 Button {
                     Task { await markVisited() }
