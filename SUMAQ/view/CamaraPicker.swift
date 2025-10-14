@@ -82,7 +82,9 @@ struct CamaraPicker: View {
         }
         .fullScreenCover(isPresented: $showCamera) {
             SystemCameraPicker { image in
-                if let image { applyPicked(image) }
+                if let image { 
+                    applyPicked(image)
+                }
                 showCamera = false
             }
             .ignoresSafeArea()
@@ -100,18 +102,36 @@ struct CamaraPicker: View {
     }
 
     private func openCamera() async {
+        // Verificar si el dispositivo tiene cámara
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            DispatchQueue.main.async {
+                self.cameraUnavailableAlert = true
+            }
+            return
+        }
+        
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         switch status {
         case .authorized:
-            showCamera = true
+            DispatchQueue.main.async {
+                self.showCamera = true
+            }
         case .notDetermined:
             let granted = await AVCaptureDevice.requestAccess(for: .video)
-            showCamera = granted
-            if !granted { cameraUnavailableAlert = true }
+            DispatchQueue.main.async {
+                self.showCamera = granted
+                if !granted { 
+                    self.cameraUnavailableAlert = true 
+                }
+            }
         case .denied, .restricted:
-            cameraUnavailableAlert = true
+            DispatchQueue.main.async {
+                self.cameraUnavailableAlert = true
+            }
         @unknown default:
-            cameraUnavailableAlert = true
+            DispatchQueue.main.async {
+                self.cameraUnavailableAlert = true
+            }
         }
     }
 }
@@ -123,7 +143,9 @@ private struct SystemCameraPicker: UIViewControllerRepresentable {
         let vc = UIImagePickerController()
         vc.sourceType = .camera
         vc.delegate = context.coordinator
-        vc.allowsEditing = false
+        vc.allowsEditing = true
+        vc.cameraDevice = .rear
+        vc.cameraFlashMode = .auto
         return vc
     }
 
@@ -136,13 +158,17 @@ private struct SystemCameraPicker: UIViewControllerRepresentable {
         init(onFinish: @escaping (UIImage?) -> Void) { self.onFinish = onFinish }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            onFinish(nil)
+            DispatchQueue.main.async {
+                self.onFinish(nil)
+            }
         }
 
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             let img = (info[.editedImage] ?? info[.originalImage]) as? UIImage
-            onFinish(img)
+            DispatchQueue.main.async {
+                self.onFinish(img)
+            }
         }
     }
 }
