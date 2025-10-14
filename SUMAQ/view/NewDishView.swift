@@ -94,7 +94,7 @@ struct NewDishView: View {
                                 .font(.custom("Montserrat-SemiBold", size: 16))
                                 .frame(maxWidth: .infinity, minHeight: 44)
                         }
-                        .buttonStyle(PrimaryCapsuleButton(color: Palette.purple))
+                        .buttonStyle(PrimaryCapsuleButton(color: Palette.teal))
 
                         Button {
                             Task { await openCamera() }
