@@ -20,7 +20,6 @@ struct LastVisitNotification: View {
                 EmptyView() // No mostrar nada mientras carga
             } else if let lastVisitDate = lastVisitDate {
                 let daysSince = Calendar.current.dateComponents([.day], from: lastVisitDate, to: Date()).day ?? 0
-                print("🔍 DEBUG LastVisitNotification: Rendering with \(daysSince) days since last visit")
                 
                 // Solo mostrar la notificación si han pasado al menos 0 días (para testing, cambiar a 1 en producción)
                 if daysSince >= 0 {
@@ -56,11 +55,11 @@ struct LastVisitNotification: View {
                     .background(Palette.orange)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .shadow(color: .black.opacity(0.08), radius: 6, y: 4)
-                } else {
-                    print("🔍 DEBUG LastVisitNotification: Not showing notification because daysSince (\(daysSince)) < 1")
+                    .onAppear {
+                        print("🔍 DEBUG LastVisitNotification: Rendering with \(daysSince) days since last visit")
+                    }
                 }
             } else {
-                print("🔍 DEBUG LastVisitNotification: No last visit date found")
                 // Mostrar mensaje de debug temporal cuando no hay visitas
                 if ProcessInfo.processInfo.environment["DEBUG_VISITS"] == "true" {
                     HStack(spacing: 12) {
