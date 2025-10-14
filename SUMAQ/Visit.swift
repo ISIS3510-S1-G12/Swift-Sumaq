@@ -1,10 +1,3 @@
-//
-//  Visit.swift
-//  SUMAQ
-//
-//  Created by AI Assistant on 2025-01-27.
-//
-
 import Foundation
 import FirebaseFirestore
 
