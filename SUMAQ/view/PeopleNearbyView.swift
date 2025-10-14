@@ -43,15 +43,38 @@ struct PeopleNearbyView: View {
 
             // Estado
             if let err = crowd.lastError {
-                Text(err).foregroundColor(.red).font(.footnote)
-                    .padding(.horizontal, 16)
-            } else if crowd.isScanning {
-                ProgressView("Scanning…")
-                    .padding(.top, 4)
+                VStack(spacing: 8) {
+                    Text(err)
+                        .foregroundColor(.red)
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                    
+                    if err.contains("permission") || err.contains("Settings") {
+                        Button("Open Settings") {
+                            if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(settingsUrl)
+                            }
+                        }
+                        .font(.footnote)
+                        .foregroundColor(.blue)
+                    }
+                }
+            } else if crowd.isScanning || crowd.isAdvertising {
+                VStack(spacing: 4) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text(crowd.isScanning ? "Scanning for nearby devices..." : "Advertising presence...")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 4)
             } else {
-                Text("Tap scan to refresh the count.")
+                Text("Tap 'Scan' to detect nearby SUMAQ users.")
                     .foregroundColor(.secondary)
                     .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
             }
 
             HStack(spacing: 12) {

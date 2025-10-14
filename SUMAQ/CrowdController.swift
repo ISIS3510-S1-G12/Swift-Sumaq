@@ -39,10 +39,24 @@ final class CrowdController: NSObject, ObservableObject {
         nearbyCount = 0
         NotificationCenter.default.post(name: .crowdScanDidStart, object: nil)
 
+        // Verificar que Bluetooth esté disponible
+        guard central.state != .unsupported else {
+            lastError = "Bluetooth is not supported on this device"
+            return
+        }
+        
+        guard central.state != .poweredOff else {
+            lastError = "Please turn on Bluetooth to scan for nearby devices"
+            return
+        }
+
         startAdvertising()
 
         if central.state == .poweredOn {
             startScan()
+        } else {
+            // Si no está poweredOn, esperamos a que se active en centralManagerDidUpdateState
+            lastError = "Initializing Bluetooth..."
         }
 
         scanTimer?.invalidate()
@@ -61,9 +75,14 @@ final class CrowdController: NSObject, ObservableObject {
 
     private func startScan() {
         guard !isScanning else { return }
+        guard central.state == .poweredOn else { return }
+        
         isScanning = true
         central.scanForPeripherals(withServices: [CrowdBLE.serviceUUID],
-                                   options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+                                   options: [
+                                    CBCentralManagerScanOptionAllowDuplicatesKey: false,
+                                    CBCentralManagerScanOptionSolicitedServiceUUIDsKey: [CrowdBLE.serviceUUID]
+                                   ])
     }
 
     private func stopScan() {
@@ -76,12 +95,18 @@ final class CrowdController: NSObject, ObservableObject {
 
     private func startAdvertising() {
         guard !isAdvertising else { return }
-        guard peripheral.state == .poweredOn else { return }
-        peripheral.startAdvertising([
+        guard peripheral.state == .poweredOn else { 
+            lastError = "Peripheral manager not ready. State: \(peripheral.state.rawValue)"
+            return 
+        }
+        
+        let advertisementData: [String: Any] = [
             CBAdvertisementDataServiceUUIDsKey: [CrowdBLE.serviceUUID],
             CBAdvertisementDataLocalNameKey: "SUMAQ"
-        ])
-        isAdvertising = true
+        ]
+        
+        peripheral.startAdvertising(advertisementData)
+        // isAdvertising se establecerá en true cuando se confirme en peripheralManagerDidStartAdvertising
     }
 
     private func stopAdvertising() {
@@ -108,11 +133,19 @@ extension CrowdController: CBCentralManagerDelegate {
                         advertisementData: [String : Any],
                         rssi RSSI: NSNumber) {
 
-        guard RSSI.intValue > CrowdBLE.rssiCloseThreshold else { return }
-        if seen.insert(peripheral.identifier).inserted {
-            nearbyCount = seen.count
-            NotificationCenter.default.post(name: .crowdScanDidUpdate,
-                                            object: nil, userInfo: ["count": nearbyCount])
+        // Verificar que el RSSI esté dentro del rango aceptable
+        let rssiValue = RSSI.intValue
+        guard rssiValue > CrowdBLE.rssiCloseThreshold else { return }
+        
+        // Verificar que el dispositivo tenga nuestro servicio
+        if let services = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID],
+           services.contains(CrowdBLE.serviceUUID) {
+            
+            if seen.insert(peripheral.identifier).inserted {
+                nearbyCount = seen.count
+                NotificationCenter.default.post(name: .crowdScanDidUpdate,
+                                                object: nil, userInfo: ["count": nearbyCount])
+            }
         }
     }
 }
@@ -121,11 +154,33 @@ extension CrowdController: CBPeripheralManagerDelegate {
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         switch peripheral.state {
         case .poweredOn:
-            if isAdvertising == false { startAdvertising() }
-        case .unauthorized: lastError = "Bluetooth permission denied."
-        case .unsupported:  lastError = "Peripheral unsupported on this device."
-        case .poweredOff:   stop()
-        default: break
+            if !isAdvertising { 
+                startAdvertising()
+                lastError = nil // Limpiar error si estaba presente
+            }
+        case .unauthorized: 
+            lastError = "Bluetooth permission denied. Please enable in Settings."
+            stop()
+        case .unsupported:  
+            lastError = "Bluetooth advertising is not supported on this device."
+            stop()
+        case .poweredOff:   
+            lastError = "Bluetooth is turned off. Please turn it on to use this feature."
+            stop()
+        case .resetting:
+            lastError = "Bluetooth is resetting. Please wait..."
+        default: 
+            lastError = "Bluetooth state unknown. Please try again."
+        }
+    }
+    
+    func peripheralManagerDidStartAdvertising(_ peripheral: CBPeripheralManager, error: Error?) {
+        if let error = error {
+            lastError = "Failed to start advertising: \(error.localizedDescription)"
+            isAdvertising = false
+        } else {
+            isAdvertising = true
+            lastError = nil // Limpiar cualquier error previo
         }
     }
 }
