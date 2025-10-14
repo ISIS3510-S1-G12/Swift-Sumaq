@@ -60,12 +60,6 @@ struct PeopleNearbyView: View {
                         .foregroundColor(.blue)
                     }
                     
-                    // Debug info temporal
-                    Text(crowd.debugStatus())
-                        .font(.caption2)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.leading)
-                        .padding(.horizontal, 16)
                 }
             } else if crowd.isScanning || crowd.isAdvertising {
                 VStack(spacing: 4) {
@@ -75,12 +69,6 @@ struct PeopleNearbyView: View {
                         .font(.footnote)
                         .foregroundColor(.secondary)
                     
-                    // Debug info temporal
-                    Text(crowd.debugStatus())
-                        .font(.caption2)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.leading)
-                        .padding(.horizontal, 16)
                 }
                 .padding(.top, 4)
             } else {
@@ -91,12 +79,6 @@ struct PeopleNearbyView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
                     
-                    // Debug info temporal
-                    Text(crowd.debugStatus())
-                        .font(.caption2)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.leading)
-                        .padding(.horizontal, 16)
                 }
             }
 
