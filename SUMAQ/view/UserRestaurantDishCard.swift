@@ -32,7 +32,6 @@ struct UserRestaurantDishCard: View {
             RemoteImage(urlString: imageURL)
                 .frame(width: 140, height: 110)
                 .clipped()
-                .background(Color.white)
         }
         .frame(height: 110)
         .background(Color.white)

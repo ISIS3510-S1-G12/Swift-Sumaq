@@ -47,7 +47,6 @@ struct RestaurantDishCard: View {
                    alignment: .leading)
             .background(Palette.tealLight)
 
-  
             RemoteImage(urlString: imageURL)
                 .frame(width: 140, height: 110)
                 .clipped()

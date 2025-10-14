@@ -32,9 +32,8 @@ struct RestaurantCard: View {
             .background(panelColor)
 
             RemoteImage(urlString: imageURL)
-                .frame(width: 140, height: 120)
+                .frame(width: 140, height: 128)
                 .clipped()
-                .background(Color.white)
         }
         .frame(height: 128)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))

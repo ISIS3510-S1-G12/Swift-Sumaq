@@ -37,9 +37,8 @@ struct OfferCard: View {
 
             ZStack(alignment: .topTrailing) {
                 RemoteImage(urlString: imageURL)
-                    .frame(width: 160, height: 124)
+                    .frame(width: 160, height: 140)
                     .clipped()
-                    .background(Color.white)
 
                 if let trailingEdit {
                     Button("Edit", action: trailingEdit)
