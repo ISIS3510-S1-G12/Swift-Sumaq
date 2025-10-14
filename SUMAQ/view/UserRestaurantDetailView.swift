@@ -60,7 +60,7 @@ struct UserRestaurantDetailView: View {
                 RestaurantSegmentedTab(selectedIndex: $selectedTab)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                // Solo mostrar el mapa cuando la pestaña "Menú" esté seleccionada
+                // Solo mostrar el mapa, botones de acción e información del restaurante cuando la pestaña "Menú" esté seleccionada
                 if selectedTab == 0 {
                     OSMMapView(
                         annotations: annotations,
@@ -71,52 +71,86 @@ struct UserRestaurantDetailView: View {
                     .frame(height: 240)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .padding(.horizontal, 16)
-                }
 
-                HStack(spacing: 10) {
-                    FilledActionButton(
-                        title: "Favorite",
-                        system: "heart.fill",
-                        background: Palette.purple,
-                        textColor: .white,
-                        isEnabled: !isFavorite && !markingFavorite,
-                        isLoading: markingFavorite && !isFavorite
-                    ) { Task { await addToFavorites() } }
+                    HStack(spacing: 10) {
+                        FilledActionButton(
+                            title: "Favorite",
+                            system: "heart.fill",
+                            background: Palette.purple,
+                            textColor: .white,
+                            isEnabled: !isFavorite && !markingFavorite,
+                            isLoading: markingFavorite && !isFavorite
+                        ) { Task { await addToFavorites() } }
 
-                    FilledActionButton(
-                        title: "Remove as fav",
-                        system: "heart.slash.fill",
-                        background: Palette.grayLight,
-                        textColor: Palette.burgundy,
-                        isEnabled: isFavorite && !markingFavorite,
-                        isLoading: markingFavorite && isFavorite
-                    ) { Task { await removeFromFavorites() } }
+                        FilledActionButton(
+                            title: "Remove as fav",
+                            system: "heart.slash.fill",
+                            background: Palette.grayLight,
+                            textColor: Palette.burgundy,
+                            isEnabled: isFavorite && !markingFavorite,
+                            isLoading: markingFavorite && isFavorite
+                        ) { Task { await removeFromFavorites() } }
 
-                    FilledActionButton(
-                        title: "People",
-                        system: "bolt.horizontal.circle.fill",
-                        background: Palette.purple
-                    ) {
-                        AnalyticsService.shared.log(EventName.peopleTapped, ["screen": ScreenName.restaurantDetail])
-                        showPeople = true
+                        FilledActionButton(
+                            title: "People",
+                            system: "bolt.horizontal.circle.fill",
+                            background: Palette.purple
+                        ) {
+                            AnalyticsService.shared.log(EventName.peopleTapped, ["screen": ScreenName.restaurantDetail])
+                            showPeople = true
+                        }
+                    }
+                    .padding(.horizontal, 16)
+
+                    if let favoriteError {
+                        Text(favoriteError)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .padding(.horizontal, 16)
+                    }
+
+                    InfoRowsView(
+                        address: restaurant.address ?? "No address",
+                        opening: restaurant.opening_time,
+                        closing: restaurant.closing_time,
+                        cuisine: restaurant.typeOfFood
+                    )
+                    .padding(.horizontal, 16)
+
+                    Button {
+                        Task { await markVisited() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if markingVisited {
+                                ProgressView().progressViewStyle(.circular)
+                            } else {
+                                Image(systemName: hasVisited ? "checkmark.circle.fill" : "mappin.and.ellipse")
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            Text(hasVisited ? "Visited" : "Mark as visited")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 24)
+                        .background(Palette.orange)
+                        .clipShape(Capsule())
+                        .shadow(radius: 2, y: 1)
+                        .opacity(hasVisited || markingVisited ? 0.85 : 1.0)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(hasVisited || markingVisited)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 16)
+
+                    if let visitError {
+                        Text(visitError)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.horizontal, 16)
                     }
                 }
-                .padding(.horizontal, 16)
-
-                if let favoriteError {
-                    Text(favoriteError)
-                        .foregroundColor(.red)
-                        .font(.footnote)
-                        .padding(.horizontal, 16)
-                }
-
-                InfoRowsView(
-                    address: restaurant.address ?? "No address",
-                    opening: restaurant.opening_time,
-                    closing: restaurant.closing_time,
-                    cuisine: restaurant.typeOfFood
-                )
-                .padding(.horizontal, 16)
 
                 // Solo mostrar el botón "Do a review" cuando la pestaña "Review" esté seleccionada
                 if selectedTab == 2 {
@@ -144,40 +178,6 @@ struct UserRestaurantDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
-                }
-
-                Button {
-                    Task { await markVisited() }
-                } label: {
-                    HStack(spacing: 8) {
-                        if markingVisited {
-                            ProgressView().progressViewStyle(.circular)
-                        } else {
-                            Image(systemName: hasVisited ? "checkmark.circle.fill" : "mappin.and.ellipse")
-                                .font(.system(size: 16, weight: .semibold))
-                        }
-                        Text(hasVisited ? "Visited" : "Mark as visited")
-                            .font(.custom("Montserrat-SemiBold", size: 16))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 24)
-                    .background(Palette.orange)
-                    .clipShape(Capsule())
-                    .shadow(radius: 2, y: 1)
-                    .opacity(hasVisited || markingVisited ? 0.85 : 1.0)
-                }
-                .buttonStyle(.plain)
-                .disabled(hasVisited || markingVisited)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 16)
-
-                if let visitError {
-                    Text(visitError)
-                        .foregroundColor(.red)
-                        .font(.footnote)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.horizontal, 16)
                 }
 
                 Group {
