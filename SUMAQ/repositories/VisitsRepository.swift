@@ -34,8 +34,8 @@ final class VisitsRepository {
         let id = docId(for: uid, restaurantId: restaurantId)
 
         let payload: [String: Any] = [
-            "userId": "/Users/\(uid)",
-            "restaurantId": "/Restaurants/\(restaurantId)",
+            "userId": uid,
+            "restaurantId": restaurantId,
             "visitedAt": FieldValue.serverTimestamp()
         ]
 
@@ -54,7 +54,7 @@ final class VisitsRepository {
         let uid = try currentUid()
         let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
             db.collection(coll)
-                .whereField("userId", isEqualTo: "/Users/\(uid)")
+                .whereField("userId", isEqualTo: uid)
                 .order(by: "visitedAt", descending: true)
                 .getDocuments { qs, err in
                     if let err { cont.resume(throwing: err) }

@@ -21,28 +21,37 @@ struct LastVisitNotification: View {
             } else if let lastVisitDate = lastVisitDate {
                 let daysSince = Calendar.current.dateComponents([.day], from: lastVisitDate, to: Date()).day ?? 0
                 
-                HStack(spacing: 12) {
-                    Image(systemName: "clock.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 24, height: 24)
-                        .background(.white.opacity(0.18))
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Have passed \(daysSince) days since you tried a new restaurant!")
-                            .font(.custom("Montserrat-SemiBold", size: 14))
+                // Solo mostrar la notificación si han pasado al menos 1 día
+                if daysSince >= 1 {
+                    HStack(spacing: 12) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
-                        Text("Last time was on \(formatDate(lastVisitDate))")
-                            .font(.custom("Montserrat-Regular", size: 12))
-                            .foregroundColor(.white.opacity(0.9))
+                            .frame(width: 24, height: 24)
+                            .background(.white.opacity(0.18))
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            if daysSince == 1 {
+                                Text("It's been a day since you tried a new restaurant!")
+                                    .font(.custom("Montserrat-SemiBold", size: 14))
+                                    .foregroundColor(.white)
+                            } else {
+                                Text("It's been \(daysSince) days since you tried a new restaurant!")
+                                    .font(.custom("Montserrat-SemiBold", size: 14))
+                                    .foregroundColor(.white)
+                            }
+                            Text("Last time was on \(formatDate(lastVisitDate))")
+                                .font(.custom("Montserrat-Regular", size: 12))
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+                        Spacer()
                     }
-                    Spacer()
+                    .padding(12)
+                    .background(Palette.orange)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .shadow(color: .black.opacity(0.08), radius: 6, y: 4)
                 }
-                .padding(12)
-                .background(Palette.orange)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .shadow(color: .black.opacity(0.08), radius: 6, y: 4)
             }
             // Si no hay visitas o hay error, no mostrar nada
         }
