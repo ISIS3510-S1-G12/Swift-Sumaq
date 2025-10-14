@@ -62,6 +62,24 @@ struct UserHomeView: View {
                 // Notificación de última visita
                 LastVisitNotification()
                     .padding(.horizontal, 16)
+                
+                // Botón temporal de prueba (remover en producción)
+                Button("🧪 Test: Mark Restaurant Visited") {
+                    Task {
+                        do {
+                            try await VisitsRepository().markVisited(restaurantId: "test-restaurant-123")
+                            print("✅ Test visit marked successfully")
+                        } catch {
+                            print("❌ Test visit failed: \(error.localizedDescription)")
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.blue.opacity(0.1))
+                .foregroundColor(.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 16)
 
                 // Banner dinámico por mealtime (Colombia)
                 MealTimeBanner(meal: MealTime.nowInColombia())
