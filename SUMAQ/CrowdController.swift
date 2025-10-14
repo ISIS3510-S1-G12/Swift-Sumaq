@@ -24,8 +24,13 @@ final class CrowdController: NSObject, ObservableObject {
 
     override init() {
         super.init()
-        central = CBCentralManager(delegate: self, queue: .main)
-        peripheral = CBPeripheralManager(delegate: self, queue: .main)
+        
+        // Inicializar con un queue dedicado para evitar problemas de concurrencia
+        let queue = DispatchQueue(label: "com.sumaq.bluetooth", qos: .userInitiated)
+        central = CBCentralManager(delegate: self, queue: queue)
+        peripheral = CBPeripheralManager(delegate: self, queue: queue)
+        
+        print("🔵 CrowdController initialized")
     }
 
     deinit {
@@ -42,11 +47,43 @@ final class CrowdController: NSObject, ObservableObject {
         NotificationCenter.default.post(name: .crowdScanDidStart, object: nil)
 
         print("🔵 Starting scan - Central state: \(central.state.rawValue), Peripheral state: \(peripheral.state.rawValue)")
+        
+        // Verificar si estamos en simulador
+        #if targetEnvironment(simulator)
+        print("🔵 Running on simulator - Bluetooth functionality is limited")
+        lastError = "Bluetooth detection is limited on simulator. Please test on a real device for full functionality."
+        pendingScan = false
+        return
+        #endif
 
         // Verificar que Bluetooth esté disponible
         guard central.state != .unsupported else {
             lastError = "Bluetooth is not supported on this device"
             pendingScan = false
+            return
+        }
+        
+        // Manejar estado .unknown - puede ser que necesite más tiempo para inicializar
+        if central.state == .unknown || peripheral.state == .unknown {
+            print("🔵 Bluetooth state is unknown, waiting for initialization...")
+            lastError = "Bluetooth is initializing... Please wait a moment and try again."
+            
+            // Dar tiempo para que Bluetooth se inicialice
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                guard let self = self else { return }
+                if self.pendingScan {
+                    print("🔵 Retrying after delay - Central state: \(self.central.state.rawValue), Peripheral state: \(self.peripheral.state.rawValue)")
+                    if self.central.state == .poweredOn && self.peripheral.state == .poweredOn {
+                        self.startAdvertising()
+                        self.startScan()
+                        self.pendingScan = false
+                        self.lastError = nil
+                    } else if self.central.state == .unknown || self.peripheral.state == .unknown {
+                        self.lastError = "Bluetooth initialization failed. Please check permissions and try again."
+                        self.pendingScan = false
+                    }
+                }
+            }
             return
         }
         
@@ -88,15 +125,29 @@ final class CrowdController: NSObject, ObservableObject {
     }
     
     func debugStatus() -> String {
+        let isSimulator = TARGET_OS_SIMULATOR != 0
         return """
-        Central State: \(central.state.rawValue)
-        Peripheral State: \(peripheral.state.rawValue)
+        Central State: \(central.state.rawValue) (\(stateDescription(central.state)))
+        Peripheral State: \(peripheral.state.rawValue) (\(stateDescription(peripheral.state)))
         Is Scanning: \(isScanning)
         Is Advertising: \(isAdvertising)
         Pending Scan: \(pendingScan)
         Nearby Count: \(nearbyCount)
+        Is Simulator: \(isSimulator)
         Last Error: \(lastError ?? "None")
         """
+    }
+    
+    private func stateDescription(_ state: CBManagerState) -> String {
+        switch state {
+        case .unknown: return "unknown"
+        case .resetting: return "resetting"
+        case .unsupported: return "unsupported"
+        case .unauthorized: return "unauthorized"
+        case .poweredOff: return "poweredOff"
+        case .poweredOn: return "poweredOn"
+        @unknown default: return "unknown"
+        }
     }
 
     private func startScan() {
@@ -176,7 +227,8 @@ extension CrowdController: CBCentralManagerDelegate {
         case .resetting:
             lastError = "Bluetooth is resetting. Please wait..."
         case .unknown:
-            lastError = "Bluetooth state unknown. Please wait..."
+            print("🔵 Central state is unknown, this is normal during initialization")
+            // No establecer error aquí, es normal durante la inicialización
         @unknown default:
             lastError = "Unknown Bluetooth state. Please try again."
             pendingScan = false
@@ -237,7 +289,8 @@ extension CrowdController: CBPeripheralManagerDelegate {
         case .resetting:
             lastError = "Bluetooth is resetting. Please wait..."
         case .unknown:
-            lastError = "Bluetooth state unknown. Please wait..."
+            print("🔵 Peripheral state is unknown, this is normal during initialization")
+            // No establecer error aquí, es normal durante la inicialización
         @unknown default: 
             lastError = "Unknown Bluetooth state. Please try again."
         }
