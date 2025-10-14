@@ -165,9 +165,10 @@ final class CrowdController: NSObject, ObservableObject {
             return 
         }
         
-        print("🔵 Starting scan for service: \(CrowdBLE.serviceUUID)")
+        print("🔵 Starting scan for all Bluetooth devices")
         isScanning = true
-        central.scanForPeripherals(withServices: [CrowdBLE.serviceUUID],
+        // Escanear todos los dispositivos Bluetooth, no solo los con servicio específico
+        central.scanForPeripherals(withServices: nil,
                                    options: [
                                     CBCentralManagerScanOptionAllowDuplicatesKey: false
                                    ])
@@ -193,11 +194,10 @@ final class CrowdController: NSObject, ObservableObject {
         }
         
         let advertisementData: [String: Any] = [
-            CBAdvertisementDataServiceUUIDsKey: [CrowdBLE.serviceUUID],
             CBAdvertisementDataLocalNameKey: "SUMAQ"
         ]
         
-        print("🔵 Starting advertising with service: \(CrowdBLE.serviceUUID)")
+        print("🔵 Starting advertising as generic Bluetooth device")
         peripheral.startAdvertising(advertisementData)
         // isAdvertising se establecerá en true cuando se confirme en peripheralManagerDidStartAdvertising
     }
@@ -254,20 +254,14 @@ extension CrowdController: CBCentralManagerDelegate {
             return 
         }
         
-        // Verificar que el dispositivo tenga nuestro servicio
-        if let services = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID],
-           services.contains(CrowdBLE.serviceUUID) {
-            
-            if seen.insert(peripheral.identifier).inserted {
-                nearbyCount = seen.count
-                print("🔵 New device found! Total nearby: \(nearbyCount)")
-                NotificationCenter.default.post(name: .crowdScanDidUpdate,
-                                                object: nil, userInfo: ["count": nearbyCount])
-            } else {
-                print("🔵 Already seen this device")
-            }
+        // Detectar cualquier dispositivo Bluetooth cercano
+        if seen.insert(peripheral.identifier).inserted {
+            nearbyCount = seen.count
+            print("🔵 New Bluetooth device found! RSSI: \(rssiValue), Total nearby: \(nearbyCount)")
+            NotificationCenter.default.post(name: .crowdScanDidUpdate,
+                                            object: nil, userInfo: ["count": nearbyCount])
         } else {
-            print("🔵 Device doesn't have our service UUID")
+            print("🔵 Already seen this device")
         }
     }
 }

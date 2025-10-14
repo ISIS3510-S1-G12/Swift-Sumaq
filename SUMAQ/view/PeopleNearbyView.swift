@@ -19,7 +19,7 @@ struct PeopleNearbyView: View {
                 Text("People near \(restaurantName)")
                     .font(.custom("Montserrat-SemiBold", size: 20))
                     .foregroundColor(Palette.burgundy)
-                Text("We anonymously scan nearby phones with SUMAQ open (Bluetooth).")
+                Text("We scan for nearby Bluetooth devices to detect people around you.")
                     .font(.custom("Montserrat-Regular", size: 13))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -85,11 +85,11 @@ struct PeopleNearbyView: View {
                 .padding(.top, 4)
             } else {
                 VStack(spacing: 8) {
-                    Text("Tap 'Scan' to detect nearby SUMAQ users.")
-                        .foregroundColor(.secondary)
-                        .font(.footnote)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
+                Text("Tap 'Scan' to detect nearby Bluetooth devices.")
+                    .foregroundColor(.secondary)
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
                     
                     // Debug info temporal
                     Text(crowd.debugStatus())
