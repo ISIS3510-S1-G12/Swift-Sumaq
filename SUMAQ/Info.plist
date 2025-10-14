@@ -20,10 +20,13 @@
 	<string>Esta aplicación necesita acceso a tu ubicación para mostrarte restaurantes cercanos.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Esta aplicación necesita acceso a tu ubicación para mostrarte restaurantes cercanos.</string>
-	<key>Bluetooth Always Usage Description</key>
+
+	<!-- Claves Bluetooth corregidas -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Esta aplicación usa Bluetooth para funcionalidades de proximidad.</string>
-	<key>Bluetooth Peripheral Usage Description</key>
+	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Esta aplicación usa Bluetooth para funcionalidades de proximidad.</string>
+
 	<key>CFBundleGetInfoString</key>
 	<string>SUMAQ - Descubre los mejores restaurantes cerca de ti</string>
 	<key>UILaunchStoryboardName</key>
