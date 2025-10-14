@@ -7,6 +7,7 @@
 
 
 import SwiftUI
+import PhotosUI
 import FirebaseAuth
 
 struct NewDishView: View {
@@ -16,7 +17,8 @@ struct NewDishView: View {
     @State private var description = ""
     @State private var price = ""
     @State private var rating = "0"
-    @State private var imageUrl = ""          // URL
+    @State private var imageData: Data? = nil
+    @State private var photoItem: PhotosPickerItem? = nil
     @State private var dishType = "main"
     @State private var tagsText = ""          // cosas como "good, spicy"
 
@@ -53,11 +55,41 @@ struct NewDishView: View {
                              keyboard: .numberPad,
                              labelColor: Palette.teal)
 
-                LabeledField(title: "Image",
-                             text: $imageUrl,
-                             placeholder: "Image URL or data:image/...base64",
-                             keyboard: .URL,
-                             labelColor: Palette.teal)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Image")
+                        .font(.custom("Montserrat-SemiBold", size: 16))
+                        .foregroundColor(Palette.teal)
+
+                    PhotosPicker(selection: $photoItem, matching: .images) {
+                        HStack {
+                            if let imageData, let ui = UIImage(data: imageData) {
+                                Image(uiImage: ui)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(height: 140)
+                                    .clipped()
+                                    .cornerRadius(12)
+                            } else {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "photo.on.rectangle")
+                                    Text("Pick an image")
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 56)
+                                .background(Palette.grayLight)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .onChange(of: photoItem) { _, newItem in
+                        guard let newItem else { return }
+                        Task {
+                            if let data = try? await newItem.loadTransferable(type: Data.self) {
+                                self.imageData = data
+                            }
+                        }
+                    }
+                }
 
                 LabeledField(title: "Dish Type",
                              text: $dishType,
@@ -86,7 +118,7 @@ struct NewDishView: View {
                         .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .buttonStyle(PrimaryCapsuleButton(color: Palette.teal))
-                .disabled(isSaving || name.isEmpty || description.isEmpty || imageUrl.isEmpty || price.isEmpty)
+                .disabled(isSaving || name.isEmpty || description.isEmpty || imageData == nil || price.isEmpty)
                 .padding(.top, 4)
             }
             .padding(.horizontal, 24)
@@ -99,6 +131,7 @@ struct NewDishView: View {
 
     private func save() async {
         guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let imageData else { error = "Please select an image"; return }
         isSaving = true; error = nil
         do {
             try await repo.create(
@@ -107,7 +140,7 @@ struct NewDishView: View {
                 description: description,
                 price: Double(price.replacingOccurrences(of: ",", with: ".")) ?? 0,
                 rating: Int(rating) ?? 0,
-                imageUrl: imageUrl,
+                imageData: imageData,
                 dishType: dishType,
                 dishesTags: tagsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             )
