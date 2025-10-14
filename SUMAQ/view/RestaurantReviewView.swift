@@ -25,19 +25,6 @@ struct ReviewsContent: View {
                 .font(.custom("Montserrat-SemiBold", size: 16))
                 .foregroundColor(Palette.orangeAlt)
                 .padding(.horizontal, 16)
-    
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Views Statistics")
-                    .font(.custom("Montserrat-SemiBold", size: 16))
-                    .foregroundColor(Palette.teal)
-
-                Image("PopularTimes")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: 180)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            .padding(.horizontal, 16)
 
             VStack(alignment: .leading, spacing: 16) {
                 Text("Reviews")
