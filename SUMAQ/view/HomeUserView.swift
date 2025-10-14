@@ -15,6 +15,11 @@ struct UserHomeView: View {
 
     @StateObject private var mapCtrl = MapController()
     private let repo = RestaurantsRepository()
+    
+    // New restaurant notification
+    @State private var lastNewRestaurantVisit: Date?
+    @State private var showNewRestaurantNotification = false
+    private let visitsRepo = VisitsRepository()
 
     var body: some View {
         ScrollView {
@@ -62,6 +67,13 @@ struct UserHomeView: View {
                 // Banner dinámico por mealtime (Colombia)
                 MealTimeBanner(meal: MealTime.nowInColombia())
                     .padding(.horizontal, 16)
+                
+                // Notificación de nuevo restaurante
+                if showNewRestaurantNotification {
+                    let days = lastNewRestaurantVisit != nil ? daysSinceLastVisit(lastNewRestaurantVisit!) : 0
+                    NewRestaurantNotification(daysSinceLastNewRestaurant: days)
+                        .padding(.horizontal, 16)
+                }
 
                 if loading {
                     ProgressView().padding()
@@ -109,6 +121,7 @@ struct UserHomeView: View {
         }
         .task { await mapCtrl.loadRestaurants() }
         .task { await loadRestaurants() }
+        .task { await loadNewRestaurantNotification() }
         .background(Color(.systemBackground).ignoresSafeArea())
     }
 
@@ -127,6 +140,27 @@ struct UserHomeView: View {
         do { restaurants = try await repo.all() }
         catch { self.error = error.localizedDescription }
         loading = false
+    }
+    
+    private func loadNewRestaurantNotification() async {
+        lastNewRestaurantVisit = await visitsRepo.getLastNewRestaurantVisit()
+        
+        // Mostrar la notificación si han pasado más de 7 días desde la última visita a un restaurante nuevo
+        // o si nunca ha visitado un restaurante nuevo
+        if let lastVisit = lastNewRestaurantVisit {
+            let daysSince = daysSinceLastVisit(lastVisit)
+            showNewRestaurantNotification = daysSince >= 7
+        } else {
+            // Si nunca ha visitado un restaurante nuevo, mostrar la notificación
+            showNewRestaurantNotification = true
+        }
+    }
+    
+    private func daysSinceLastVisit(_ date: Date) -> Int {
+        let calendar = Calendar.current
+        let now = Date()
+        let components = calendar.dateComponents([.day], from: date, to: now)
+        return components.day ?? 0
     }
 }
 
@@ -203,6 +237,35 @@ private struct MealTimeBanner: View {
         }
         .padding(14)
         .background(Palette.purple)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 6)
+    }
+}
+
+private struct NewRestaurantNotification: View {
+    let daysSinceLastNewRestaurant: Int
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "fork.knife.circle.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 28, height: 28)
+                .background(.white.opacity(0.18))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("It's time to try a new restaurant!")
+                    .font(.custom("Montserrat-SemiBold", size: 16))
+                    .foregroundColor(.white)
+                Text("\(daysSinceLastNewRestaurant) days have passed since you tried a new restaurant")
+                    .font(.custom("Montserrat-Regular", size: 13))
+                    .foregroundColor(.white.opacity(0.95))
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Palette.orange)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 8, y: 6)
     }
