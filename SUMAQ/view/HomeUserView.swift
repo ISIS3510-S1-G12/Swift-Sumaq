@@ -147,12 +147,12 @@ struct UserHomeView: View {
         
         print("🔍 DEBUG: lastNewRestaurantVisit = \(lastNewRestaurantVisit?.description ?? "nil")")
         
-        // Solo mostrar la notificación si han pasado más de 7 días desde la última visita a un restaurante nuevo
+        // Solo mostrar la notificación si han pasado más de 3 días desde la última visita a un restaurante nuevo
         // Si nunca ha visitado un restaurante nuevo, también mostrar la notificación
         if let lastVisit = lastNewRestaurantVisit {
             let daysSince = daysSinceLastVisit(lastVisit)
             print("🔍 DEBUG: daysSince = \(daysSince)")
-            showNewRestaurantNotification = daysSince > 7  // Más de 7 días (no incluye el día 7)
+            showNewRestaurantNotification = daysSince > 3  // Más de 3 días (no incluye el día 3)
             print("🔍 DEBUG: showNewRestaurantNotification = \(showNewRestaurantNotification)")
         } else {
             // Si nunca ha visitado un restaurante nuevo, mostrar la notificación
