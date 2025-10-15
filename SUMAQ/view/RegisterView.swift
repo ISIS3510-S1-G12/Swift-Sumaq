@@ -13,7 +13,6 @@ struct RegisterView: View {
 
     @State private var budget: String = ""
     @State private var diet: String = ""
-    @State private var userPhotoItem: PhotosPickerItem?
     @State private var userPhotoData: Data?
 
     @State private var address: String = ""
@@ -23,7 +22,6 @@ struct RegisterView: View {
     @State private var busiestHoursText: String = ""
     @State private var offer: Bool = false
     @State private var ratingText: String = ""
-    @State private var restPhotoItem: PhotosPickerItem?
     @State private var restPhotoData: Data?
 
     private var accentColor: Color { role == .user ? Palette.purple : Palette.teal }
@@ -59,11 +57,10 @@ struct RegisterView: View {
                                 LabeledField(title: "Budget (int)", text: $budget, placeholder: "25000", keyboard: .numberPad, labelColor: Palette.burgundy)
                                 LabeledField(title: "Diet", text: $diet, placeholder: "vegetarian", keyboard: .default, labelColor: Palette.burgundy)
 
-                                ImagePickerRow(
+                                CameraPickerRow(
                                     title: "Profile picture",
                                     buttonColor: buttonColor,
-                                    imageData: $userPhotoData,
-                                    item: $userPhotoItem
+                                    imageData: $userPhotoData
                                 )
                             }
                         } else {
@@ -72,11 +69,10 @@ struct RegisterView: View {
                                 LabeledField(title: "Opening time (HHmm int)", text: $openingTime, placeholder: "900", keyboard: .numberPad, labelColor: Palette.burgundy)
                                 LabeledField(title: "Closing time (HHmm int)", text: $closingTime, placeholder: "1900", keyboard: .numberPad, labelColor: Palette.burgundy)
 
-                                ImagePickerRow(
+                                CameraPickerRow(
                                     title: "Restaurant image",
                                     buttonColor: buttonColor,
-                                    imageData: $restPhotoData,
-                                    item: $restPhotoItem
+                                    imageData: $restPhotoData
                                 )
 
                                 LabeledField(title: "Restaurant type", text: $restaurantType, placeholder: "Fast Food", keyboard: .default, labelColor: Palette.burgundy)
@@ -132,12 +128,6 @@ struct RegisterView: View {
                 controller.errorMsg = msg
             }
         }
-        .onChange(of: userPhotoItem) { _, newItem in
-            loadPhotoData(from: newItem) { data in userPhotoData = data }
-        }
-        .onChange(of: restPhotoItem) { _, newItem in
-            loadPhotoData(from: newItem) { data in restPhotoData = data }
-        }
     }
 
     private func submit() {
@@ -176,23 +166,13 @@ struct RegisterView: View {
         return dict
     }
 
-    private func loadPhotoData(from item: PhotosPickerItem?, done: @escaping (Data?) -> Void) {
-        guard let item = item else { return done(nil) }
-        Task {
-            if let data = try? await item.loadTransferable(type: Data.self) {
-                done(data)
-            } else {
-                done(nil)
-            }
-        }
-    }
 }
 
-private struct ImagePickerRow: View {
+private struct CameraPickerRow: View {
     let title: String
     let buttonColor: Color
     @Binding var imageData: Data?
-    @Binding var item: PhotosPickerItem?
+    @State private var showCameraPicker = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -219,7 +199,9 @@ private struct ImagePickerRow: View {
                         )
                 }
 
-                PhotosPicker(selection: $item, matching: .images) {
+                Button {
+                    showCameraPicker = true
+                } label: {
                     Text(imageData == nil ? "Choose photo" : "Change photo")
                         .font(.custom("Montserrat-SemiBold", size: 16))
                         .foregroundColor(.white)
@@ -231,6 +213,9 @@ private struct ImagePickerRow: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+        .sheet(isPresented: $showCameraPicker) {
+            CamaraPicker(imageData: $imageData)
         }
     }
 }
