@@ -12,6 +12,9 @@ struct PeopleNearbyView: View {
     let restaurantName: String
 
     @StateObject private var crowd = CrowdController()
+    
+    // Screen tracking
+    @State private var screenStartTime: Date?
 
     var body: some View {
         VStack(spacing: 18) {
@@ -106,7 +109,17 @@ struct PeopleNearbyView: View {
             Spacer()
         }
         .padding(.top, 24)
-        .onAppear { crowd.startQuickScan(duration: 12) } 
-        .onDisappear { crowd.stop() }
+        .onAppear { 
+            screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.peopleNearby, category: ScreenCategory.socialFeatures)
+            crowd.startQuickScan(duration: 12) 
+        } 
+        .onDisappear { 
+            if let startTime = screenStartTime {
+                let duration = Date().timeIntervalSince(startTime)
+                SessionTracker.shared.trackScreenEnd(ScreenName.peopleNearby, duration: duration, category: ScreenCategory.socialFeatures)
+            }
+            crowd.stop() 
+        }
     }
 }

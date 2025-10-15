@@ -14,6 +14,9 @@ struct OffersUserView: View {
 
     private let offersRepo = OffersRepository()
     private let restaurantsRepo = RestaurantsRepository()
+    
+    // Screen tracking
+    @State private var screenStartTime: Date?
 
     var body: some View {
         ScrollView {
@@ -60,6 +63,16 @@ struct OffersUserView: View {
             .padding(.top, embedded ? 0 : 8)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
+        .onAppear {
+            screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.offers, category: ScreenCategory.mainNavigation)
+        }
+        .onDisappear {
+            if let startTime = screenStartTime {
+                let duration = Date().timeIntervalSince(startTime)
+                SessionTracker.shared.trackScreenEnd(ScreenName.offers, duration: duration, category: ScreenCategory.mainNavigation)
+            }
+        }
         .task { await load() }
     }
 

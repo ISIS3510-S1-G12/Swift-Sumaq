@@ -7,6 +7,7 @@ struct UserRestaurantDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: Int = 0
+    @State private var screenStartTime: Date?
 
     @State private var dishes: [Dish] = []
     @State private var offers: [Offer] = []
@@ -211,6 +212,8 @@ struct UserRestaurantDetailView: View {
             Task { await loadFavoriteState() }
         }
         .onAppear {
+            screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.restaurantDetail, category: ScreenCategory.restaurantDetail)
             AnalyticsService.shared.screenStart(ScreenName.restaurantDetail)
             AnalyticsService.shared.log(EventName.restaurantVisit, [
                 "restaurant_id": restaurant.id,
@@ -218,6 +221,10 @@ struct UserRestaurantDetailView: View {
             ])
         }
         .onDisappear {
+            if let startTime = screenStartTime {
+                let duration = Date().timeIntervalSince(startTime)
+                SessionTracker.shared.trackScreenEnd(ScreenName.restaurantDetail, duration: duration, category: ScreenCategory.restaurantDetail)
+            }
             AnalyticsService.shared.screenEnd(ScreenName.restaurantDetail)
         }
     }

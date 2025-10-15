@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LogInAndRegisterView: View {
     let role: UserType
+    @State private var screenStartTime: Date?
 
     private var titleColor: Color {
         role == .user ? Palette.purple : Palette.teal
@@ -51,6 +52,18 @@ struct LogInAndRegisterView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white.ignoresSafeArea())
+            .onAppear {
+                screenStartTime = Date()
+                let screenName = role == .user ? ScreenName.login : ScreenName.restaurantProfile
+                SessionTracker.shared.trackScreenView(screenName, category: ScreenCategory.authentication)
+            }
+            .onDisappear {
+                if let startTime = screenStartTime {
+                    let duration = Date().timeIntervalSince(startTime)
+                    let screenName = role == .user ? ScreenName.login : ScreenName.restaurantProfile
+                    SessionTracker.shared.trackScreenEnd(screenName, duration: duration, category: ScreenCategory.authentication)
+                }
+            }
         }
     }
 }

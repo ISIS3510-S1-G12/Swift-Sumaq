@@ -23,6 +23,9 @@ struct FavoritesUserView: View {
     @ObservedObject private var session = SessionController.shared
 
     @State private var loadTask: Task<Void, Never>?
+    
+    // Screen tracking
+    @State private var screenStartTime: Date?
 
     var body: some View {
         ScrollView {
@@ -76,6 +79,16 @@ struct FavoritesUserView: View {
             .padding(.top, embedded ? 0 : 8)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
+        .onAppear {
+            screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.favorites, category: ScreenCategory.mainNavigation)
+        }
+        .onDisappear {
+            if let startTime = screenStartTime {
+                let duration = Date().timeIntervalSince(startTime)
+                SessionTracker.shared.trackScreenEnd(ScreenName.favorites, duration: duration, category: ScreenCategory.mainNavigation)
+            }
+        }
         .task { await safeLoadFavorites() }
         .onReceive(NotificationCenter.default.publisher(for: .userFavoritesDidChange)) { _ in
             loadTask?.cancel()

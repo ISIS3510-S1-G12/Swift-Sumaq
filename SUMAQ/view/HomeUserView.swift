@@ -17,6 +17,9 @@ struct UserHomeView: View {
     @State private var lastNewRestaurantVisit: Date?
     @State private var showNewRestaurantNotification = false
     private let visitsRepo = VisitsRepository()
+    
+    // Screen tracking
+    @State private var screenStartTime: Date?
 
     var body: some View {
         ScrollView {
@@ -109,10 +112,16 @@ struct UserHomeView: View {
             .padding(.top, embedded ? 0 : 8)
         }
         .onAppear {
+            screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.home, category: ScreenCategory.mainNavigation)
             AnalyticsService.shared.screenStart(ScreenName.home)
             LocationPermissionLogger.shared.startObserving()
         }
         .onDisappear {
+            if let startTime = screenStartTime {
+                let duration = Date().timeIntervalSince(startTime)
+                SessionTracker.shared.trackScreenEnd(ScreenName.home, duration: duration, category: ScreenCategory.mainNavigation)
+            }
             AnalyticsService.shared.screenEnd(ScreenName.home)
         }
         .task { await mapCtrl.loadRestaurants() }
