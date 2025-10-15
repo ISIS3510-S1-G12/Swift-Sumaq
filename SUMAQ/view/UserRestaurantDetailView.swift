@@ -60,7 +60,7 @@ struct UserRestaurantDetailView: View {
                 RestaurantSegmentedTab(selectedIndex: $selectedTab)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                // Solo mostrar el mapa, botones de acción e información del restaurante cuando la pestaña "Menú" esté seleccionada
+
                 if selectedTab == 0 {
                     OSMMapView(
                         annotations: annotations,
@@ -152,7 +152,6 @@ struct UserRestaurantDetailView: View {
                     }
                 }
 
-                // Solo mostrar el botón "Do a review" cuando la pestaña "Review" esté seleccionada
                 if selectedTab == 2 {
                     NavigationLink {
                         AddReviewView(restaurant: restaurant)
@@ -246,7 +245,6 @@ extension UserRestaurantDetailView {
         do {
             try await visitsRepo.markVisited(restaurantId: restaurant.id)
             hasVisited = true
-            // ← Aquí estaba el error: ahora existe la constante.
             AnalyticsService.shared.log(EventName.restaurantMarkedVisited, ["restaurant_id": restaurant.id])
         } catch {
             visitError = error.localizedDescription

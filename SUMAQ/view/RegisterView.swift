@@ -1,6 +1,6 @@
 import SwiftUI
 import Combine
-import PhotosUI     // NUEVO
+import PhotosUI
 
 struct RegisterView: View {
     let role: UserType
@@ -147,9 +147,9 @@ struct RegisterView: View {
             controller.registerRestaurant(
                 name: name, email: email, password: password,
                 address: address, opening: openInt, closing: closeInt,
-                imageUrl: "",                         // ya no usamos URL
+                imageUrl: "",
                 typeOfFood: restaurantType, offer: offer, rating: rating, busiest: busiest,
-                restaurantImageData: restPhotoData    // NUEVO
+                restaurantImageData: restPhotoData
             )
         }
     }

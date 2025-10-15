@@ -69,12 +69,10 @@ struct CamaraPicker: View {
         .onChange(of: selection) { newItem in
             guard let newItem else { return }
             Task {
-                // Cargamos SIEMPRE como Data y generamos UIImage para el preview
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let ui = UIImage(data: data) {
                     applyPicked(ui)
                 } else {
-                    // fallback simple si no se pudo leer
                     self.imageData = nil
                     self.previewImage = nil
                 }
@@ -102,7 +100,7 @@ struct CamaraPicker: View {
     }
 
     private func openCamera() async {
-        // Verificar si el dispositivo tiene cámara
+        // Verifica si el dispositivo tiene cámara
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
             DispatchQueue.main.async {
                 self.cameraUnavailableAlert = true

@@ -22,7 +22,6 @@ struct TopBar: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                // Logo app
                 Image("AppLogoUI")
                     .resizable()
                     .scaledToFit()

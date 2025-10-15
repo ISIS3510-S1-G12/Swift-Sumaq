@@ -62,7 +62,6 @@ func login(email: String,
                     if let doc = qs?.documents.first, doc.exists {
                         return completion(.success(.restaurantHome))
                     } else {
-                        // Fallback si no hay doc
                         return completion(.success(.userHome))
                     }
                 }

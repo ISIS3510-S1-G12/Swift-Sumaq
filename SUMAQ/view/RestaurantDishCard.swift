@@ -27,7 +27,7 @@ struct StarsRow: View {
 struct RestaurantDishCard: View {
     let title: String
     let subtitle: String
-    let imageURL: String           // dataURL
+    let imageURL: String           
     let rating: Int
 
     var body: some View {

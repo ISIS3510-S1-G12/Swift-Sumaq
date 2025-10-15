@@ -20,7 +20,6 @@ struct ReviewsContent: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Número de reviews dinámico
             Text("Number of reviews: \(reviews.count)")
                 .font(.custom("Montserrat-SemiBold", size: 16))
                 .foregroundColor(Palette.orangeAlt)

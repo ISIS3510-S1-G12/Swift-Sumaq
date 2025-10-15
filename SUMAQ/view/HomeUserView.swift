@@ -7,8 +7,6 @@ struct UserHomeView: View {
     @State private var searchText = ""
     @State private var selectedFilter: FilterOptionHomeUserView? = nil
     @State private var selectedTab = 0
-
-    // Data
     @State private var restaurants: [Restaurant] = []
     @State private var loading = true
     @State private var error: String?
@@ -16,7 +14,6 @@ struct UserHomeView: View {
     @StateObject private var mapCtrl = MapController()
     private let repo = RestaurantsRepository()
     
-    // New restaurant notification
     @State private var lastNewRestaurantVisit: Date?
     @State private var showNewRestaurantNotification = false
     private let visitsRepo = VisitsRepository()
@@ -64,11 +61,10 @@ struct UserHomeView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal, 16)
 
-                // Banner dinámico por mealtime (Colombia)
+                // banner por mealtime Colombia
                 MealTimeBanner(meal: MealTime.nowInColombia())
                     .padding(.horizontal, 16)
                 
-                // Notificación de nuevo restaurante
                 if showNewRestaurantNotification {
                     let days = lastNewRestaurantVisit != nil ? daysSinceLastVisit(lastNewRestaurantVisit!) : 0
                     NewRestaurantNotification(daysSinceLastNewRestaurant: days)
@@ -147,17 +143,14 @@ struct UserHomeView: View {
         
         print("🔍 DEBUG: lastNewRestaurantVisit = \(lastNewRestaurantVisit?.description ?? "nil")")
         
-        // Solo mostrar la notificación si han pasado más de 3 días desde la última visita a un restaurante nuevo
-        // Si nunca ha visitado un restaurante nuevo, también mostrar la notificación
+
         if let lastVisit = lastNewRestaurantVisit {
             let daysSince = daysSinceLastVisit(lastVisit)
-            print("🔍 DEBUG: daysSince = \(daysSince)")
-            showNewRestaurantNotification = daysSince > 3  // Más de 3 días (no incluye el día 3)
-            print("🔍 DEBUG: showNewRestaurantNotification = \(showNewRestaurantNotification)")
+            showNewRestaurantNotification = daysSince > 3
+            
         } else {
-            // Si nunca ha visitado un restaurante nuevo, mostrar la notificación
             showNewRestaurantNotification = true
-            print("🔍 DEBUG: No visits found, showing notification = \(showNewRestaurantNotification)")
+            
         }
     }
     
@@ -165,7 +158,6 @@ struct UserHomeView: View {
         let calendar = Calendar.current
         let now = Date()
         
-        // Calcular la diferencia en días, ignorando las horas
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.startOfDay(for: now)
         
@@ -185,7 +177,7 @@ private enum MealTime {
         cal.timeZone = tz
         let hour = cal.component(.hour, from: date)
 
-        // Franja típica en Colombia:
+        // Franja en Colombia:
         // Desayuno: 5:00–10:59, Almuerzo: 11:00–15:59, Cena: 18:00–22:59
         switch hour {
         case 5...10:   return .breakfast

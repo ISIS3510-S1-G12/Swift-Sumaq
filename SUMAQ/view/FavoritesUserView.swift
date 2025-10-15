@@ -117,7 +117,6 @@ struct FavoritesUserView: View {
                 return
             }
             restaurants = try await restaurantsRepo.getMany(ids: favoriteIds)
-            // Calcula métricas
             stats = FavoritesInsight.makeStats(from: restaurants)
             AnalyticsService.shared.log("favorites_stats", [
                 "total": stats.total,

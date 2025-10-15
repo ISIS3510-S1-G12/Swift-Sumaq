@@ -41,7 +41,6 @@ struct PeopleNearbyView: View {
             }
             .padding(.top, 6)
 
-            // Estado
             if let err = crowd.lastError {
                 VStack(spacing: 8) {
                     Text(err)

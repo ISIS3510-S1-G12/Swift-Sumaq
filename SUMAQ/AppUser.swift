@@ -34,7 +34,6 @@ struct AppUser: Identifiable {
             self.favoriteRestaurants = [:]
         }
         
-        // Extraer profile_picture de las preferencias
         if let prefs = d["preferences"] as? [String: Any],
            let profilePic = prefs["profile_picture"] as? String {
             self.profilePicture = profilePic

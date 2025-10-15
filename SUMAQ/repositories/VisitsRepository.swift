@@ -62,7 +62,7 @@ final class VisitsRepository {
                     }
             }
             
-            // Obtener todos los restaurantIds únicos que el usuario ha visitado
+            // Obtiene todos los restaurantIds únicos que el usuario ha visitado
             var visitedRestaurants: Set<String> = []
             var lastNewRestaurantVisit: Date?
             
@@ -74,10 +74,8 @@ final class VisitsRepository {
                     continue 
                 }
                 
-                // Extraer el ID del restaurante de la referencia
                 let restaurantIdClean = restaurantId.replacingOccurrences(of: "/Restaurants/", with: "")
                 
-                // Si es la primera vez que vemos este restaurante (en orden cronológico descendente),
                 // significa que fue el último restaurante "nuevo" que visitó
                 if !visitedRestaurants.contains(restaurantIdClean) {
                     visitedRestaurants.insert(restaurantIdClean)
