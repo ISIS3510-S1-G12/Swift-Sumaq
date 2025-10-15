@@ -145,21 +145,31 @@ struct UserHomeView: View {
     private func loadNewRestaurantNotification() async {
         lastNewRestaurantVisit = await visitsRepo.getLastNewRestaurantVisit()
         
+        print("🔍 DEBUG: lastNewRestaurantVisit = \(lastNewRestaurantVisit?.description ?? "nil")")
+        
         // Solo mostrar la notificación si han pasado más de 7 días desde la última visita a un restaurante nuevo
         // Si nunca ha visitado un restaurante nuevo, también mostrar la notificación
         if let lastVisit = lastNewRestaurantVisit {
             let daysSince = daysSinceLastVisit(lastVisit)
+            print("🔍 DEBUG: daysSince = \(daysSince)")
             showNewRestaurantNotification = daysSince > 7  // Más de 7 días (no incluye el día 7)
+            print("🔍 DEBUG: showNewRestaurantNotification = \(showNewRestaurantNotification)")
         } else {
             // Si nunca ha visitado un restaurante nuevo, mostrar la notificación
             showNewRestaurantNotification = true
+            print("🔍 DEBUG: No visits found, showing notification = \(showNewRestaurantNotification)")
         }
     }
     
     private func daysSinceLastVisit(_ date: Date) -> Int {
         let calendar = Calendar.current
         let now = Date()
-        let components = calendar.dateComponents([.day], from: date, to: now)
+        
+        // Calcular la diferencia en días, ignorando las horas
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.startOfDay(for: now)
+        
+        let components = calendar.dateComponents([.day], from: startOfDay, to: endOfDay)
         return components.day ?? 0
     }
 }

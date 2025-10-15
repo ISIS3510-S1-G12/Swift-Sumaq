@@ -68,8 +68,11 @@ final class VisitsRepository {
             
             for document in snapshot.documents {
                 let data = document.data()
+                
                 guard let visitedAt = data["visitedAt"] as? Timestamp,
-                      let restaurantId = data["restaurantId"] as? String else { continue }
+                      let restaurantId = data["restaurantId"] as? String else { 
+                    continue 
+                }
                 
                 // Extraer el ID del restaurante de la referencia
                 let restaurantIdClean = restaurantId.replacingOccurrences(of: "/Restaurants/", with: "")
