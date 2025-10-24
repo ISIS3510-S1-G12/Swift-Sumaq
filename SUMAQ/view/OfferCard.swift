@@ -32,14 +32,13 @@ struct OfferCard: View {
                     .lineLimit(3)
             }
             .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(panelColor)
 
             ZStack(alignment: .topTrailing) {
                 RemoteImage(urlString: imageURL)
-                    .frame(width: 160, height: 124)
+                    .frame(width: 160, height: 140)
                     .clipped()
-                    .background(Color.white)
 
                 if let trailingEdit {
                     Button("Edit", action: trailingEdit)

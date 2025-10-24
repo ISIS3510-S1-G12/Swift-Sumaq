@@ -7,6 +7,7 @@
 
 
 import SwiftUI
+import PhotosUI
 import FirebaseAuth
 
 struct NewDishView: View {
@@ -16,7 +17,11 @@ struct NewDishView: View {
     @State private var description = ""
     @State private var price = ""
     @State private var rating = "0"
-    @State private var imageUrl = ""          // URL
+    @State private var imageData: Data? = nil
+    @State private var photoItem: PhotosPickerItem? = nil
+    @State private var showCamera = false
+    @State private var cameraUnavailableAlert = false
+    @State private var showSuccessAlert = false
     @State private var dishType = "main"
     @State private var tagsText = ""          // cosas como "good, spicy"
 
@@ -53,11 +58,62 @@ struct NewDishView: View {
                              keyboard: .numberPad,
                              labelColor: Palette.teal)
 
-                LabeledField(title: "Image",
-                             text: $imageUrl,
-                             placeholder: "Image URL or data:image/...base64",
-                             keyboard: .URL,
-                             labelColor: Palette.teal)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Image")
+                        .font(.custom("Montserrat-SemiBold", size: 16))
+                        .foregroundColor(Palette.teal)
+
+                    if let imageData, let ui = UIImage(data: imageData) {
+                        Image(uiImage: ui)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 140)
+                            .clipped()
+                            .cornerRadius(12)
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Palette.grayLight)
+                                .frame(height: 140)
+                            
+                            VStack(spacing: 12) {
+                                Image(systemName: "photo.on.rectangle")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.secondary)
+                                
+                                Text("No image selected")
+                                    .font(.custom("Montserrat-Regular", size: 16))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+
+                    HStack(spacing: 12) {
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Text("Choose from Library")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(PrimaryCapsuleButton(color: Palette.teal))
+
+                        Button {
+                            Task { await openCamera() }
+                        } label: {
+                            Text("Take Photo")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(PrimaryCapsuleButton(color: Palette.orange))
+                    }
+                    .onChange(of: photoItem) { _, newItem in
+                        guard let newItem else { return }
+                        Task {
+                            if let data = try? await newItem.loadTransferable(type: Data.self) {
+                                self.imageData = data
+                            }
+                        }
+                    }
+                }
 
                 LabeledField(title: "Dish Type",
                              text: $dishType,
@@ -86,7 +142,7 @@ struct NewDishView: View {
                         .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .buttonStyle(PrimaryCapsuleButton(color: Palette.teal))
-                .disabled(isSaving || name.isEmpty || description.isEmpty || imageUrl.isEmpty || price.isEmpty)
+                .disabled(isSaving || name.isEmpty || description.isEmpty || imageData == nil || price.isEmpty)
                 .padding(.top, 4)
             }
             .padding(.horizontal, 24)
@@ -95,10 +151,30 @@ struct NewDishView: View {
         }
         .background(Color(.systemBackground).ignoresSafeArea())
         .navigationTitle("New Dish")
+        .fullScreenCover(isPresented: $showCamera) {
+            ImagePicker(sourceType: .camera) { image in
+                if let imageData = image.jpegData(compressionQuality: 0.8) {
+                    self.imageData = imageData
+                }
+            }
+        }
+        .alert("Camera Unavailable", isPresented: $cameraUnavailableAlert) {
+            Button("OK") { }
+        } message: {
+            Text("Camera is not available on this device.")
+        }
+        .alert("Dish Created Successfully!", isPresented: $showSuccessAlert) {
+            Button("OK") {
+                onCreated?()
+            }
+        } message: {
+            Text("Your dish has been added to the menu successfully.")
+        }
     }
 
     private func save() async {
         guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let imageData else { error = "Please select an image"; return }
         isSaving = true; error = nil
         do {
             try await repo.create(
@@ -107,16 +183,24 @@ struct NewDishView: View {
                 description: description,
                 price: Double(price.replacingOccurrences(of: ",", with: ".")) ?? 0,
                 rating: Int(rating) ?? 0,
-                imageUrl: imageUrl,
+                imageData: imageData,
                 dishType: dishType,
                 dishesTags: tagsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             )
             isSaving = false
-            onCreated?()
+            showSuccessAlert = true
         } catch {
             self.error = error.localizedDescription
             isSaving = false
         }
+    }
+    
+    private func openCamera() async {
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            cameraUnavailableAlert = true
+            return
+        }
+        showCamera = true
     }
 }
 
@@ -150,6 +234,48 @@ private struct LabeledTextArea: View {
             }
             .background(Palette.grayLight)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+}
+
+struct ImagePicker: UIViewControllerRepresentable {
+    enum SourceType {
+        case camera
+        case photoLibrary
+    }
+    
+    let sourceType: SourceType
+    let onImagePicked: (UIImage) -> Void
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType == .camera ? .camera : .photoLibrary
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImagePicked: onImagePicked)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onImagePicked: (UIImage) -> Void
+        
+        init(onImagePicked: @escaping (UIImage) -> Void) {
+            self.onImagePicked = onImagePicked
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                onImagePicked(image)
+            }
+            picker.dismiss(animated: true)
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
         }
     }
 }

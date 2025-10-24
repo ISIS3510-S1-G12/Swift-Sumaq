@@ -1,35 +1,27 @@
-//
-//  ScreenTrackerModifier.swift
-//  SUMAQ
-//
-//  Created by Maria Alejandra Pinzon Roncancio on 2/10/25.
-//
-
 import SwiftUI
 
-struct ScreenTracker: ViewModifier {
-    let name: String
-    var extra: [String: Any] = [:]
-
-    @State private var didStart = false
-
+struct ScreenTrackerModifier: ViewModifier {
+    let screenName: String
+    let screenCategory: String? // Para categorizar pantallas
+    @State private var screenStartTime: Date?
+    
     func body(content: Content) -> some View {
         content
             .onAppear {
-                guard !didStart else { return }
-                didStart = true
-                AnalyticsService.shared.screenStart(name, extra: extra)
+                screenStartTime = Date()
+                SessionTracker.shared.trackScreenView(screenName, category: screenCategory)
             }
             .onDisappear {
-                guard didStart else { return }
-                didStart = false
-                AnalyticsService.shared.screenEnd(name, extra: extra)
+                if let startTime = screenStartTime {
+                    let duration = Date().timeIntervalSince(startTime)
+                    SessionTracker.shared.trackScreenEnd(screenName, duration: duration, category: screenCategory)
+                }
             }
     }
 }
 
 extension View {
-    func trackScreen(_ name: String, extra: [String: Any] = [:]) -> some View {
-        self.modifier(ScreenTracker(name: name, extra: extra))
+    func trackScreen(_ screenName: String, category: String? = nil) -> some View {
+        self.modifier(ScreenTrackerModifier(screenName: screenName, screenCategory: category))
     }
 }

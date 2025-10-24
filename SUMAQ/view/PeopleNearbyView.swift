@@ -12,6 +12,9 @@ struct PeopleNearbyView: View {
     let restaurantName: String
 
     @StateObject private var crowd = CrowdController()
+    
+    // Screen tracking
+    @State private var screenStartTime: Date?
 
     var body: some View {
         VStack(spacing: 18) {
@@ -19,7 +22,7 @@ struct PeopleNearbyView: View {
                 Text("People near \(restaurantName)")
                     .font(.custom("Montserrat-SemiBold", size: 20))
                     .foregroundColor(Palette.burgundy)
-                Text("We anonymously scan nearby phones with SUMAQ open (Bluetooth).")
+                Text("We scan for nearby Bluetooth devices to detect people around you.")
                     .font(.custom("Montserrat-Regular", size: 13))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -41,17 +44,44 @@ struct PeopleNearbyView: View {
             }
             .padding(.top, 6)
 
-            // Estado
             if let err = crowd.lastError {
-                Text(err).foregroundColor(.red).font(.footnote)
-                    .padding(.horizontal, 16)
-            } else if crowd.isScanning {
-                ProgressView("Scanning…")
-                    .padding(.top, 4)
+                VStack(spacing: 8) {
+                    Text(err)
+                        .foregroundColor(.red)
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                    
+                    if err.contains("permission") || err.contains("Settings") {
+                        Button("Open Settings") {
+                            if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(settingsUrl)
+                            }
+                        }
+                        .font(.footnote)
+                        .foregroundColor(.blue)
+                    }
+                    
+                }
+            } else if crowd.isScanning || crowd.isAdvertising {
+                VStack(spacing: 4) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text(crowd.isScanning ? "Scanning for nearby devices..." : "Advertising presence...")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                    
+                }
+                .padding(.top, 4)
             } else {
-                Text("Tap scan to refresh the count.")
+                VStack(spacing: 8) {
+                Text("Tap 'Scan' to detect nearby Bluetooth devices.")
                     .foregroundColor(.secondary)
                     .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                    
+                }
             }
 
             HStack(spacing: 12) {
@@ -79,7 +109,17 @@ struct PeopleNearbyView: View {
             Spacer()
         }
         .padding(.top, 24)
-        .onAppear { crowd.startQuickScan(duration: 12) } 
-        .onDisappear { crowd.stop() }
+        .onAppear { 
+            screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.peopleNearby, category: ScreenCategory.socialFeatures)
+            crowd.startQuickScan(duration: 12) 
+        } 
+        .onDisappear { 
+            if let startTime = screenStartTime {
+                let duration = Date().timeIntervalSince(startTime)
+                SessionTracker.shared.trackScreenEnd(ScreenName.peopleNearby, duration: duration, category: ScreenCategory.socialFeatures)
+            }
+            crowd.stop() 
+        }
     }
 }

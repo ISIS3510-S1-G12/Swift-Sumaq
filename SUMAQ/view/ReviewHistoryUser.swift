@@ -50,7 +50,7 @@ struct ReviewHistoryUserView: View {
                                 rating: r.stars,
                                 comment: r.comment,
                                 avatarURL: "",
-                                reviewImageURL: r.imageURL,               // remoto si existe
+                                reviewImageURL: r.imageURL,
                             )
                         }
                     }

@@ -2,11 +2,47 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Bluetooth Always Usage Description</key>
-	<string></string>
-	<key>Bluetooth Peripheral Usage Description</key>
-	<string></string>
+	<key>CFBundleIdentifier</key>
+	<string>SUMAQ.SUMAQ</string>
+	<key>CFBundleName</key>
+	<string>SUMAQ</string>
+	<key>CFBundleDisplayName</key>
+	<string>SUMAQ</string>
+	<key>CFBundleVersion</key>
+	<string>1.0</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Esta aplicación necesita acceso a la cámara para permitirte tomar fotos de tus comidas y compartirlas en tus reseñas.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Esta aplicación necesita acceso a tu galería de fotos para permitirte seleccionar imágenes para tus reseñas.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Esta aplicación necesita acceso a tu ubicación para mostrarte restaurantes cercanos.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Esta aplicación necesita acceso a tu ubicación para mostrarte restaurantes cercanos.</string>
+
+	<!-- Claves Bluetooth corregidas -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Esta aplicación usa Bluetooth para funcionalidades de proximidad.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Esta aplicación usa Bluetooth para funcionalidades de proximidad.</string>
+
 	<key>CFBundleGetInfoString</key>
-	<string></string>
+	<string>SUMAQ - Descubre los mejores restaurantes cerca de ti</string>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 </dict>
 </plist>

@@ -7,6 +7,7 @@ struct UserRestaurantDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: Int = 0
+    @State private var screenStartTime: Date?
 
     @State private var dishes: [Dish] = []
     @State private var offers: [Offer] = []
@@ -60,118 +61,123 @@ struct UserRestaurantDetailView: View {
                 RestaurantSegmentedTab(selectedIndex: $selectedTab)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                OSMMapView(
-                    annotations: annotations,
-                    center: centerCoord,
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
-                    showsUserLocation: false
-                )
-                .frame(height: 240)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .padding(.horizontal, 16)
 
-                HStack(spacing: 10) {
-                    FilledActionButton(
-                        title: "Favorite",
-                        system: "heart.fill",
-                        background: Palette.purple,
-                        textColor: .white,
-                        isEnabled: !isFavorite && !markingFavorite,
-                        isLoading: markingFavorite && !isFavorite
-                    ) { Task { await addToFavorites() } }
+                if selectedTab == 0 {
+                    OSMMapView(
+                        annotations: annotations,
+                        center: centerCoord,
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
+                        showsUserLocation: false
+                    )
+                    .frame(height: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 16)
 
-                    FilledActionButton(
-                        title: "Remove as fav",
-                        system: "heart.slash.fill",
-                        background: Palette.grayLight,
-                        textColor: Palette.burgundy,
-                        isEnabled: isFavorite && !markingFavorite,
-                        isLoading: markingFavorite && isFavorite
-                    ) { Task { await removeFromFavorites() } }
+                    HStack(spacing: 10) {
+                        FilledActionButton(
+                            title: "Favorite",
+                            system: "heart.fill",
+                            background: Palette.purple,
+                            textColor: .white,
+                            isEnabled: !isFavorite && !markingFavorite,
+                            isLoading: markingFavorite && !isFavorite
+                        ) { Task { await addToFavorites() } }
 
-                    FilledActionButton(
-                        title: "People",
-                        system: "bolt.horizontal.circle.fill",
-                        background: Palette.purple
-                    ) {
-                        AnalyticsService.shared.log(EventName.peopleTapped, ["screen": ScreenName.restaurantDetail])
-                        showPeople = true
-                    }
-                }
-                .padding(.horizontal, 16)
+                        FilledActionButton(
+                            title: "Remove as fav",
+                            system: "heart.slash.fill",
+                            background: Palette.grayLight,
+                            textColor: Palette.burgundy,
+                            isEnabled: isFavorite && !markingFavorite,
+                            isLoading: markingFavorite && isFavorite
+                        ) { Task { await removeFromFavorites() } }
 
-                if let favoriteError {
-                    Text(favoriteError)
-                        .foregroundColor(.red)
-                        .font(.footnote)
-                        .padding(.horizontal, 16)
-                }
-
-                InfoRowsView(
-                    address: restaurant.address ?? "No address",
-                    opening: restaurant.opening_time,
-                    closing: restaurant.closing_time,
-                    cuisine: restaurant.typeOfFood
-                )
-                .padding(.horizontal, 16)
-
-                NavigationLink {
-                    AddReviewView(restaurant: restaurant)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "square.and.pencil")
-                        Text("Do a review")
-                            .font(.custom("Montserrat-SemiBold", size: 16))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 24)
-                    .background(Palette.burgundy)
-                    .clipShape(Capsule())
-                    .shadow(radius: 2, y: 1)
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    AnalyticsService.shared.log(EventName.reviewTap, [
-                        "screen": ScreenName.restaurantDetail,
-                        "restaurant_id": restaurant.id
-                    ])
-                })
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
-
-                Button {
-                    Task { await markVisited() }
-                } label: {
-                    HStack(spacing: 8) {
-                        if markingVisited {
-                            ProgressView().progressViewStyle(.circular)
-                        } else {
-                            Image(systemName: hasVisited ? "checkmark.circle.fill" : "mappin.and.ellipse")
-                                .font(.system(size: 16, weight: .semibold))
+                        FilledActionButton(
+                            title: "People",
+                            system: "bolt.horizontal.circle.fill",
+                            background: Palette.purple
+                        ) {
+                            AnalyticsService.shared.log(EventName.peopleTapped, ["screen": ScreenName.restaurantDetail])
+                            showPeople = true
                         }
-                        Text(hasVisited ? "Visited" : "Mark as visited")
-                            .font(.custom("Montserrat-SemiBold", size: 16))
                     }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 24)
-                    .background(Palette.orange)
-                    .clipShape(Capsule())
-                    .shadow(radius: 2, y: 1)
-                    .opacity(hasVisited || markingVisited ? 0.85 : 1.0)
-                }
-                .buttonStyle(.plain)
-                .disabled(hasVisited || markingVisited)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 16)
+                    .padding(.horizontal, 16)
 
-                if let visitError {
-                    Text(visitError)
-                        .foregroundColor(.red)
-                        .font(.footnote)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.horizontal, 16)
+                    if let favoriteError {
+                        Text(favoriteError)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .padding(.horizontal, 16)
+                    }
+
+                    InfoRowsView(
+                        address: restaurant.address ?? "No address",
+                        opening: restaurant.opening_time,
+                        closing: restaurant.closing_time,
+                        cuisine: restaurant.typeOfFood
+                    )
+                    .padding(.horizontal, 16)
+
+                    Button {
+                        Task { await markVisited() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if markingVisited {
+                                ProgressView().progressViewStyle(.circular)
+                            } else {
+                                Image(systemName: hasVisited ? "checkmark.circle.fill" : "mappin.and.ellipse")
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            Text(hasVisited ? "Visited" : "Mark as visited")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 24)
+                        .background(Palette.orange)
+                        .clipShape(Capsule())
+                        .shadow(radius: 2, y: 1)
+                        .opacity(hasVisited || markingVisited ? 0.85 : 1.0)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(hasVisited || markingVisited)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 16)
+
+                    if let visitError {
+                        Text(visitError)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.horizontal, 16)
+                    }
+                }
+
+                if selectedTab == 2 {
+                    NavigationLink {
+                        AddReviewView(restaurant: restaurant)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.pencil")
+                            Text("Do a review")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 24)
+                        .background(Palette.burgundy)
+                        .clipShape(Capsule())
+                        .shadow(radius: 2, y: 1)
+                    }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        AnalyticsService.shared.log(EventName.reviewTap, [
+                            "screen": ScreenName.restaurantDetail,
+                            "restaurant_id": restaurant.id
+                        ])
+                    })
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 6)
                 }
 
                 Group {
@@ -206,6 +212,8 @@ struct UserRestaurantDetailView: View {
             Task { await loadFavoriteState() }
         }
         .onAppear {
+            screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.restaurantDetail, category: ScreenCategory.restaurantDetail)
             AnalyticsService.shared.screenStart(ScreenName.restaurantDetail)
             AnalyticsService.shared.log(EventName.restaurantVisit, [
                 "restaurant_id": restaurant.id,
@@ -213,6 +221,10 @@ struct UserRestaurantDetailView: View {
             ])
         }
         .onDisappear {
+            if let startTime = screenStartTime {
+                let duration = Date().timeIntervalSince(startTime)
+                SessionTracker.shared.trackScreenEnd(ScreenName.restaurantDetail, duration: duration, category: ScreenCategory.restaurantDetail)
+            }
             AnalyticsService.shared.screenEnd(ScreenName.restaurantDetail)
         }
     }
@@ -240,7 +252,6 @@ extension UserRestaurantDetailView {
         do {
             try await visitsRepo.markVisited(restaurantId: restaurant.id)
             hasVisited = true
-            // ← Aquí estaba el error: ahora existe la constante.
             AnalyticsService.shared.log(EventName.restaurantMarkedVisited, ["restaurant_id": restaurant.id])
         } catch {
             visitError = error.localizedDescription

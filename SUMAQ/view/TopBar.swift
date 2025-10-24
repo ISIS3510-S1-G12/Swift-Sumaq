@@ -22,7 +22,6 @@ struct TopBar: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                // Logo app
                 Image("AppLogoUI")
                     .resizable()
                     .scaledToFit()
@@ -38,9 +37,17 @@ struct TopBar: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.secondary)
+                    Group {
+                        if let profilePicture = session.currentUser?.profilePicture, !profilePicture.isEmpty {
+                            RemoteImage(urlString: profilePicture)
+                                .clipShape(Circle())
+                        } else {
+                            Image(systemName: "person.crop.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(width: 32, height: 32)
                 }
             }
             .padding(.horizontal, sidePadding)
