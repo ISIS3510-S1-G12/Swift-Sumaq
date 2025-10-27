@@ -5,14 +5,14 @@
 //  Created by Maria Alejandra Pinzon Roncancio on 2/10/25.
 //
 
-
 import SwiftUI
+import UIKit
 
 struct PeopleNearbyView: View {
     let restaurantName: String
 
     @StateObject private var crowd = CrowdController()
-    
+
     // Screen tracking
     @State private var screenStartTime: Date?
 
@@ -51,7 +51,7 @@ struct PeopleNearbyView: View {
                         .font(.footnote)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 16)
-                    
+
                     if err.contains("permission") || err.contains("Settings") {
                         Button("Open Settings") {
                             if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
@@ -61,7 +61,6 @@ struct PeopleNearbyView: View {
                         .font(.footnote)
                         .foregroundColor(.blue)
                     }
-                    
                 }
             } else if crowd.isScanning || crowd.isAdvertising {
                 VStack(spacing: 4) {
@@ -70,17 +69,15 @@ struct PeopleNearbyView: View {
                     Text(crowd.isScanning ? "Scanning for nearby devices..." : "Advertising presence...")
                         .font(.footnote)
                         .foregroundColor(.secondary)
-                    
                 }
                 .padding(.top, 4)
             } else {
                 VStack(spacing: 8) {
-                Text("Tap 'Scan' to detect nearby Bluetooth devices.")
-                    .foregroundColor(.secondary)
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-                    
+                    Text("Tap 'Scan' to detect nearby Bluetooth devices.")
+                        .foregroundColor(.secondary)
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
                 }
             }
 
@@ -109,17 +106,56 @@ struct PeopleNearbyView: View {
             Spacer()
         }
         .padding(.top, 24)
-        .onAppear { 
+        .onAppear {
             screenStartTime = Date()
-            SessionTracker.shared.trackScreenView(ScreenName.peopleNearby, category: ScreenCategory.socialFeatures)
-            crowd.startQuickScan(duration: 12) 
-        } 
-        .onDisappear { 
+            SessionTracker.shared.trackScreenView(
+                ScreenName.peopleNearby,
+                category: ScreenCategory.socialFeatures
+            )
+
+            // Configurar callbacks de closure para recibir eventos del CrowdController.
+            // En SwiftUI, el View es un struct; no se puede capturar 'self' como weak.
+            // Capturamos la referencia de clase @StateObject (crowd) como [weak crowd].
+            crowd.onCountChange = { [weak crowd] count in
+                crowd?.nearbyCount = count
+                print("Callback: nearby count changed to \(count)")
+            }
+
+            crowd.onError = { [weak crowd] error in
+                crowd?.lastError = error
+                print("Callback: error occurred - \(error)")
+            }
+
+            crowd.onScanStateChange = { [weak crowd] isScanning in
+                crowd?.isScanning = isScanning
+                print("Callback: scan state changed to \(isScanning)")
+            }
+
+            crowd.onAdvertisingStateChange = { [weak crowd] isAdvertising in
+                crowd?.isAdvertising = isAdvertising
+                print("Callback: advertising state changed to \(isAdvertising)")
+            }
+
+            // Arrancar un escaneo breve automáticamente al entrar
+            crowd.startQuickScan(duration: 12)
+        }
+        .onDisappear {
             if let startTime = screenStartTime {
                 let duration = Date().timeIntervalSince(startTime)
-                SessionTracker.shared.trackScreenEnd(ScreenName.peopleNearby, duration: duration, category: ScreenCategory.socialFeatures)
+                SessionTracker.shared.trackScreenEnd(
+                    ScreenName.peopleNearby,
+                    duration: duration,
+                    category: ScreenCategory.socialFeatures
+                )
             }
-            crowd.stop() 
+
+            // Limpiar callbacks al desaparecer la vista para evitar retenciones
+            crowd.onCountChange = nil
+            crowd.onError = nil
+            crowd.onScanStateChange = nil
+            crowd.onAdvertisingStateChange = nil
+
+            crowd.stop()
         }
     }
 }
