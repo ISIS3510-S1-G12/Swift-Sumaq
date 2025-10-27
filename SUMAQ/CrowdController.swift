@@ -146,18 +146,31 @@ final class CrowdController: NSObject, ObservableObject {
         // Programamos la detención automática del escaneo
         scanTimer?.invalidate()
         scanTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
+            print("Timer expired, stopping scan...")
             self?.stopScan()
+        }
+        
+        // Asegurar que el Timer se ejecuta en el RunLoop principal
+        if let timer = scanTimer {
+            RunLoop.main.add(timer, forMode: .common)
         }
     }
 
     /// Detiene escaneo y advertising, limpia errores y cancela timers.
     func stop() {
+        print("Stop() called - stopping scan and advertising")
         stopScan()
         stopAdvertising()
         lastError = nil
         pendingScan = false
         scanTimer?.invalidate()
         scanTimer = nil
+        
+        // Notificar que el escaneo se detuvo vía closures
+        DispatchQueue.main.async { [weak self] in
+            self?.onScanStateChange?(false)
+            self?.onAdvertisingStateChange?(false)
+        }
     }
 
     /// Estado legible de depuración.
@@ -205,8 +218,9 @@ final class CrowdController: NSObject, ObservableObject {
         print("Starting scan for Bluetooth devices...")
         isScanning = true
 
-        // Si tienes un UUID de servicio propio, úsalo. Aquí se asume CrowdBLE.serviceUUID existe.
-        central.scanForPeripherals(withServices: [CrowdBLE.serviceUUID],
+        // Escanear con nil para detectar TODOS los dispositivos Bluetooth, no solo los de nuestra app
+        // Cambiar a [CrowdBLE.serviceUUID] si solo quieres tu app específica
+        central.scanForPeripherals(withServices: nil,
                                    options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
 
         // Notificar cambio de estado vía closure (asegurando main)

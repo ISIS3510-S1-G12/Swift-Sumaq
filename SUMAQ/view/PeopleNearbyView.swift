@@ -114,25 +114,21 @@ struct PeopleNearbyView: View {
             )
 
             // Configurar callbacks de closure para recibir eventos del CrowdController.
-            // En SwiftUI, el View es un struct; no se puede capturar 'self' como weak.
-            // Capturamos la referencia de clase @StateObject (crowd) como [weak crowd].
-            crowd.onCountChange = { [weak crowd] count in
-                crowd?.nearbyCount = count
+            // Las closures NO actualizan las propiedades @Published porque ya se actualizan automáticamente.
+            // lógica adicional (logs, analytics, etc.).
+            crowd.onCountChange = { count in
                 print("Callback: nearby count changed to \(count)")
             }
 
-            crowd.onError = { [weak crowd] error in
-                crowd?.lastError = error
+            crowd.onError = { error in
                 print("Callback: error occurred - \(error)")
             }
 
-            crowd.onScanStateChange = { [weak crowd] isScanning in
-                crowd?.isScanning = isScanning
+            crowd.onScanStateChange = { isScanning in
                 print("Callback: scan state changed to \(isScanning)")
             }
 
-            crowd.onAdvertisingStateChange = { [weak crowd] isAdvertising in
-                crowd?.isAdvertising = isAdvertising
+            crowd.onAdvertisingStateChange = { isAdvertising in
                 print("Callback: advertising state changed to \(isAdvertising)")
             }
 
