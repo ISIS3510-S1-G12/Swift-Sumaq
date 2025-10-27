@@ -30,7 +30,7 @@ enum ScreenCategory {
 enum EventName {
     // Session Events
     static let sessionStart      = "session_start"
-    static let sessionEnd        = "session_end"            // session_duration_seconds, total_session_time
+    static let sessionEnd        = "session_end"            // session_duration_seconds, total_session_time, unique_restaurants_visited
     static let sessionPause      = "session_pause"          // session_duration_seconds
     static let sessionResume     = "session_resume"
     
@@ -50,6 +50,7 @@ enum EventName {
     static let mapPinsLoaded     = "map_pins_loaded"        // count, load_ms
     static let restaurantOpen    = "restaurant_open"        // source, restaurant_id, restaurant_name
     static let restaurantVisit   = "restaurant_visit"       // restaurant_id, restaurant_name
+    static let restaurantVisitSession = "restaurant_visit_session" // restaurant_id, restaurant_name, is_new_visit, unique_restaurants_in_session
     static let favoriteAdd       = "favorite_add"           // restaurant_id
     static let favoriteRemove    = "favorite_remove"        // restaurant_id
     static let peopleTapped      = "people_tap"             // screen

@@ -219,6 +219,7 @@ struct UserRestaurantDetailView: View {
                 "restaurant_id": restaurant.id,
                 "restaurant_name": restaurant.name
             ])
+            SessionTracker.shared.trackRestaurantVisit(restaurantId: restaurant.id, restaurantName: restaurant.name)
         }
         .onDisappear {
             if let startTime = screenStartTime {

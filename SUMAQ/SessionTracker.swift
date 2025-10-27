@@ -8,6 +8,7 @@ class SessionTracker: ObservableObject {
     private var sessionTimer: Timer?
     private var totalSessionTime: TimeInterval = 0
     private var isSessionActive = false
+    private var visitedRestaurants: Set<String> = []
     
     private init() {
         setupNotificationObservers()
@@ -24,9 +25,9 @@ class SessionTracker: ObservableObject {
         
         sessionStartTime = Date()
         totalSessionTime = 0
+        visitedRestaurants.removeAll()
         isSessionActive = true
         
-        // Enviar evento de inicio de sesión
         Analytics.logEvent("session_start", parameters: [
             "timestamp": Int(Date().timeIntervalSince1970),
             "session_id": UUID().uuidString
@@ -41,17 +42,16 @@ class SessionTracker: ObservableObject {
         let sessionDuration = Date().timeIntervalSince(startTime)
         totalSessionTime += sessionDuration
         
-        // Enviar evento de fin de sesión con duración
         Analytics.logEvent("session_end", parameters: [
             "session_duration_seconds": Int(sessionDuration),
             "total_session_time": Int(totalSessionTime),
+            "unique_restaurants_visited": visitedRestaurants.count,
             "timestamp": Int(Date().timeIntervalSince1970)
         ])
         
-        print("🔍 SessionTracker: Session ended - Duration: \(Int(sessionDuration))s")
-        
         sessionStartTime = nil
         isSessionActive = false
+        visitedRestaurants.removeAll()
     }
     
     func pauseSession() {
@@ -128,6 +128,22 @@ class SessionTracker: ObservableObject {
         Analytics.logEvent("user_engagement", parameters: eventParams)
         
         print("🔍 SessionTracker: User engagement - \(action)")
+    }
+    
+    // MARK: - Restaurant Visit Tracking
+    
+    func trackRestaurantVisit(restaurantId: String, restaurantName: String) {
+        let isNewRestaurant = visitedRestaurants.insert(restaurantId).inserted
+        
+        var parameters: [String: Any] = [
+            "restaurant_id": restaurantId,
+            "restaurant_name": restaurantName,
+            "is_new_visit": isNewRestaurant,
+            "unique_restaurants_in_session": visitedRestaurants.count,
+            "timestamp": Int(Date().timeIntervalSince1970)
+        ]
+        
+        Analytics.logEvent("restaurant_visit_session", parameters: parameters)
     }
     
     // MARK: - Private Methods
