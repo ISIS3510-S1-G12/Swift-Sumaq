@@ -28,7 +28,6 @@ class SessionTracker: ObservableObject {
         visitedRestaurants.removeAll()
         isSessionActive = true
         
-        // Enviar evento de inicio de sesión
         Analytics.logEvent("session_start", parameters: [
             "timestamp": Int(Date().timeIntervalSince1970),
             "session_id": UUID().uuidString
@@ -43,15 +42,12 @@ class SessionTracker: ObservableObject {
         let sessionDuration = Date().timeIntervalSince(startTime)
         totalSessionTime += sessionDuration
         
-        // Enviar evento de fin de sesión con duración
         Analytics.logEvent("session_end", parameters: [
             "session_duration_seconds": Int(sessionDuration),
             "total_session_time": Int(totalSessionTime),
             "unique_restaurants_visited": visitedRestaurants.count,
             "timestamp": Int(Date().timeIntervalSince1970)
         ])
-        
-        print("🔍 SessionTracker: Session ended - Duration: \(Int(sessionDuration))s, Unique restaurants: \(visitedRestaurants.count)")
         
         sessionStartTime = nil
         isSessionActive = false
@@ -148,8 +144,6 @@ class SessionTracker: ObservableObject {
         ]
         
         Analytics.logEvent("restaurant_visit_session", parameters: parameters)
-        
-        print("🔍 SessionTracker: Restaurant visit - \(restaurantName) (Total unique: \(visitedRestaurants.count))")
     }
     
     // MARK: - Private Methods
