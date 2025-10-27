@@ -117,19 +117,23 @@ struct PeopleNearbyView: View {
             // Las closures NO actualizan las propiedades @Published porque ya se actualizan automáticamente.
             // lógica adicional (logs, analytics, etc.).
             crowd.onCountChange = { count in
-                print("Callback: nearby count changed to \(count)")
+                print("[CALLBACK] nearby count changed to \(count) on thread: \(Thread.current)")
+                print("[THREAD CHECK] Main thread? \(Thread.isMainThread)")
             }
 
             crowd.onError = { error in
-                print("Callback: error occurred - \(error)")
+                print("[CALLBACK] error occurred - \(error) on thread: \(Thread.current)")
+                print("[THREAD CHECK] Main thread? \(Thread.isMainThread)")
             }
 
             crowd.onScanStateChange = { isScanning in
-                print("Callback: scan state changed to \(isScanning)")
+                print("[CALLBACK] scan state changed to \(isScanning) on thread: \(Thread.current)")
+                print("[THREAD CHECK] Main thread? \(Thread.isMainThread)")
             }
 
             crowd.onAdvertisingStateChange = { isAdvertising in
-                print("Callback: advertising state changed to \(isAdvertising)")
+                print("[CALLBACK] advertising state changed to \(isAdvertising) on thread: \(Thread.current)")
+                print("[THREAD CHECK] Main thread? \(Thread.isMainThread)")
             }
 
             // Arrancar un escaneo breve automáticamente al entrar

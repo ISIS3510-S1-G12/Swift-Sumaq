@@ -350,7 +350,10 @@ extension CrowdController: CBCentralManagerDelegate {
             )
 
             // Notificar cambio de conteo vía closure (asegurando main)
+            // Log para verificar el thread donde se ejecuta el delegate method
+            print("[THREAD CHECK] didDiscover called on thread: \(Thread.current)")
             DispatchQueue.main.async { [weak self] in
+                print("[THREAD CHECK] onCountChange closure executing on thread: \(Thread.current)")
                 if let count = self?.nearbyCount {
                     self?.onCountChange?(count)
                 }
