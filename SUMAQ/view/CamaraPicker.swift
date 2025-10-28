@@ -84,8 +84,10 @@ struct CamaraPicker: View {
         }
         .fullScreenCover(isPresented: $showCamera) {
             SystemCameraPicker { image in
-                if let image { DispatchQueue.main.async { applyPicked(image) } }
-                DispatchQueue.main.async { showCamera = false }
+                Task { @MainActor in
+                    if let image { applyPicked(image) }
+                    showCamera = false
+                }
             }
             .ignoresSafeArea()
         }
