@@ -7,6 +7,7 @@ struct UserRestaurantDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: Int = 0
+    @State private var screenStartTime: Date?
 
     @State private var dishes: [Dish] = []
     @State private var offers: [Offer] = []
@@ -60,118 +61,124 @@ struct UserRestaurantDetailView: View {
                 RestaurantSegmentedTab(selectedIndex: $selectedTab)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                OSMMapView(
-                    annotations: annotations,
-                    center: centerCoord,
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
-                    showsUserLocation: false
-                )
-                .frame(height: 240)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .padding(.horizontal, 16)
-
-                HStack(spacing: 10) {
-                    FilledActionButton(
-                        title: "Favorite",
-                        system: "heart.fill",
-                        background: Palette.purple,
-                        textColor: .white,
-                        isEnabled: !isFavorite && !markingFavorite,
-                        isLoading: markingFavorite && !isFavorite
-                    ) { Task { await addToFavorites() } }
-
-                    FilledActionButton(
-                        title: "Remove as fav",
-                        system: "heart.slash.fill",
-                        background: Palette.grayLight,
-                        textColor: Palette.burgundy,
-                        isEnabled: isFavorite && !markingFavorite,
-                        isLoading: markingFavorite && isFavorite
-                    ) { Task { await removeFromFavorites() } }
-
-                    FilledActionButton(
-                        title: "People",
-                        system: "bolt.horizontal.circle.fill",
-                        background: Palette.purple
-                    ) {
-                        AnalyticsService.shared.log(EventName.peopleTapped, ["screen": ScreenName.restaurantDetail])
-                        showPeople = true
-                    }
-                }
-                .padding(.horizontal, 16)
-
-                if let favoriteError {
-                    Text(favoriteError)
-                        .foregroundColor(.red)
-                        .font(.footnote)
+                if selectedTab == 0 {
+                    VStack(alignment: .leading, spacing: 16) {
+                        OSMMapView(
+                            annotations: annotations,
+                            center: centerCoord,
+                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
+                            showsUserLocation: false
+                        )
+                        .frame(height: 240)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .padding(.horizontal, 16)
-                }
 
-                InfoRowsView(
-                    address: restaurant.address ?? "No address",
-                    opening: restaurant.opening_time,
-                    closing: restaurant.closing_time,
-                    cuisine: restaurant.typeOfFood
-                )
-                .padding(.horizontal, 16)
+                        HStack(spacing: 10) {
+                            FilledActionButton(
+                                title: "Favorite",
+                                system: "heart.fill",
+                                background: Palette.purple,
+                                textColor: .white,
+                                isEnabled: !isFavorite && !markingFavorite,
+                                isLoading: markingFavorite && !isFavorite
+                            ) { Task { await addToFavorites() } }
 
-                NavigationLink {
-                    AddReviewView(restaurant: restaurant)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "square.and.pencil")
-                        Text("Do a review")
-                            .font(.custom("Montserrat-SemiBold", size: 16))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 24)
-                    .background(Palette.burgundy)
-                    .clipShape(Capsule())
-                    .shadow(radius: 2, y: 1)
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    AnalyticsService.shared.log(EventName.reviewTap, [
-                        "screen": ScreenName.restaurantDetail,
-                        "restaurant_id": restaurant.id
-                    ])
-                })
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
+                            FilledActionButton(
+                                title: "Remove as fav",
+                                system: "heart.slash.fill",
+                                background: Palette.grayLight,
+                                textColor: Palette.burgundy,
+                                isEnabled: isFavorite && !markingFavorite,
+                                isLoading: markingFavorite && isFavorite
+                            ) { Task { await removeFromFavorites() } }
 
-                Button {
-                    Task { await markVisited() }
-                } label: {
-                    HStack(spacing: 8) {
-                        if markingVisited {
-                            ProgressView().progressViewStyle(.circular)
-                        } else {
-                            Image(systemName: hasVisited ? "checkmark.circle.fill" : "mappin.and.ellipse")
-                                .font(.system(size: 16, weight: .semibold))
+                            FilledActionButton(
+                                title: "People",
+                                system: "bolt.horizontal.circle.fill",
+                                background: Palette.purple
+                            ) {
+                                AnalyticsService.shared.log(EventName.peopleTapped, ["screen": ScreenName.restaurantDetail])
+                                showPeople = true
+                            }
                         }
-                        Text(hasVisited ? "Visited" : "Mark as visited")
-                            .font(.custom("Montserrat-SemiBold", size: 16))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 24)
-                    .background(Palette.orange)
-                    .clipShape(Capsule())
-                    .shadow(radius: 2, y: 1)
-                    .opacity(hasVisited || markingVisited ? 0.85 : 1.0)
-                }
-                .buttonStyle(.plain)
-                .disabled(hasVisited || markingVisited)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 16)
+                        .padding(.horizontal, 16)
 
-                if let visitError {
-                    Text(visitError)
-                        .foregroundColor(.red)
-                        .font(.footnote)
+                        if let favoriteError {
+                            Text(favoriteError)
+                                .foregroundColor(.red)
+                                .font(.footnote)
+                                .padding(.horizontal, 16)
+                        }
+
+                        InfoRowsView(
+                            address: restaurant.address ?? "No address",
+                            opening: restaurant.opening_time,
+                            closing: restaurant.closing_time,
+                            cuisine: restaurant.typeOfFood
+                        )
+                        .padding(.horizontal, 16)
+
+                        Button {
+                            Task { await markVisited() }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if markingVisited {
+                                    ProgressView().progressViewStyle(.circular)
+                                } else {
+                                    Image(systemName: hasVisited ? "checkmark.circle.fill" : "mappin.and.ellipse")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                Text(hasVisited ? "Visited" : "Mark as visited")
+                                    .font(.custom("Montserrat-SemiBold", size: 16))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 24)
+                            .background(Palette.orange)
+                            .clipShape(Capsule())
+                            .shadow(radius: 2, y: 1)
+                            .opacity(hasVisited || markingVisited ? 0.85 : 1.0)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(hasVisited || markingVisited)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.horizontal, 16)
+
+                        if let visitError {
+                            Text(visitError)
+                                .foregroundColor(.red)
+                                .font(.footnote)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.horizontal, 16)
+                        }
+                    }
+                }
+
+                if selectedTab == 2 {
+                    NavigationLink {
+                        AddReviewView(restaurant: restaurant)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.pencil")
+                            Text("Do a review")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 24)
+                        .background(Palette.burgundy)
+                        .clipShape(Capsule())
+                        .shadow(radius: 2, y: 1)
+                    }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        AnalyticsService.shared.log(EventName.reviewTap, [
+                            "screen": ScreenName.restaurantDetail,
+                            "restaurant_id": restaurant.id
+                        ])
+                    })
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 6)
                 }
 
                 Group {
@@ -206,13 +213,20 @@ struct UserRestaurantDetailView: View {
             Task { await loadFavoriteState() }
         }
         .onAppear {
+            screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.restaurantDetail, category: ScreenCategory.restaurantDetail)
             AnalyticsService.shared.screenStart(ScreenName.restaurantDetail)
             AnalyticsService.shared.log(EventName.restaurantVisit, [
                 "restaurant_id": restaurant.id,
                 "restaurant_name": restaurant.name
             ])
+            SessionTracker.shared.trackRestaurantVisit(restaurantId: restaurant.id, restaurantName: restaurant.name)
         }
         .onDisappear {
+            if let startTime = screenStartTime {
+                let duration = Date().timeIntervalSince(startTime)
+                SessionTracker.shared.trackScreenEnd(ScreenName.restaurantDetail, duration: duration, category: ScreenCategory.restaurantDetail)
+            }
             AnalyticsService.shared.screenEnd(ScreenName.restaurantDetail)
         }
     }
@@ -240,7 +254,6 @@ extension UserRestaurantDetailView {
         do {
             try await visitsRepo.markVisited(restaurantId: restaurant.id)
             hasVisited = true
-            // ← Aquí estaba el error: ahora existe la constante.
             AnalyticsService.shared.log(EventName.restaurantMarkedVisited, ["restaurant_id": restaurant.id])
         } catch {
             visitError = error.localizedDescription
@@ -295,63 +308,15 @@ extension UserRestaurantDetailView {
     private func loadReviews() async {
         loadingReviews = true; errorReviews = nil
         defer { loadingReviews = false }
-        
         do {
-            // Use GCD to parallelize independent operations
-            let group = DispatchGroup()
-            var reviewsResult: [Review] = []
-            var usersResult: [AppUser] = []
-            var reviewsError: Error?
-            var usersError: Error?
-            
-            // Load reviews on background queue
-            group.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer { group.leave() }
-                Task {
-                    do {
-                        reviewsResult = try await self.reviewsRepo.listForRestaurant(self.restaurant.id)
-                    } catch {
-                        reviewsError = error
-                    }
-                }
-            }
-            
-            group.wait()
-            
-            // Check for reviews error first
-            if let error = reviewsError {
-                throw error
-            }
-            
-            self.reviews = reviewsResult
-            let userIds = Array(Set(reviewsResult.map { $0.userId }))
-            
-            // Load user data in parallel if we have user IDs
-            if !userIds.isEmpty {
-                group.enter()
-                DispatchQueue.global(qos: .userInitiated).async {
-                    defer { group.leave() }
-                    Task {
-                        do {
-                            usersResult = try await self.usersRepo.getManyBasic(ids: userIds)
-                        } catch {
-                            usersError = error
-                        }
-                    }
-                }
-                group.wait()
-                
-                if let error = usersError {
-                    throw error
-                }
-                
-                var map: [String: String] = [:]
-                for u in usersResult { map[u.id] = u.name }
-                self.userNamesById = map
-            } else {
-                self.userNamesById = [:]
-            }
+            let list = try await reviewsRepo.listForRestaurant(restaurant.id)
+            self.reviews = list
+            let ids = Array(Set(list.map { $0.userId }))
+            guard !ids.isEmpty else { self.userNamesById = [:]; return }
+            let users = try await usersRepo.getManyBasic(ids: ids)
+            var map: [String: String] = [:]
+            for u in users { map[u.id] = u.name }
+            self.userNamesById = map
         } catch {
             self.errorReviews = error.localizedDescription
         }

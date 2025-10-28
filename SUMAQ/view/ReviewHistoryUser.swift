@@ -50,7 +50,7 @@ struct ReviewHistoryUserView: View {
                                 rating: r.stars,
                                 comment: r.comment,
                                 avatarURL: "",
-                                reviewImageURL: r.imageURL,               // remoto si existe
+                                reviewImageURL: r.imageURL,
                             )
                         }
                     }
@@ -78,80 +78,16 @@ struct ReviewHistoryUserView: View {
 
     private func load() async {
         loading = true; error = nil
-        
         do {
-            // Use GCD to parallelize independent operations
-            let group = DispatchGroup()
-            var userResult: AppUser?
-            var reviewsResult: [Review] = []
-            var restaurantsResult: [Restaurant] = []
-            var userError: Error?
-            var reviewsError: Error?
-            var restaurantsError: Error?
-            
-            // Load current user on background queue
-            group.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer { group.leave() }
-                Task {
-                    do {
-                        userResult = try await self.usersRepo.getCurrentUser()
-                    } catch {
-                        userError = error
-                    }
-                }
-            }
-            
-            // Load reviews on background queue
-            group.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer { group.leave() }
-                Task {
-                    do {
-                        reviewsResult = try await self.reviewsRepo.listMyReviews()
-                    } catch {
-                        reviewsError = error
-                    }
-                }
-            }
-            
-            group.wait()
-            
-            // Check for errors
-            if let error = userError ?? reviewsError {
-                throw error
-            }
-            
-            if let u = userResult {
+            if let u = try await usersRepo.getCurrentUser() {
                 userName = u.name
             }
-            self.reviews = reviewsResult
-            
-            let ids = Array(Set(reviewsResult.map { $0.restaurantId }))
-            
-            // Load restaurants in parallel if we have restaurant IDs
-            if !ids.isEmpty {
-                group.enter()
-                DispatchQueue.global(qos: .userInitiated).async {
-                    defer { group.leave() }
-                    Task {
-                        do {
-                            restaurantsResult = try await self.restaurantsRepo.getMany(ids: ids)
-                        } catch {
-                            restaurantsError = error
-                        }
-                    }
-                }
-                group.wait()
-                
-                if let error = restaurantsError {
-                    throw error
-                }
-                
-                self.restaurantsById = Dictionary(uniqueKeysWithValues: restaurantsResult.map { ($0.id, $0) })
-            } else {
-                self.restaurantsById = [:]
-            }
+            let items = try await reviewsRepo.listMyReviews()
+            self.reviews = items
+
+            let ids = Array(Set(items.map { $0.restaurantId }))
+            let rests = try await restaurantsRepo.getMany(ids: ids)
+            self.restaurantsById = Dictionary(uniqueKeysWithValues: rests.map { ($0.id, $0) })
         } catch {
             self.error = error.localizedDescription
         }
