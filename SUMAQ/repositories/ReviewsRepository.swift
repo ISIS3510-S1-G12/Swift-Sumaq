@@ -8,6 +8,7 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
+import Combine
 
 final class ReviewsRepository {
     private let db = Firestore.firestore()
@@ -203,6 +204,62 @@ extension ReviewsRepository {
         return try await createReviewsBatch(testReviews, maxConcurrent: maxConcurrent) { completed, total in
             print("Batch progress: \(completed)/\(total)")
         }
+    }
+}
+
+// MARK: - Combine Publishers
+extension ReviewsRepository {
+    
+    /// Returns a publisher that emits review updates for a restaurant in real-time
+    /// - Parameter restaurantId: The restaurant to listen for reviews
+    /// - Returns: Publisher emitting arrays of reviews
+    func reviewsPublisher(for restaurantId: String) -> AnyPublisher<[Review], Error> {
+        Future { [weak self] promise in
+            guard let self = self else {
+                return promise(.failure(NSError(domain: "ReviewsRepository", code: -1, userInfo: [NSLocalizedDescriptionKey: "Repository deallocated"])))
+            }
+            
+            self.db.collection(self.coll)
+                .whereField("restaurant_id", isEqualTo: restaurantId)
+                .order(by: "createdAt", descending: true)
+                .addSnapshotListener { snapshot, error in
+                    if let error = error {
+                        promise(.failure(error))
+                    } else if let snapshot = snapshot {
+                        let items = snapshot.documents.compactMap { Review(doc: $0) }
+                        promise(.success(items))
+                    }
+                }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    /// Returns a publisher for the current user's reviews in real-time
+    /// - Returns: Publisher emitting arrays of reviews
+    func myReviewsPublisher() -> AnyPublisher<[Review], Error> {
+        Future { [weak self] promise in
+            guard let self = self else {
+                return promise(.failure(NSError(domain: "ReviewsRepository", code: -1, userInfo: [NSLocalizedDescriptionKey: "Repository deallocated"])))
+            }
+            
+            do {
+                let uid = try self.currentUid()
+                self.db.collection(self.coll)
+                    .whereField("user_id", isEqualTo: uid)
+                    .order(by: "createdAt", descending: true)
+                    .addSnapshotListener { snapshot, error in
+                        if let error = error {
+                            promise(.failure(error))
+                        } else if let snapshot = snapshot {
+                            let items = snapshot.documents.compactMap { Review(doc: $0) }
+                            promise(.success(items))
+                        }
+                    }
+            } catch {
+                promise(.failure(error))
+            }
+        }
+        .eraseToAnyPublisher()
     }
 }
 
