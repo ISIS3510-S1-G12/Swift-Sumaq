@@ -196,7 +196,7 @@ extension ReviewsRepository {
                 restaurantId: restaurantId,
                 stars: Int.random(in: 1...5),
                 comment: "Test review #\(index) - \(["Great food!", "Amazing service!", "Love this place!", "Highly recommended!", "Will come again!"].randomElement() ?? "Good experience")",
-                imageData: nil
+                imageData: nil as Data?
             )
         }
         
