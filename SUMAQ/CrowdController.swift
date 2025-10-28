@@ -15,6 +15,16 @@ final class CrowdController: NSObject, ObservableObject {
     @Published var nearbyCount = 0
     @Published var lastError: String?
 
+    // Closure properties for event callbacks
+    var onCentralStateChange: ((CBManagerState) -> Void)?
+    var onPeripheralStateChange: ((CBManagerState) -> Void)?
+    var onScanStarted: (() -> Void)?
+    var onScanStopped: ((Int) -> Void)?
+    var onDeviceFound: ((UUID, Int, Int) -> Void)?
+    var onAdvertisingStarted: (() -> Void)?
+    var onAdvertisingStopped: ((Error?) -> Void)?
+    var onError: ((String) -> Void)?
+
     private var central: CBCentralManager!
     private var peripheral: CBPeripheralManager!
 
@@ -45,23 +55,41 @@ final class CrowdController: NSObject, ObservableObject {
         pendingScan = true
         NotificationCenter.default.post(name: .crowdScanDidStart, object: nil)
 
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.onScanStarted?()
+        }
         
         #if targetEnvironment(simulator)
         print("Running on simulator - Bluetooth functionality is limited")
         lastError = "Bluetooth detection is limited on simulator. Please test on a real device for full functionality."
         pendingScan = false
+        let errorMsg = "Bluetooth detection is limited on simulator. Please test on a real device for full functionality."
+        DispatchQueue.main.async { [weak self] in
+            self?.onError?(errorMsg)
+        }
         return
         #endif
 
         guard central.state != .unsupported else {
             lastError = "Bluetooth is not supported on this device"
             pendingScan = false
+            let errorMsg = "Bluetooth is not supported on this device"
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             return
         }
         
         if central.state == .unknown || peripheral.state == .unknown {
             print("Bluetooth state is unknown, waiting for initialization...")
             lastError = "Bluetooth is initializing... Please wait a moment and try again."
+            let errorMsg = "Bluetooth is initializing... Please wait a moment and try again."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                 guard let self = self else { return }
@@ -73,7 +101,9 @@ final class CrowdController: NSObject, ObservableObject {
                         self.pendingScan = false
                         self.lastError = nil
                     } else if self.central.state == .unknown || self.peripheral.state == .unknown {
-                        self.lastError = "Bluetooth initialization failed. Please check permissions and try again."
+                        let errorMsg = "Bluetooth initialization failed. Please check permissions and try again."
+                        self.lastError = errorMsg
+                        self.onError?(errorMsg)
                         self.pendingScan = false
                     }
                 }
@@ -84,6 +114,11 @@ final class CrowdController: NSObject, ObservableObject {
         guard central.state != .poweredOff else {
             lastError = "Please turn on Bluetooth to scan for nearby devices"
             pendingScan = false
+            let errorMsg = "Please turn on Bluetooth to scan for nearby devices"
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             return
         }
 
@@ -99,6 +134,11 @@ final class CrowdController: NSObject, ObservableObject {
         } else {
             print("Central not ready, state: \(central.state.rawValue)")
             lastError = "Initializing Bluetooth... (\(central.state.rawValue))"
+            let errorMsg = "Initializing Bluetooth... (\(central.state.rawValue))"
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
         }
 
         scanTimer?.invalidate()
@@ -158,7 +198,11 @@ final class CrowdController: NSObject, ObservableObject {
         }
         
         print("Starting scan for all Bluetooth devices")
-        isScanning = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.isScanning = true
+            self.onScanStarted?()
+        }
         central.scanForPeripherals(withServices: nil,
                                    options: [
                                     CBCentralManagerScanOptionAllowDuplicatesKey: false
@@ -168,9 +212,14 @@ final class CrowdController: NSObject, ObservableObject {
     private func stopScan() {
         guard isScanning else { return }
         central.stopScan()
-        isScanning = false
+        let count = nearbyCount
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.isScanning = false
+            self.onScanStopped?(count)
+        }
         NotificationCenter.default.post(name: .crowdScanDidFinish, object: nil,
-                                        userInfo: ["count": nearbyCount])
+                                        userInfo: ["count": count])
     }
 
     private func startAdvertising() {
@@ -180,7 +229,11 @@ final class CrowdController: NSObject, ObservableObject {
         }
         guard peripheral.state == .poweredOn else { 
             print("Peripheral not powered on, cannot advertise. State: \(peripheral.state.rawValue)")
-            lastError = "Peripheral manager not ready. State: \(peripheral.state.rawValue)"
+            let errorMsg = "Peripheral manager not ready. State: \(peripheral.state.rawValue)"
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             return 
         }
         
@@ -194,14 +247,23 @@ final class CrowdController: NSObject, ObservableObject {
     private func stopAdvertising() {
         guard isAdvertising else { return }
         peripheral.stopAdvertising()
-        isAdvertising = false
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.isAdvertising = false
+            self.onAdvertisingStopped?(nil)
+        }
     }
 }
 
 extension CrowdController: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        let state = central.state
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.onCentralStateChange?(state)
+        }
         
-        switch central.state {
+        switch state {
         case .poweredOn:
             lastError = nil
             if pendingScan {
@@ -209,20 +271,40 @@ extension CrowdController: CBCentralManagerDelegate {
                 pendingScan = false
             }
         case .unauthorized: 
-            lastError = "Bluetooth permission denied. Please enable in Settings."
+            let errorMsg = "Bluetooth permission denied. Please enable in Settings."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             pendingScan = false
         case .unsupported:  
-            lastError = "Bluetooth unsupported on this device."
+            let errorMsg = "Bluetooth unsupported on this device."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             pendingScan = false
         case .poweredOff:   
-            lastError = "Bluetooth is turned off. Please turn it on."
+            let errorMsg = "Bluetooth is turned off. Please turn it on."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             pendingScan = false
         case .resetting:
-            lastError = "Bluetooth is resetting. Please wait..."
+            let errorMsg = "Bluetooth is resetting. Please wait..."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
         case .unknown:
             print("Central state is unknown, this is normal during initialization")
         @unknown default:
-            lastError = "Unknown Bluetooth state. Please try again."
+            let errorMsg = "Unknown Bluetooth state. Please try again."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             pendingScan = false
         }
     }
@@ -241,10 +323,19 @@ extension CrowdController: CBCentralManagerDelegate {
         }
         
         if seen.insert(peripheral.identifier).inserted {
-            nearbyCount = seen.count
-            print("New Bluetooth device found! RSSI: \(rssiValue), Total nearby: \(nearbyCount)")
+            let deviceUUID = peripheral.identifier
+            let deviceRSSI = rssiValue
+            let count = seen.count
+            
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.nearbyCount = count
+                self.onDeviceFound?(deviceUUID, deviceRSSI, count)
+            }
+            
+            print("New Bluetooth device found! RSSI: \(rssiValue), Total nearby: \(count)")
             NotificationCenter.default.post(name: .crowdScanDidUpdate,
-                                            object: nil, userInfo: ["count": nearbyCount])
+                                            object: nil, userInfo: ["count": count])
         } else {
             print("Already seen this device")
         }
@@ -253,41 +344,77 @@ extension CrowdController: CBCentralManagerDelegate {
 
 extension CrowdController: CBPeripheralManagerDelegate {
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
-        print("Peripheral state changed to: \(peripheral.state.rawValue)")
+        let state = peripheral.state
+        print("Peripheral state changed to: \(state.rawValue)")
         
-        switch peripheral.state {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.onPeripheralStateChange?(state)
+        }
+        
+        switch state {
         case .poweredOn:
             if !isAdvertising && pendingScan { 
                 startAdvertising()
             }
         case .unauthorized:
-            lastError = "Bluetooth permission denied. Please enable in Settings."
+            let errorMsg = "Bluetooth permission denied. Please enable in Settings."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             stop()
         case .unsupported:  
-            lastError = "Bluetooth advertising is not supported on this device."
+            let errorMsg = "Bluetooth advertising is not supported on this device."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             stop()
         case .poweredOff:   
-            lastError = "Bluetooth is turned off. Please turn it on to use this feature."
+            let errorMsg = "Bluetooth is turned off. Please turn it on to use this feature."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
             stop()
         case .resetting:
-            lastError = "Bluetooth is resetting. Please wait..."
+            let errorMsg = "Bluetooth is resetting. Please wait..."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
         case .unknown:
             print("Peripheral state is unknown, this is normal during initialization")
         @unknown default:
-            lastError = "Unknown Bluetooth state. Please try again."
+            let errorMsg = "Unknown Bluetooth state. Please try again."
+            DispatchQueue.main.async { [weak self] in
+                self?.lastError = errorMsg
+                self?.onError?(errorMsg)
+            }
         }
     }
     
     func peripheralManagerDidStartAdvertising(_ peripheral: CBPeripheralManager, error: Error?) {
         if let error = error {
             print("Failed to start advertising: \(error.localizedDescription)")
-            lastError = "Failed to start advertising: \(error.localizedDescription)"
-            isAdvertising = false
+            let errorMsg = "Failed to start advertising: \(error.localizedDescription)"
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.lastError = errorMsg
+                self.isAdvertising = false
+                self.onError?(errorMsg)
+                self.onAdvertisingStopped?(error)
+            }
         } else {
             print("Successfully started advertising")
-            isAdvertising = true
-            if central.state == .poweredOn && peripheral.state == .poweredOn {
-                lastError = nil
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.isAdvertising = true
+                self.onAdvertisingStarted?()
+                if self.central.state == .poweredOn && self.peripheral.state == .poweredOn {
+                    self.lastError = nil
+                }
             }
         }
     }

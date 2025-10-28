@@ -112,6 +112,7 @@ struct PeopleNearbyView: View {
         .onAppear { 
             screenStartTime = Date()
             SessionTracker.shared.trackScreenView(ScreenName.peopleNearby, category: ScreenCategory.socialFeatures)
+            setupClosureCallbacks()
             crowd.startQuickScan(duration: 12) 
         } 
         .onDisappear { 
@@ -119,7 +120,58 @@ struct PeopleNearbyView: View {
                 let duration = Date().timeIntervalSince(startTime)
                 SessionTracker.shared.trackScreenEnd(ScreenName.peopleNearby, duration: duration, category: ScreenCategory.socialFeatures)
             }
+            cleanupClosureCallbacks()
             crowd.stop() 
         }
+    }
+    
+    private func setupClosureCallbacks() {
+        // Wire closures with weak captures to avoid retain cycles
+        crowd.onCentralStateChange = { [weak crowd] state in
+            print("Central state changed to: \(state.rawValue)")
+        }
+        
+        crowd.onPeripheralStateChange = { [weak crowd] state in
+            print("Peripheral state changed to: \(state.rawValue)")
+        }
+        
+        crowd.onScanStarted = { [weak crowd] in
+            print("Scan started")
+        }
+        
+        crowd.onScanStopped = { [weak crowd] count in
+            print("Scan stopped. Total devices found: \(count)")
+        }
+        
+        crowd.onDeviceFound = { [weak crowd] uuid, rssi, totalCount in
+            print("Device found: \(uuid.uuidString), RSSI: \(rssi), Total: \(totalCount)")
+        }
+        
+        crowd.onAdvertisingStarted = { [weak crowd] in
+            print("Advertising started")
+        }
+        
+        crowd.onAdvertisingStopped = { [weak crowd] error in
+            if let error = error {
+                print("Advertising stopped with error: \(error.localizedDescription)")
+            } else {
+                print("Advertising stopped")
+            }
+        }
+        
+        crowd.onError = { [weak crowd] errorMessage in
+            print("Bluetooth error: \(errorMessage)")
+        }
+    }
+    
+    private func cleanupClosureCallbacks() {
+        crowd.onCentralStateChange = nil
+        crowd.onPeripheralStateChange = nil
+        crowd.onScanStarted = nil
+        crowd.onScanStopped = nil
+        crowd.onDeviceFound = nil
+        crowd.onAdvertisingStarted = nil
+        crowd.onAdvertisingStopped = nil
+        crowd.onError = nil
     }
 }
