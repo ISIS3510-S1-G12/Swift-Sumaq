@@ -306,61 +306,21 @@ extension UserRestaurantDetailView {
         defer { loadingReviews = false }
         
         do {
-            // Use GCD to parallelize independent operations
-            let group = DispatchGroup()
-            var reviewsResult: [Review] = []
-            var usersResult: [AppUser] = []
-            var reviewsError: Error?
-            var usersError: Error?
-            
-            // Load reviews on background queue
-            group.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer { group.leave() }
-                Task {
-                    do {
-                        reviewsResult = try await self.reviewsRepo.listForRestaurant(self.restaurant.id)
-                    } catch {
-                        reviewsError = error
-                    }
-                }
-            }
-            
-            group.wait()
-            
-            // Check for reviews error first
-            if let error = reviewsError {
-                throw error
-            }
-            
+            // Load reviews first
+            let reviewsResult = try await reviewsRepo.listForRestaurant(restaurant.id)
             self.reviews = reviewsResult
-            let userIds = Array(Set(reviewsResult.map { $0.userId }))
             
-            // Load user data in parallel if we have user IDs
-            if !userIds.isEmpty {
-                group.enter()
-                DispatchQueue.global(qos: .userInitiated).async {
-                    defer { group.leave() }
-                    Task {
-                        do {
-                            usersResult = try await self.usersRepo.getManyBasic(ids: userIds)
-                        } catch {
-                            usersError = error
-                        }
-                    }
-                }
-                group.wait()
-                
-                if let error = usersError {
-                    throw error
-                }
-                
-                var map: [String: String] = [:]
-                for u in usersResult { map[u.id] = u.name }
-                self.userNamesById = map
-            } else {
+            // Load user names if needed
+            let userIds = Array(Set(reviewsResult.map { $0.userId }))
+            guard !userIds.isEmpty else { 
                 self.userNamesById = [:]
+                return 
             }
+            
+            let usersResult = try await usersRepo.getManyBasic(ids: userIds)
+            var map: [String: String] = [:]
+            for u in usersResult { map[u.id] = u.name }
+            self.userNamesById = map
         } catch {
             self.errorReviews = error.localizedDescription
         }
