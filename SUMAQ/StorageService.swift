@@ -17,29 +17,18 @@ final class StorageService {
     func uploadImageData(_ data: Data,
                          to path: String,
                          contentType: String? = nil,
-                         progress: ((Double) -> Void)? = nil,
                          completion: @escaping (Result<String, Error>) -> Void) {
         let ref = storage.reference(withPath: path)
         let md = StorageMetadata()
         md.contentType = contentType ?? "image/jpeg"
 
-        let task = ref.putData(data, metadata: md) { _, err in
+        ref.putData(data, metadata: md) { _, err in
             if let err { return completion(.failure(err)) }
             ref.downloadURL { url, err in
                 if let err { completion(.failure(err)) }
                 else if let url { completion(.success(url.absoluteString)) }
                 else { completion(.failure(NSError(domain: "Storage", code: -3,
                                                    userInfo: [NSLocalizedDescriptionKey:"No URL"])) ) }
-            }
-        }
-
-        if let progress {
-            task.observe(.progress) { snapshot in
-                guard let total = snapshot.progress?.totalUnitCount,
-                      total > 0,
-                      let completed = snapshot.progress?.completedUnitCount else { return }
-                let pct = Double(completed) / Double(total)
-                progress(pct)
             }
         }
     }
@@ -61,7 +50,7 @@ final class StorageService {
             }
             let ext = url.pathExtension.lowercased()
             let type = (ext == "png") ? "image/png" : "image/jpeg"
-            self.uploadImageData(data, to: path, contentType: type, progress: nil, completion: completion)
+            self.uploadImageData(data, to: path, contentType: type, completion: completion)
         }.resume()
     }
 }
