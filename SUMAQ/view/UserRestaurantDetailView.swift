@@ -213,20 +213,17 @@ struct UserRestaurantDetailView: View {
         }
         .onAppear {
             screenStartTime = Date()
-            SessionTracker.shared.trackScreenView(ScreenName.restaurantDetail, category: ScreenCategory.restaurantDetail)
             AnalyticsService.shared.screenStart(ScreenName.restaurantDetail)
             AnalyticsService.shared.log(EventName.restaurantVisit, [
                 "restaurant_id": restaurant.id,
                 "restaurant_name": restaurant.name
             ])
-            SessionTracker.shared.trackRestaurantVisit(restaurantId: restaurant.id, restaurantName: restaurant.name)
         }
         .onDisappear {
             if let startTime = screenStartTime {
                 let duration = Date().timeIntervalSince(startTime)
-                SessionTracker.shared.trackScreenEnd(ScreenName.restaurantDetail, duration: duration, category: ScreenCategory.restaurantDetail)
+                AnalyticsService.shared.screenEnd(ScreenName.restaurantDetail)
             }
-            AnalyticsService.shared.screenEnd(ScreenName.restaurantDetail)
         }
     }
 }
@@ -309,45 +306,18 @@ extension UserRestaurantDetailView {
         defer { loadingReviews = false }
         
         do {
-            // Stage 1: load reviews on a background queue
-            let stage1 = DispatchGroup()
-            var reviewsResult: [Review] = []
-            var reviewsError: Error?
-            stage1.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer { stage1.leave() }
-                Task {
-                    do {
-                        reviewsResult = try await self.reviewsRepo.listForRestaurant(self.restaurant.id)
-                    } catch {
-                        reviewsError = error
-                    }
-                }
-            }
-            stage1.wait()
-            if let e = reviewsError { throw e }
+            // Load reviews first
+            let reviewsResult = try await reviewsRepo.listForRestaurant(restaurant.id)
             self.reviews = reviewsResult
-
-            // Stage 2: load user names if needed, also on background queue
+            
+            // Load user names if needed
             let userIds = Array(Set(reviewsResult.map { $0.userId }))
-            guard !userIds.isEmpty else { self.userNamesById = [:]; return }
-
-            let stage2 = DispatchGroup()
-            var usersResult: [AppUser] = []
-            var usersError: Error?
-            stage2.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer { stage2.leave() }
-                Task {
-                    do {
-                        usersResult = try await self.usersRepo.getManyBasic(ids: userIds)
-                    } catch {
-                        usersError = error
-                    }
-                }
+            guard !userIds.isEmpty else { 
+                self.userNamesById = [:]
+                return 
             }
-            stage2.wait()
-            if let e = usersError { throw e }
+            
+            let usersResult = try await usersRepo.getManyBasic(ids: userIds)
             var map: [String: String] = [:]
             for u in usersResult { map[u.id] = u.name }
             self.userNamesById = map
