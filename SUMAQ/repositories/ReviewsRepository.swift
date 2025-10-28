@@ -105,3 +105,112 @@ final class ReviewsRepository {
         try await listForRestaurant(restaurantId: restaurantId)
     }
 }
+
+// MARK: - Batch Operations
+extension ReviewsRepository {
+    
+    /// Creates multiple reviews in parallel with controlled concurrency
+    /// - Parameters:
+    ///   - reviews: Array of review data tuples
+    ///   - maxConcurrent: Maximum number of concurrent uploads (default: 3)
+    ///   - progress: Optional callback for overall batch progress
+    /// - Returns: Tuple with success count and array of errors
+    func createReviewsBatch(_ reviews: [(restaurantId: String, stars: Int, comment: String, imageData: Data?)],
+                           maxConcurrent: Int = 3,
+                           progress: ((Int, Int) -> Void)? = nil) async throws -> (success: Int, failures: [Error]) {
+        
+        guard !reviews.isEmpty else { return (0, []) }
+        
+        var successCount = 0
+        var failures: [Error] = []
+        var reviewQueue = reviews
+        var completedCount = 0
+        
+        try await withThrowingTaskGroup(of: Result<Void, Error>.self) { group in
+            
+            // Start initial batch of tasks
+            for _ in 0..<min(maxConcurrent, reviewQueue.count) {
+                if let review = reviewQueue.popFirst() {
+                    group.addTask {
+                        do {
+                            try await self.createReview(
+                                restaurantId: review.restaurantId,
+                                stars: review.stars,
+                                comment: review.comment,
+                                imageData: review.imageData
+                            )
+                            return .success(())
+                        } catch {
+                            return .failure(error)
+                        }
+                    }
+                }
+            }
+            
+            // Process results and add new tasks as they complete
+            while let result = try await group.next() {
+                completedCount += 1
+                
+                switch result {
+                case .success:
+                    successCount += 1
+                case .failure(let error):
+                    failures.append(error)
+                }
+                
+                // Report progress
+                progress?(completedCount, reviews.count)
+                
+                // Add next review if queue has more
+                if let nextReview = reviewQueue.popFirst() {
+                    group.addTask {
+                        do {
+                            try await self.createReview(
+                                restaurantId: nextReview.restaurantId,
+                                stars: nextReview.stars,
+                                comment: nextReview.comment,
+                                imageData: nextReview.imageData
+                            )
+                            return .success(())
+                        } catch {
+                            return .failure(error)
+                        }
+                    }
+                }
+            }
+        }
+        
+        return (successCount, failures)
+    }
+    
+    /// Creates a test batch of reviews for testing purposes
+    /// - Parameters:
+    ///   - restaurantId: Target restaurant ID
+    ///   - count: Number of test reviews to create (default: 5)
+    ///   - maxConcurrent: Maximum concurrent uploads (default: 2)
+    /// - Returns: Batch result with success count and errors
+    func createTestBatch(restaurantId: String, count: Int = 5, maxConcurrent: Int = 2) async throws -> (success: Int, failures: [Error]) {
+        
+        let testReviews = (1...count).map { index in
+            (
+                restaurantId: restaurantId,
+                stars: Int.random(in: 1...5),
+                comment: "Test review #\(index) - \(["Great food!", "Amazing service!", "Love this place!", "Highly recommended!", "Will come again!"].randomElement() ?? "Good experience")",
+                imageData: nil
+            )
+        }
+        
+        return try await createReviewsBatch(testReviews, maxConcurrent: maxConcurrent) { completed, total in
+            print("Batch progress: \(completed)/\(total)")
+        }
+    }
+}
+
+// MARK: - Array Extension for Queue Operations
+extension Array {
+    /// Safely removes and returns the first element
+    mutating func popFirst() -> Element? {
+        guard !isEmpty else { return nil }
+        return removeFirst()
+    }
+}
