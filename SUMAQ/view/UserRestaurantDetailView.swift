@@ -295,15 +295,63 @@ extension UserRestaurantDetailView {
     private func loadReviews() async {
         loadingReviews = true; errorReviews = nil
         defer { loadingReviews = false }
+        
         do {
-            let list = try await reviewsRepo.listForRestaurant(restaurant.id)
-            self.reviews = list
-            let ids = Array(Set(list.map { $0.userId }))
-            guard !ids.isEmpty else { self.userNamesById = [:]; return }
-            let users = try await usersRepo.getManyBasic(ids: ids)
-            var map: [String: String] = [:]
-            for u in users { map[u.id] = u.name }
-            self.userNamesById = map
+            // Use GCD to parallelize independent operations
+            let group = DispatchGroup()
+            var reviewsResult: [Review] = []
+            var usersResult: [AppUser] = []
+            var reviewsError: Error?
+            var usersError: Error?
+            
+            // Load reviews on background queue
+            group.enter()
+            DispatchQueue.global(qos: .userInitiated).async {
+                defer { group.leave() }
+                Task {
+                    do {
+                        reviewsResult = try await self.reviewsRepo.listForRestaurant(self.restaurant.id)
+                    } catch {
+                        reviewsError = error
+                    }
+                }
+            }
+            
+            group.wait()
+            
+            // Check for reviews error first
+            if let error = reviewsError {
+                throw error
+            }
+            
+            self.reviews = reviewsResult
+            let userIds = Array(Set(reviewsResult.map { $0.userId }))
+            
+            // Load user data in parallel if we have user IDs
+            if !userIds.isEmpty {
+                group.enter()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    defer { group.leave() }
+                    Task {
+                        do {
+                            usersResult = try await self.usersRepo.getManyBasic(ids: userIds)
+                        } catch {
+                            usersError = error
+                        }
+                    }
+                }
+                group.wait()
+                
+                if let error = usersError {
+                    throw error
+                }
+                
+                var map: [String: String] = [:]
+                for u in usersResult { map[u.id] = u.name }
+                self.userNamesById = map
+            } else {
+                self.userNamesById = [:]
+            }
         } catch {
             self.errorReviews = error.localizedDescription
         }
