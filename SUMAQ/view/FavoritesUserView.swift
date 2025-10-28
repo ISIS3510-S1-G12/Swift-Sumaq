@@ -225,3 +225,11 @@ private struct StatPill: View {
         )
     }
 }
+
+//SPRINT 3- Multithreading- Swift Concurrency (async/wait)
+//Patrón usado: Swift Concurrency async/await con Task ligado al ciclo de vida de la vista.
+//Multithreading real: el runtime usa un thread pool cooperativo; await suspende sin bloquear, el trabajo de red va en background; tras await, la lógica de UI vuelve al MainActor.
+//Cancelación: en cambios de sesión o favoritos, se cancela la tarea anterior para evitar condiciones de carrera y estados inconsistentes.
+// sucede cuando se crea el contexto asíncrono : .task { await safeLoadFavorites() }
+// en la definicion de safeLoadFavorites se pone async
+// se guarda el Task actual en loadTask y se cancela si llega un evento que invalida el resultado (cambió auth o favoritos), evitando pisadas de estado
