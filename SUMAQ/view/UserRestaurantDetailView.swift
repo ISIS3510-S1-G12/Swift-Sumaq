@@ -316,17 +316,20 @@ extension UserRestaurantDetailView {
             // Load reviews on background queue
             group.enter()
             DispatchQueue.global(qos: .userInitiated).async {
-                defer { group.leave() }
                 Task {
                     do {
                         reviewsResult = try await self.reviewsRepo.listForRestaurant(self.restaurant.id)
                     } catch {
                         reviewsError = error
                     }
+                    group.leave()
                 }
             }
             
-            group.wait()
+            // Wait asynchronously for the group to finish
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                group.notify(queue: .global(qos: .userInitiated)) { cont.resume() }
+            }
             
             // Check for reviews error first
             if let error = reviewsError {
@@ -340,16 +343,19 @@ extension UserRestaurantDetailView {
             if !userIds.isEmpty {
                 group.enter()
                 DispatchQueue.global(qos: .userInitiated).async {
-                    defer { group.leave() }
                     Task {
                         do {
                             usersResult = try await self.usersRepo.getManyBasic(ids: userIds)
                         } catch {
                             usersError = error
                         }
+                        group.leave()
                     }
                 }
-                group.wait()
+                // Wait asynchronously for the group to finish
+                await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                    group.notify(queue: .global(qos: .userInitiated)) { cont.resume() }
+                }
                 
                 if let error = usersError {
                     throw error
@@ -543,3 +549,4 @@ private struct ReviewsTab: View {
         }
     }
 }
+
