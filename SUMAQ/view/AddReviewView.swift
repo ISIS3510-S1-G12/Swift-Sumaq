@@ -14,6 +14,7 @@ struct AddReviewView: View {
     @State private var showValidation = false
     @State private var error: String? = nil
     @State private var showPicker = false
+    @State private var uploadProgress: Double = 0.0
 
     private let repo = ReviewsRepository()
 
