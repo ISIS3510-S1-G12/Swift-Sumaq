@@ -72,18 +72,20 @@ struct CamaraPicker: View {
                 // Cargamos SIEMPRE como Data y generamos UIImage para el preview
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let ui = UIImage(data: data) {
-                    applyPicked(ui)
+                    await MainActor.run { applyPicked(ui) }
                 } else {
                     // fallback simple si no se pudo leer
-                    self.imageData = nil
-                    self.previewImage = nil
+                    await MainActor.run {
+                        self.imageData = nil
+                        self.previewImage = nil
+                    }
                 }
             }
         }
         .fullScreenCover(isPresented: $showCamera) {
             SystemCameraPicker { image in
-                if let image { applyPicked(image) }
-                showCamera = false
+                if let image { DispatchQueue.main.async { applyPicked(image) } }
+                DispatchQueue.main.async { showCamera = false }
             }
             .ignoresSafeArea()
         }
@@ -94,7 +96,7 @@ struct CamaraPicker: View {
         }
     }
 
-    private func applyPicked(_ ui: UIImage) {
+    @MainActor private func applyPicked(_ ui: UIImage) {
         self.previewImage = ui
         self.imageData = ui.jpegData(compressionQuality: 0.9)
     }
@@ -103,15 +105,17 @@ struct CamaraPicker: View {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         switch status {
         case .authorized:
-            showCamera = true
+            await MainActor.run { showCamera = true }
         case .notDetermined:
             let granted = await AVCaptureDevice.requestAccess(for: .video)
-            showCamera = granted
-            if !granted { cameraUnavailableAlert = true }
+            await MainActor.run {
+                showCamera = granted
+                if !granted { cameraUnavailableAlert = true }
+            }
         case .denied, .restricted:
-            cameraUnavailableAlert = true
+            await MainActor.run { cameraUnavailableAlert = true }
         @unknown default:
-            cameraUnavailableAlert = true
+            await MainActor.run { cameraUnavailableAlert = true }
         }
     }
 }
