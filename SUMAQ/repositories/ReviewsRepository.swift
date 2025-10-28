@@ -21,7 +21,8 @@ final class ReviewsRepository {
     func createReview(restaurantId: String,
                       stars: Int,
                       comment: String,
-                      imageData: Data?) async throws {
+                      imageData: Data?,
+                      progress: ((Double) -> Void)? = nil) async throws {
         let uid = try currentUid()
         let ref = db.collection(coll).document()
 
@@ -47,7 +48,7 @@ final class ReviewsRepository {
 
             let path = "reviews/\(uid)/\(ref.documentID).jpg"
             let urlString = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<String, Error>) in
-                StorageService.shared.uploadImageData(data, to: path, contentType: "image/jpeg") { res in
+                StorageService.shared.uploadImageData(data, to: path, contentType: "image/jpeg", progress: progress) { res in
                     switch res {
                     case .success(let url): cont.resume(returning: url)
                     case .failure(let err): cont.resume(throwing: err)
