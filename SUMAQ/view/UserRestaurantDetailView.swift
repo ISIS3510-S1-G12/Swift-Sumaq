@@ -213,17 +213,20 @@ struct UserRestaurantDetailView: View {
         }
         .onAppear {
             screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.restaurantDetail, category: ScreenCategory.restaurantDetail)
             AnalyticsService.shared.screenStart(ScreenName.restaurantDetail)
             AnalyticsService.shared.log(EventName.restaurantVisit, [
                 "restaurant_id": restaurant.id,
                 "restaurant_name": restaurant.name
             ])
+            SessionTracker.shared.trackRestaurantVisit(restaurantId: restaurant.id, restaurantName: restaurant.name)
         }
         .onDisappear {
             if let startTime = screenStartTime {
                 let duration = Date().timeIntervalSince(startTime)
-                AnalyticsService.shared.screenEnd(ScreenName.restaurantDetail)
+                SessionTracker.shared.trackScreenEnd(ScreenName.restaurantDetail, duration: duration, category: ScreenCategory.restaurantDetail)
             }
+            AnalyticsService.shared.screenEnd(ScreenName.restaurantDetail)
         }
     }
 }
@@ -304,22 +307,14 @@ extension UserRestaurantDetailView {
     private func loadReviews() async {
         loadingReviews = true; errorReviews = nil
         defer { loadingReviews = false }
-        
         do {
-            // Load reviews first
-            let reviewsResult = try await reviewsRepo.listForRestaurant(restaurant.id)
-            self.reviews = reviewsResult
-            
-            // Load user names if needed
-            let userIds = Array(Set(reviewsResult.map { $0.userId }))
-            guard !userIds.isEmpty else { 
-                self.userNamesById = [:]
-                return 
-            }
-            
-            let usersResult = try await usersRepo.getManyBasic(ids: userIds)
+            let list = try await reviewsRepo.listForRestaurant(restaurant.id)
+            self.reviews = list
+            let ids = Array(Set(list.map { $0.userId }))
+            guard !ids.isEmpty else { self.userNamesById = [:]; return }
+            let users = try await usersRepo.getManyBasic(ids: ids)
             var map: [String: String] = [:]
-            for u in usersResult { map[u.id] = u.name }
+            for u in users { map[u.id] = u.name }
             self.userNamesById = map
         } catch {
             self.errorReviews = error.localizedDescription

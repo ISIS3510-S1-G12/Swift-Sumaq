@@ -78,53 +78,16 @@ struct ReviewHistoryUserView: View {
 
     private func load() async {
         loading = true; error = nil
-        
         do {
-            let group = DispatchGroup()
-            var userResult: AppUser?
-            var userError: Error?
-            var reviewsResult: [Review] = []
-            var reviewsError: Error?
-            
-            group.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer { group.leave() }
-                Task {
-                    do { userResult = try await self.usersRepo.getCurrentUser() }
-                    catch { userError = error }
-                }
+            if let u = try await usersRepo.getCurrentUser() {
+                userName = u.name
             }
-            
-            group.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer { group.leave() }
-                Task {
-                    do { reviewsResult = try await self.reviewsRepo.listMyReviews() }
-                    catch { reviewsError = error }
-                }
-            }
-            
-            group.wait()
-            if let e = userError ?? reviewsError { throw e }
-            if let u = userResult { userName = u.name }
-            self.reviews = reviewsResult
-            
-            let ids = Array(Set(reviewsResult.map { $0.restaurantId }))
-            guard !ids.isEmpty else { self.restaurantsById = [:]; loading = false; return }
-            
-            var restsResult: [Restaurant] = []
-            var restsError: Error?
-            group.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer { group.leave() }
-                Task {
-                    do { restsResult = try await self.restaurantsRepo.getMany(ids: ids) }
-                    catch { restsError = error }
-                }
-            }
-            group.wait()
-            if let e = restsError { throw e }
-            self.restaurantsById = Dictionary(uniqueKeysWithValues: restsResult.map { ($0.id, $0) })
+            let items = try await reviewsRepo.listMyReviews()
+            self.reviews = items
+
+            let ids = Array(Set(items.map { $0.restaurantId }))
+            let rests = try await restaurantsRepo.getMany(ids: ids)
+            self.restaurantsById = Dictionary(uniqueKeysWithValues: rests.map { ($0.id, $0) })
         } catch {
             self.error = error.localizedDescription
         }

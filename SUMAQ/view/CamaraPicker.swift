@@ -69,25 +69,21 @@ struct CamaraPicker: View {
         .onChange(of: selection) { newItem in
             guard let newItem else { return }
             Task {
-                // Cargamos SIEMPRE como Data y generamos UIImage para el preview
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let ui = UIImage(data: data) {
-                    await MainActor.run { applyPicked(ui) }
+                    applyPicked(ui)
                 } else {
-                    // fallback simple si no se pudo leer
-                    await MainActor.run {
-                        self.imageData = nil
-                        self.previewImage = nil
-                    }
+                    self.imageData = nil
+                    self.previewImage = nil
                 }
             }
         }
         .fullScreenCover(isPresented: $showCamera) {
             SystemCameraPicker { image in
-                Task { @MainActor in
-                    if let image { applyPicked(image) }
-                    showCamera = false
+                if let image { 
+                    applyPicked(image)
                 }
+                showCamera = false
             }
             .ignoresSafeArea()
         }
@@ -98,26 +94,42 @@ struct CamaraPicker: View {
         }
     }
 
-    @MainActor private func applyPicked(_ ui: UIImage) {
+    private func applyPicked(_ ui: UIImage) {
         self.previewImage = ui
         self.imageData = ui.jpegData(compressionQuality: 0.9)
     }
 
     private func openCamera() async {
+        // Verifica si el dispositivo tiene cámara
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            DispatchQueue.main.async {
+                self.cameraUnavailableAlert = true
+            }
+            return
+        }
+        
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         switch status {
         case .authorized:
-            await MainActor.run { showCamera = true }
+            DispatchQueue.main.async {
+                self.showCamera = true
+            }
         case .notDetermined:
             let granted = await AVCaptureDevice.requestAccess(for: .video)
-            await MainActor.run {
-                showCamera = granted
-                if !granted { cameraUnavailableAlert = true }
+            DispatchQueue.main.async {
+                self.showCamera = granted
+                if !granted { 
+                    self.cameraUnavailableAlert = true 
+                }
             }
         case .denied, .restricted:
-            await MainActor.run { cameraUnavailableAlert = true }
+            DispatchQueue.main.async {
+                self.cameraUnavailableAlert = true
+            }
         @unknown default:
-            await MainActor.run { cameraUnavailableAlert = true }
+            DispatchQueue.main.async {
+                self.cameraUnavailableAlert = true
+            }
         }
     }
 }
@@ -129,7 +141,9 @@ private struct SystemCameraPicker: UIViewControllerRepresentable {
         let vc = UIImagePickerController()
         vc.sourceType = .camera
         vc.delegate = context.coordinator
-        vc.allowsEditing = false
+        vc.allowsEditing = true
+        vc.cameraDevice = .rear
+        vc.cameraFlashMode = .auto
         return vc
     }
 
@@ -142,13 +156,17 @@ private struct SystemCameraPicker: UIViewControllerRepresentable {
         init(onFinish: @escaping (UIImage?) -> Void) { self.onFinish = onFinish }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            onFinish(nil)
+            DispatchQueue.main.async {
+                self.onFinish(nil)
+            }
         }
 
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             let img = (info[.editedImage] ?? info[.originalImage]) as? UIImage
-            onFinish(img)
+            DispatchQueue.main.async {
+                self.onFinish(img)
+            }
         }
     }
 }
