@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to take photos for reviews.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to select images for reviews.</string>
 	<key>CFBundleIdentifier</key>
 	<string>SUMAQ.SUMAQ</string>
 	<key>CFBundleName</key>
@@ -26,7 +30,6 @@
 	<string>Esta aplicación usa Bluetooth para funcionalidades de proximidad.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Esta aplicación usa Bluetooth para funcionalidades de proximidad.</string>
-
 	<key>CFBundleGetInfoString</key>
 	<string>SUMAQ - Descubre los mejores restaurantes cerca de ti</string>
 	<key>UILaunchStoryboardName</key>

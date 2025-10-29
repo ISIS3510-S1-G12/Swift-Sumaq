@@ -14,6 +14,7 @@ struct AddReviewView: View {
     @State private var showValidation = false
     @State private var error: String? = nil
     @State private var showPicker = false
+    @State private var uploadProgress: Double = 0.0
 
     private let repo = ReviewsRepository()
 
@@ -121,12 +122,19 @@ struct AddReviewView: View {
                 Button {
                     Task { await submit() }
                 } label: {
-                    Text(isSaving ? "Submitting…" : "Submit review")
+                    let pct = Int((uploadProgress * 100).rounded())
+                    Text(isSaving && uploadProgress > 0 ? "Uploading \(pct)%" : (isSaving ? "Submitting…" : "Submit review"))
                         .font(.custom("Montserrat-SemiBold", size: 18))
                         .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .buttonStyle(PrimaryCapsuleButton(color: Palette.burgundy))
                 .disabled(isSaving)
+
+                if isSaving && uploadProgress > 0 && uploadProgress < 1 {
+                    ProgressView(value: uploadProgress)
+                        .progressViewStyle(.linear)
+                        .tint(Palette.burgundy)
+                }
 
                 Spacer(minLength: 24)
             }
@@ -159,16 +167,24 @@ struct AddReviewView: View {
         isSaving = true
         error = nil
         do {
+            uploadProgress = 0
             try await repo.createReview(
                 restaurantId: restaurant.id,
                 stars: stars,
                 comment: trimmed,
-                imageData: imageData
+                imageData: imageData,
+                progress: { pct in
+                    DispatchQueue.main.async {
+                        self.uploadProgress = pct
+                    }
+                }
             )
             isSaving = false
+            uploadProgress = 1
         } catch {
             self.error = error.localizedDescription
             isSaving = false
+            uploadProgress = 0
         }
     }
 }

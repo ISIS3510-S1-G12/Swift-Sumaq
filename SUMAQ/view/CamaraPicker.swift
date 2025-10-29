@@ -71,19 +71,24 @@ struct CamaraPicker: View {
             Task {
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let ui = UIImage(data: data) {
-                    applyPicked(ui)
+                    await MainActor.run { applyPicked(ui) }
                 } else {
-                    self.imageData = nil
-                    self.previewImage = nil
+
+                    // fallback simple si no se pudo leer
+                    await MainActor.run {
+                        self.imageData = nil
+                        self.previewImage = nil
+                    }
                 }
             }
         }
         .fullScreenCover(isPresented: $showCamera) {
             SystemCameraPicker { image in
-                if let image { 
-                    applyPicked(image)
+
+                Task { @MainActor in
+                    if let image { applyPicked(image) }
+                    showCamera = false
                 }
-                showCamera = false
             }
             .ignoresSafeArea()
         }
@@ -94,7 +99,7 @@ struct CamaraPicker: View {
         }
     }
 
-    private func applyPicked(_ ui: UIImage) {
+    @MainActor private func applyPicked(_ ui: UIImage) {
         self.previewImage = ui
         self.imageData = ui.jpegData(compressionQuality: 0.9)
     }
@@ -109,30 +114,22 @@ struct CamaraPicker: View {
         }
         
         let status = AVCaptureDevice.authorizationStatus(for: .video)
-        switch status {
-        case .authorized:
-            DispatchQueue.main.async {
-                self.showCamera = true
-            }
-        case .notDetermined:
-            let granted = await AVCaptureDevice.requestAccess(for: .video)
-            DispatchQueue.main.async {
-                self.showCamera = granted
-                if !granted { 
-                    self.cameraUnavailableAlert = true 
+                switch status {
+                case .authorized:
+                    await MainActor.run { showCamera = true }
+                case .notDetermined:
+                    let granted = await AVCaptureDevice.requestAccess(for: .video)
+                    await MainActor.run {
+                        showCamera = granted
+                        if !granted { cameraUnavailableAlert = true }
+                    }
+                case .denied, .restricted:
+                    await MainActor.run { cameraUnavailableAlert = true }
+                @unknown default:
+                    await MainActor.run { cameraUnavailableAlert = true }
                 }
             }
-        case .denied, .restricted:
-            DispatchQueue.main.async {
-                self.cameraUnavailableAlert = true
-            }
-        @unknown default:
-            DispatchQueue.main.async {
-                self.cameraUnavailableAlert = true
-            }
         }
-    }
-}
 
 private struct SystemCameraPicker: UIViewControllerRepresentable {
     var onFinish: (UIImage?) -> Void

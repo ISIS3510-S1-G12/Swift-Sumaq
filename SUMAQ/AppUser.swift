@@ -13,7 +13,7 @@ struct AppUser: Identifiable {
     let name: String
     let email: String
     let favoriteRestaurants: [String: Date]
-    let profilePicture: String
+    let profilePictureURL: String?
 
     init?(doc: DocumentSnapshot) {
         let d = doc.data() ?? [:]
@@ -34,11 +34,14 @@ struct AppUser: Identifiable {
             self.favoriteRestaurants = [:]
         }
         
-        if let prefs = d["preferences"] as? [String: Any],
-           let profilePic = prefs["profile_picture"] as? String {
-            self.profilePicture = profilePic
+        // Extract profile picture URL from preferences
+        if let preferences = d["preferences"] as? [String: Any],
+           let profilePicture = preferences["profile_picture"] as? String,
+           !profilePicture.isEmpty {
+            self.profilePictureURL = profilePicture
         } else {
-            self.profilePicture = ""
+            self.profilePictureURL = nil
+
         }
     }
 }

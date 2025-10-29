@@ -78,20 +78,82 @@ struct ReviewHistoryUserView: View {
 
     private func load() async {
         loading = true; error = nil
+        defer { loading = false }
+        
         do {
-            if let u = try await usersRepo.getCurrentUser() {
-                userName = u.name
+            // Use GCD to parallelize independent operations
+            let group = DispatchGroup()
+            var userResult: AppUser?
+            var userError: Error?
+            var reviewsResult: [Review] = []
+            var reviewsError: Error?
+            
+            // Load user and reviews in parallel
+            group.enter()
+            DispatchQueue.global(qos: .userInitiated).async {
+                Task {
+                    do {
+                        userResult = try await self.usersRepo.getCurrentUser()
+                    } catch {
+                        userError = error
+                    }
+                    group.leave()
+                }
             }
-            let items = try await reviewsRepo.listMyReviews()
-            self.reviews = items
-
-            let ids = Array(Set(items.map { $0.restaurantId }))
-            let rests = try await restaurantsRepo.getMany(ids: ids)
-            self.restaurantsById = Dictionary(uniqueKeysWithValues: rests.map { ($0.id, $0) })
+            
+            group.enter()
+            DispatchQueue.global(qos: .userInitiated).async {
+                Task {
+                    do {
+                        reviewsResult = try await self.reviewsRepo.listMyReviews()
+                    } catch {
+                        reviewsError = error
+                    }
+                    group.leave()
+                }
+            }
+            
+            // Wait asynchronously for the group to finish
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                group.notify(queue: .global(qos: .userInitiated)) { cont.resume() }
+            }
+            
+            // Check for errors
+            if let e = userError ?? reviewsError { throw e }
+            if let u = userResult { userName = u.name }
+            self.reviews = reviewsResult
+            
+            // Load restaurants for the reviews
+            let ids = Array(Set(reviewsResult.map { $0.restaurantId }))
+            guard !ids.isEmpty else {
+                self.restaurantsById = [:]
+                return
+            }
+            
+            var restsResult: [Restaurant] = []
+            var restsError: Error?
+            group.enter()
+            DispatchQueue.global(qos: .userInitiated).async {
+                Task {
+                    do {
+                        restsResult = try await self.restaurantsRepo.getMany(ids: ids)
+                    } catch {
+                        restsError = error
+                    }
+                    group.leave()
+                }
+            }
+            
+            // Wait asynchronously for restaurants to finish
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                group.notify(queue: .global(qos: .userInitiated)) { cont.resume() }
+            }
+            
+            if let e = restsError { throw e }
+            self.restaurantsById = Dictionary(uniqueKeysWithValues: restsResult.map { ($0.id, $0) })
         } catch {
             self.error = error.localizedDescription
         }
-        loading = false
     }
 }
 
