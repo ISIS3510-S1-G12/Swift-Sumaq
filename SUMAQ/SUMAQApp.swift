@@ -24,6 +24,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     // Configurar propiedades del usuario
     Analytics.setUserProperty("ios", forName: "platform")
     
+    // Initialize local SQLite database
+    LocalStore.shared.configureIfNeeded()
+    
     return true
   }
 }
