@@ -9,6 +9,7 @@
 import CoreBluetooth
 
 enum CrowdBLE {
-    static let serviceUUID = CBUUID(string: "A8F0C9A2-4D43-4F58-9A71-2AA1B987C0A1")
-    static let rssiCloseThreshold = -75  
+
+    static let serviceUUID = CBUUID(string: "B0E50E2E-2B7A-4A86-8B4E-3B1E2B6D2A10")
+    static let rssiCloseThreshold = -80  
 }

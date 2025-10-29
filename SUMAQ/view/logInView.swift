@@ -10,11 +10,8 @@ import SwiftUI
 struct LoginView: View {
     let role: UserType
 
-    // Inputs
-    @State private var user: String = ""   // email
+    @State private var user: String = ""
     @State private var pass: String = ""
-
-    // UI state
     @State private var isLoading = false
     @State private var errorMsg: String?
     @State private var goToUserHome = false
@@ -126,7 +123,7 @@ private struct LabeledInput: View {
             .font(.custom("Montserrat-Regular", size: 16))
             .padding(.vertical, 12)
             .padding(.horizontal, 12)
-            .background(Palette.grayLight) // #E5E5E6
+            .background(Palette.grayLight)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
     }

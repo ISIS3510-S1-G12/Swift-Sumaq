@@ -549,4 +549,3 @@ private struct ReviewsTab: View {
         }
     }
 }
-

@@ -12,8 +12,6 @@ import FirebaseAuth
 struct RestaurantHomeView: View {
     // 0 = Menú, 1 = Offers, 2 = Review
     @State private var selectedTab: Int = 0
-
-    // sesión
     @ObservedObject private var session = SessionController.shared
     @State private var showAccount = false
     @State private var goToChoice = false

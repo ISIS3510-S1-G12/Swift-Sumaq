@@ -41,6 +41,7 @@ struct AppUser: Identifiable {
             self.profilePictureURL = profilePicture
         } else {
             self.profilePictureURL = nil
+
         }
     }
 }

@@ -89,6 +89,8 @@ final class UsersRepository {
         guard let uid = currentUid() else {
             throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
         }
+
+      
         let snap = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
             db.collection(coll).document(uid).getDocument { doc, err in
                 if let err { cont.resume(throwing: err) }
@@ -97,11 +99,33 @@ final class UsersRepository {
             }
         }
 
-        let map = Self.parseFavoritesMap(from: snap.data() ?? [:], favField: favField)
-        guard !map.isEmpty else { return [] }
+        let sortedIds: [String] = await withCheckedContinuation { cont in
+            DispatchQueue.global(qos: .userInitiated).async { [favField = self.favField] in
+                let data = snap.data() ?? [:]
+                let map  = UsersRepository.parseFavoritesMap(from: data, favField: favField)
 
-        return map.sorted { $0.value > $1.value }.map { $0.key }
+                guard !map.isEmpty else {
+                    cont.resume(returning: [])
+                    return
+                }
+
+                let ids = map.sorted { $0.value > $1.value }.map { $0.key }
+                cont.resume(returning: ids)
+            }
+        }
+
+        try Task.checkCancellation()
+        return sortedIds
     }
+    
+    // SPRINT 3 – Multithreading – Grand Central Dispatch (GCD)
+    // Patrón usado: Uso de DispatchQueue.global(qos: .userInitiated) para ejecutar en segundo plano el trabajo de parseo y ordenamiento de los favoritos, evitando bloquear el thread principal.
+    // Multithreading real: Mientras la consulta a Firestore (I/O) ocurre de forma asíncrona mediante async/await, el procesamiento de datos (conversión y ordenamiento) se delega a un hilo del pool de GCD. De esta manera, el cálculo se realiza en paralelo, liberando el main thread para mantener la interfaz fluida.
+    // Cancelación: Antes de devolver el resultado final, se llama a Task.checkCancellation() para detener el proceso si la tarea fue cancelada (por ejemplo, si cambió la sesión o el usuario cerró la vista). Esto evita actualizaciones inconsistentes o estados antiguos.
+    // Dónde sucede: Dentro de listFavoriteRestaurantIds(), tras obtener el DocumentSnapshot, se crea una continuación con withCheckedContinuation y se lanza un bloque en DispatchQueue.global. Allí se parsean y ordenan los datos, y luego se devuelve el resultado al flujo asíncrono mediante cont.resume(returning:).
+    // Beneficio: Permite combinar async/await (para operaciones I/O) con GCD (para trabajo CPU-bound), demostrando el uso de múltiples hilos reales y optimizando el rendimiento general de la carga de favoritos.
+
+
 }
 
 private extension UsersRepository {

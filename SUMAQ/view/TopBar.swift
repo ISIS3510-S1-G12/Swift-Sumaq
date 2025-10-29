@@ -38,7 +38,6 @@ struct TopBar: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                // Logo app
                 Image("AppLogoUI")
                     .resizable()
                     .scaledToFit()
@@ -55,6 +54,7 @@ struct TopBar: View {
                         .minimumScaleFactor(0.8)
 
                     profileImageView
+                    
                 }
             }
             .padding(.horizontal, sidePadding)
