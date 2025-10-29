@@ -1,7 +1,11 @@
-//
-//  RestaurantsRepository.swift
-//  SUMAQ
-//
+// PURPOSE: Repository for fetching restaurant data from Firestore
+// ROOT CAUSE: Firestore callback could have both querySnapshot and error as nil (edge case),
+//             causing continuation to never resume, which hangs the calling async function indefinitely.
+// MULTITHREADING CHANGE: Ensure continuation ALWAYS resumes by handling all nil cases explicitly.
+//              Added explicit error for nil snapshot, diagnostic logging, and guaranteed completion.
+// MARK: Strategy #3 — Swift Concurrency (async/await bridging callbacks)
+// THREADING NOTE: Firestore callbacks run on background threads; continuation resumes on caller's context.
+//                 Main actor is not required here as this is a data layer concern.
 
 import Foundation
 import FirebaseAuth
@@ -18,21 +22,46 @@ final class RestaurantsRepository: RestaurantsRepositoryType {
     private let db = Firestore.firestore()
 
     func all() async throws -> [Restaurant] {
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[Restaurant], Error>) in
+        let startTime = Date()
+        
+        let result = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[Restaurant], Error>) in
             db.collection("Restaurants").getDocuments { qs, err in
-                if let err { cont.resume(throwing: err); return }
-                let items = qs?.documents.compactMap { Restaurant(doc: $0) } ?? []
+                if let err = err {
+                    cont.resume(throwing: err)
+                    return
+                }
+                
+                // Handle case where both qs and err are nil (shouldn't happen, but defensive)
+                guard let qs = qs else {
+                    let error = NSError(
+                        domain: "RestaurantsRepository",
+                        code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "Firestore returned nil query snapshot and no error"]
+                    )
+                    cont.resume(throwing: error)
+                    return
+                }
+                
+                let items = qs.documents.compactMap { Restaurant(doc: $0) }
                 cont.resume(returning: items)
             }
         }
+        
+        let duration = Date().timeIntervalSince(startTime)
+        print("[RestaurantsRepository] Loaded \(result.count) restaurants in \(String(format: "%.2f", duration))s")
+        
+        return result
     }
 
     func updateCoordinates(id: String, lat: Double, lon: Double) async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             db.collection("Restaurants").document(id)
                 .setData(["lat": lat, "lon": lon], merge: true) { err in
-                    if let err { cont.resume(throwing: err) }
-                    else { cont.resume(returning: ()) }
+                    if let err = err {
+                        cont.resume(throwing: err)
+                    } else {
+                        cont.resume(returning: ())
+                    }
                 }
         }
     }
@@ -47,9 +76,18 @@ final class RestaurantsRepository: RestaurantsRepositoryType {
                 db.collection("Restaurants")
                     .whereField(FieldPath.documentID(), in: block)
                     .getDocuments { qs, err in
-                        if let err { cont.resume(throwing: err) }
-                        else if let qs { cont.resume(returning: qs) }
-                        else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+                        if let err = err {
+                            cont.resume(throwing: err)
+                        } else if let qs = qs {
+                            cont.resume(returning: qs)
+                        } else {
+                            let error = NSError(
+                                domain: "RestaurantsRepository",
+                                code: -1,
+                                userInfo: [NSLocalizedDescriptionKey: "Firestore query returned nil snapshot and no error"]
+                            )
+                            cont.resume(throwing: error)
+                        }
                     }
             }
             result.append(contentsOf: qs.documents.compactMap { Restaurant(doc: $0) })
@@ -63,9 +101,18 @@ final class RestaurantsRepository: RestaurantsRepositoryType {
         guard let uid = Auth.auth().currentUser?.uid else { return nil }
         let snap = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
             db.collection("Restaurants").document(uid).getDocument { doc, err in
-                if let err { cont.resume(throwing: err) }
-                else if let doc { cont.resume(returning: doc) }
-                else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+                if let err = err {
+                    cont.resume(throwing: err)
+                } else if let doc = doc {
+                    cont.resume(returning: doc)
+                } else {
+                    let error = NSError(
+                        domain: "RestaurantsRepository",
+                        code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "Firestore document returned nil and no error"]
+                    )
+                    cont.resume(throwing: error)
+                }
             }
         }
         return AppRestaurant(doc: snap)

@@ -1,3 +1,11 @@
+// PURPOSE: Repository for managing user restaurant visits in Firestore
+// ROOT CAUSE: Firestore callback could have both querySnapshot and error as nil (edge case),
+//             causing continuation to never resume in getLastNewRestaurantVisit(), hanging the caller.
+// MULTITHREADING CHANGE: Ensure ALL continuations always resume by explicitly handling nil cases.
+//              Added defensive checks for nil snapshots and guaranteed completion paths.
+// MARK: Strategy #3 — Swift Concurrency (async/await bridging callbacks)
+// THREADING NOTE: Firestore callbacks run on background threads; continuations resume on caller's context.
+
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
@@ -21,12 +29,25 @@ final class VisitsRepository {
         do {
             let snap = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
                 db.collection(coll).document(id).getDocument { doc, err in
-                    if let err { cont.resume(throwing: err) }
-                    else if let doc { cont.resume(returning: doc) }
+                    if let err = err {
+                        cont.resume(throwing: err)
+                    } else if let doc = doc {
+                        cont.resume(returning: doc)
+                    } else {
+                        // Defensive: handle nil doc and nil error
+                        let error = NSError(
+                            domain: "VisitsRepository",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "Firestore document returned nil and no error"]
+                        )
+                        cont.resume(throwing: error)
+                    }
                 }
             }
             return snap.exists
-        } catch { return false }
+        } catch {
+            return false
+        }
     }
 
     func markVisited(restaurantId: String) async throws {
@@ -41,8 +62,11 @@ final class VisitsRepository {
 
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             db.collection(coll).document(id).setData(payload, merge: true) { err in
-                if let err { cont.resume(throwing: err) }
-                else { cont.resume(returning: ()) }
+                if let err = err {
+                    cont.resume(throwing: err)
+                } else {
+                    cont.resume(returning: ())
+                }
             }
         }
     }
@@ -55,14 +79,24 @@ final class VisitsRepository {
                 db.collection(coll)
                     .whereField("userId", isEqualTo: "/Users/\(uid)")
                     .order(by: "visitedAt", descending: true)
-                    .limit(to: 50) // Obtener las últimas 50 visitas para analizar
+                    .limit(to: 50)
                     .getDocuments { snapshot, error in
-                        if let error { cont.resume(throwing: error) }
-                        else if let snapshot { cont.resume(returning: snapshot) }
+                        if let error = error {
+                            cont.resume(throwing: error)
+                        } else if let snapshot = snapshot {
+                            cont.resume(returning: snapshot)
+                        } else {
+                            // Defensive: handle nil snapshot and nil error (shouldn't happen, but prevents hang)
+                            let error = NSError(
+                                domain: "VisitsRepository",
+                                code: -1,
+                                userInfo: [NSLocalizedDescriptionKey: "Firestore query returned nil snapshot and no error"]
+                            )
+                            cont.resume(throwing: error)
+                        }
                     }
             }
             
-            // Obtiene todos los restaurantIds únicos que el usuario ha visitado
             var visitedRestaurants: Set<String> = []
             var lastNewRestaurantVisit: Date?
             
@@ -70,13 +104,12 @@ final class VisitsRepository {
                 let data = document.data()
                 
                 guard let visitedAt = data["visitedAt"] as? Timestamp,
-                      let restaurantId = data["restaurantId"] as? String else { 
-                    continue 
+                      let restaurantId = data["restaurantId"] as? String else {
+                    continue
                 }
                 
                 let restaurantIdClean = restaurantId.replacingOccurrences(of: "/Restaurants/", with: "")
                 
-                // significa que fue el último restaurante "nuevo" que visitó
                 if !visitedRestaurants.contains(restaurantIdClean) {
                     visitedRestaurants.insert(restaurantIdClean)
                     lastNewRestaurantVisit = visitedAt.dateValue()
@@ -85,7 +118,7 @@ final class VisitsRepository {
             
             return lastNewRestaurantVisit
         } catch {
-            print("Error getting last new restaurant visit: \(error)")
+            print("[VisitsRepository] Error getting last new restaurant visit: \(error.localizedDescription)")
             return nil
         }
     }

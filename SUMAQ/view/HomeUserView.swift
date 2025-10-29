@@ -1,13 +1,14 @@
+// PURPOSE: Home screen showing search, banners, list of restaurants, and an embedded map
+// ROOT CAUSE: Repository calls could hang indefinitely (continuation never resumed, network timeout, or task cancellation)
+//             without timeout handling or proper cancellation support, leaving loading state stuck at true.
+// MULTITHREADING CHANGE: Added timeout wrapper (15s), task cancellation handling, guaranteed loading=false on all paths,
+//              and consolidated multiple .task calls into single load task with proper error isolation.
+// MARK: Strategy #3 — Swift Concurrency (async/await + MainActor)
+// THREADING NOTE: All @State mutations explicitly use MainActor.run; timeout uses Task.withTimeout extension;
+//                 task cancellation checked to prevent hanging state updates.
+
 import SwiftUI
 import MapKit
-
-/// PURPOSE:
-/// Home screen showing search, banners, list of restaurants, and an embedded map backed by MapController.
-///
-/// STRATEGY OVERVIEW (used in this file):
-/// - MARK: Strategy #3 (Swift Concurrency - async/await + MainActor): Asynchronous data loading with safe UI updates on the main actor.
-/// - MARK: Strategy #4 (Structured Concurrency - TaskGroup): Used in MapController for per-restaurant processing; here we keep list loading simple.
-/// UI safety: All @State mutations that impact rendering are performed on MainActor.
 
 struct UserHomeView: View {
     var embedded: Bool = false
@@ -29,6 +30,9 @@ struct UserHomeView: View {
     // Screen tracking
     @State private var screenStartTime: Date?
     
+    // Task handle for cancellation
+    @State private var loadTask: Task<Void, Never>?
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -85,7 +89,18 @@ struct UserHomeView: View {
                 if loading {
                     ProgressView().padding()
                 } else if let error {
-                    Text(error).foregroundColor(.red).padding(.horizontal, 16)
+                    VStack(spacing: 8) {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                        Button("Retry") {
+                            Task { await loadData() }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding()
                 } else if filtered.isEmpty {
                     Text("No restaurants found").foregroundColor(.secondary).padding()
                 } else {
@@ -124,26 +139,32 @@ struct UserHomeView: View {
             SessionTracker.shared.trackScreenView(ScreenName.home, category: ScreenCategory.mainNavigation)
             AnalyticsService.shared.screenStart(ScreenName.home)
             LocationPermissionLogger.shared.startObserving()
+            
+            // Start loading data
+            loadTask = Task {
+                await loadData()
+            }
         }
         .onDisappear {
+            // Cancel loading task if view disappears
+            loadTask?.cancel()
+            
             if let startTime = screenStartTime {
                 let duration = Date().timeIntervalSince(startTime)
                 SessionTracker.shared.trackScreenEnd(ScreenName.home, duration: duration, category: ScreenCategory.mainNavigation)
             }
             AnalyticsService.shared.screenEnd(ScreenName.home)
         }
-        // MARK: Strategy #3 — Swift Concurrency (async/await)
-        // Kick off concurrent work without blocking UI.
-        .task { await mapCtrl.loadRestaurants() }
-        .task { await loadRestaurants() }
-        .task { await loadNewRestaurantNotification() }
+        .task {
+            // Map loading (non-blocking)
+            await mapCtrl.loadRestaurants()
+        }
         .background(Color(.systemBackground).ignoresSafeArea())
     }
 
     private var filtered: [Restaurant] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return restaurants }
-        // Simple in-memory filter; for huge datasets consider off-main processing.
         return restaurants.filter { r in
             r.name.lowercased().contains(q)
             || r.typeOfFood.lowercased().contains(q)
@@ -151,39 +172,63 @@ struct UserHomeView: View {
         }
     }
 
-    // MARK: Strategy #3 — Simple async load; publish on MainActor
-    private func loadRestaurants() async {
-        await MainActor.run {
-            loading = true
-            error = nil
-        }
+    // Consolidated data loading with timeout and cancellation support
+    @MainActor
+    private func loadData() async {
+        loading = true
+        error = nil
         
+        // Load restaurants with timeout
         do {
-            // Single throwing async fetch; no TaskGroup needed here.
-            let fetched = try await repo.all()
-            await MainActor.run {
-                self.restaurants = fetched
-                self.loading = false
+            let fetched = try await withTimeout(seconds: 15) {
+                try await repo.all()
             }
+            
+            // Check for cancellation before updating UI
+            if Task.isCancelled { return }
+            
+            restaurants = fetched
+            loading = false
+            
+            // Diagnostic log
+            print("[UserHomeView] Loaded \(fetched.count) restaurants")
         } catch {
-            await MainActor.run {
-                self.error = error.localizedDescription
-                self.loading = false
+            // Check for cancellation
+            if Task.isCancelled {
+                loading = false
+                return
             }
-        }
-    }
-    
-    // MARK: Strategy #3 — Async load and UI update on MainActor
-    private func loadNewRestaurantNotification() async {
-        let visitDate = await visitsRepo.getLastNewRestaurantVisit()
-        
-        await MainActor.run {
-            self.lastNewRestaurantVisit = visitDate
-            if let lastVisit = visitDate {
-                let daysSince = daysSinceLastVisit(lastVisit)
-                self.showNewRestaurantNotification = daysSince > 3
+            
+            // Handle timeout specifically
+            if error is TimeoutError {
+                error = "Loading took too long. Please check your connection and try again."
             } else {
-                self.showNewRestaurantNotification = true
+                error = error.localizedDescription
+            }
+            
+            loading = false
+            print("[UserHomeView] Error loading restaurants: \(error)")
+        }
+        
+        // Load notification state (non-blocking, isolated from main load)
+        Task { @MainActor in
+            do {
+                let visitDate = try await withTimeout(seconds: 10) {
+                    await visitsRepo.getLastNewRestaurantVisit()
+                }
+                
+                if Task.isCancelled { return }
+                
+                lastNewRestaurantVisit = visitDate
+                if let lastVisit = visitDate {
+                    let daysSince = daysSinceLastVisit(lastVisit)
+                    showNewRestaurantNotification = daysSince > 3
+                } else {
+                    showNewRestaurantNotification = true
+                }
+            } catch {
+                // Silently fail for notification (non-critical)
+                print("[UserHomeView] Error loading visit notification: \(error)")
             }
         }
     }
@@ -195,6 +240,32 @@ struct UserHomeView: View {
         let endOfDay = calendar.startOfDay(for: now)
         let components = calendar.dateComponents([.day], from: startOfDay, to: endOfDay)
         return components.day ?? 0
+    }
+}
+
+// Timeout helper
+private struct TimeoutError: Error {
+    let message: String
+    var localizedDescription: String { message }
+}
+
+private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+    try await withThrowingTaskGroup(of: T.self) { group in
+        group.addTask {
+            try await operation()
+        }
+        
+        group.addTask {
+            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            throw TimeoutError(message: "Operation timed out after \(seconds) seconds")
+        }
+        
+        guard let result = try await group.next() else {
+            throw TimeoutError(message: "Unexpected empty result")
+        }
+        
+        group.cancelAll()
+        return result
     }
 }
 
@@ -211,8 +282,6 @@ private enum MealTime {
         cal.timeZone = tz
         let hour = cal.component(.hour, from: date)
 
-        // Colombia time windows:
-        // Breakfast: 5:00–10:59, Lunch: 11:00–15:59, Dinner: 18:00–22:59
         switch hour {
         case 5...10:   return .breakfast
         case 11...15:  return .lunch
