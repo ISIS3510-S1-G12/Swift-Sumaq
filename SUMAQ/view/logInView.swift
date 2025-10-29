@@ -5,6 +5,14 @@
 //  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 //
 
+// PURPOSE: Login screen with email/password authentication
+// ROOT CAUSE: NavigationLink with isActive binding was set on main thread but the binding update
+//             timing could race with Firebase auth state propagation, preventing navigation.
+// MULTITHREADING CHANGE: Use NavigationStack with path-based navigation for more reliable programmatic navigation.
+//              Ensure all state updates are explicitly on MainActor with proper async/await handling.
+// MARK: Strategy #3 (Swift Concurrency): Uses async/await with MainActor for thread-safe UI updates
+// THREADING NOTE: All @State mutations and navigation triggers are guaranteed on MainActor via MainActor.run
+
 import SwiftUI
 
 struct LoginView: View {
@@ -14,11 +22,10 @@ struct LoginView: View {
     @State private var pass: String = ""
     @State private var isLoading = false
     @State private var errorMsg: String?
-    @State private var goToUserHome = false
-    @State private var goToRestaurantHome = false
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             VStack(spacing: 28) {
                 Image("AppLogoUI")
                     .resizable()
@@ -40,7 +47,9 @@ struct LoginView: View {
                 .padding(.horizontal, 32)
 
                 Button {
-                    doLogin()
+                    Task {
+                        await doLogin()
+                    }
                 } label: {
                     Text(isLoading ? "Signing in..." : "Log In")
                         .font(.custom("Montserrat-SemiBold", size: 18))
@@ -57,42 +66,41 @@ struct LoginView: View {
                         .padding(.horizontal, 32)
                         .multilineTextAlignment(.center)
                 }
-                
-                NavigationLink(destination: UserRootView(),
-                               isActive: $goToUserHome) { EmptyView() }
-                    .hidden()
-
-
-                NavigationLink(destination: RestaurantHomeView(),
-                               isActive: $goToRestaurantHome) { EmptyView() }
-                    .hidden()
 
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white.ignoresSafeArea())
+            .navigationDestination(for: AppDestination.self) { destination in
+                switch destination {
+                case .userHome:
+                    UserRootView()
+                case .restaurantHome:
+                    RestaurantHomeView()
+                }
+            }
         }
     }
 
-    private func doLogin() {
+    @MainActor
+    private func doLogin() async {
         errorMsg = nil
         isLoading = true
 
-        login(email: user, password: pass) { result in
-            DispatchQueue.main.async {
-                isLoading = false
-                switch result {
-                case .success(let dest):
-                    switch dest {
-                    case .userHome:
-                        goToUserHome = true
-                    case .restaurantHome:
-                        goToRestaurantHome = true
-                    }
-                case .failure(let e):
-                    errorMsg = e.localizedDescription
-                }
-            }
+        do {
+            let destination = try await loginAsync(email: user, password: pass)
+            
+            // Ensure state update is on main thread
+            isLoading = false
+            
+            // Small delay to ensure Firebase auth state has propagated
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            
+            // Navigate to destination on main thread
+            navigationPath.append(destination)
+        } catch {
+            isLoading = false
+            errorMsg = error.localizedDescription
         }
     }
 }
@@ -128,3 +136,6 @@ private struct LabeledInput: View {
         }
     }
 }
+
+// Make AppDestination conform to Hashable for NavigationStack path
+extension AppDestination: Hashable {}
