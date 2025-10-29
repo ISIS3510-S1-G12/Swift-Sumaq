@@ -1,6 +1,14 @@
 import SwiftUI
 import MapKit
 
+/// PURPOSE:
+/// Home screen showing search, banners, list of restaurants, and an embedded map backed by MapController.
+///
+/// STRATEGY OVERVIEW (used in this file):
+/// - MARK: Strategy #3 (Swift Concurrency - async/await + MainActor): Asynchronous data loading with safe UI updates on the main actor.
+/// - MARK: Strategy #4 (Structured Concurrency - TaskGroup): Used in MapController for per-restaurant processing; here we keep list loading simple.
+/// UI safety: All @State mutations that impact rendering are performed on MainActor.
+
 struct UserHomeView: View {
     var embedded: Bool = false
 
@@ -20,7 +28,7 @@ struct UserHomeView: View {
     
     // Screen tracking
     @State private var screenStartTime: Date?
-
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -64,7 +72,7 @@ struct UserHomeView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal, 16)
 
-                // banner por mealtime Colombia
+                // Mealtime banner
                 MealTimeBanner(meal: MealTime.nowInColombia())
                     .padding(.horizontal, 16)
                 
@@ -124,6 +132,8 @@ struct UserHomeView: View {
             }
             AnalyticsService.shared.screenEnd(ScreenName.home)
         }
+        // MARK: Strategy #3 — Swift Concurrency (async/await)
+        // Kick off concurrent work without blocking UI.
         .task { await mapCtrl.loadRestaurants() }
         .task { await loadRestaurants() }
         .task { await loadNewRestaurantNotification() }
@@ -133,6 +143,7 @@ struct UserHomeView: View {
     private var filtered: [Restaurant] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return restaurants }
+        // Simple in-memory filter; for huge datasets consider off-main processing.
         return restaurants.filter { r in
             r.name.lowercased().contains(q)
             || r.typeOfFood.lowercased().contains(q)
@@ -140,42 +151,56 @@ struct UserHomeView: View {
         }
     }
 
+    // MARK: Strategy #3 — Simple async load; publish on MainActor
     private func loadRestaurants() async {
-        loading = true; error = nil
-        do { restaurants = try await repo.all() }
-        catch { self.error = error.localizedDescription }
-        loading = false
+        await MainActor.run {
+            loading = true
+            error = nil
+        }
+        
+        do {
+            // Single throwing async fetch; no TaskGroup needed here.
+            let fetched = try await repo.all()
+            await MainActor.run {
+                self.restaurants = fetched
+                self.loading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error.localizedDescription
+                self.loading = false
+            }
+        }
     }
     
+    // MARK: Strategy #3 — Async load and UI update on MainActor
     private func loadNewRestaurantNotification() async {
-        lastNewRestaurantVisit = await visitsRepo.getLastNewRestaurantVisit()
+        let visitDate = await visitsRepo.getLastNewRestaurantVisit()
         
-        print("🔍 DEBUG: lastNewRestaurantVisit = \(lastNewRestaurantVisit?.description ?? "nil")")
-        
-
-        if let lastVisit = lastNewRestaurantVisit {
-            let daysSince = daysSinceLastVisit(lastVisit)
-            showNewRestaurantNotification = daysSince > 3
-            
-        } else {
-            showNewRestaurantNotification = true
-            
+        await MainActor.run {
+            self.lastNewRestaurantVisit = visitDate
+            if let lastVisit = visitDate {
+                let daysSince = daysSinceLastVisit(lastVisit)
+                self.showNewRestaurantNotification = daysSince > 3
+            } else {
+                self.showNewRestaurantNotification = true
+            }
         }
     }
     
     private func daysSinceLastVisit(_ date: Date) -> Int {
         let calendar = Calendar.current
         let now = Date()
-        
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.startOfDay(for: now)
-        
         let components = calendar.dateComponents([.day], from: startOfDay, to: endOfDay)
         return components.day ?? 0
     }
 }
 
 #Preview { UserHomeView() }
+
+// Supporting UI components (unchanged behavior)
 
 private enum MealTime {
     case breakfast, lunch, dinner, other
@@ -186,8 +211,8 @@ private enum MealTime {
         cal.timeZone = tz
         let hour = cal.component(.hour, from: date)
 
-        // Franja en Colombia:
-        // Desayuno: 5:00–10:59, Almuerzo: 11:00–15:59, Cena: 18:00–22:59
+        // Colombia time windows:
+        // Breakfast: 5:00–10:59, Lunch: 11:00–15:59, Dinner: 18:00–22:59
         switch hour {
         case 5...10:   return .breakfast
         case 11...15:  return .lunch
