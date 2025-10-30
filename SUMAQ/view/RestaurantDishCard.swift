@@ -44,7 +44,8 @@ struct RestaurantDishCard: View {
             .padding(14)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(Palette.tealLight)
-
+            
+            // Implementacion de Caching. Estratégia-> LRU para imágenes de dishes.
             RemoteImage(urlString: imageURL)
                 .frame(width: 140, height: 110)
                 .clipped()
