@@ -24,6 +24,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     // Configurar propiedades del usuario
     Analytics.setUserProperty("ios", forName: "platform")
     
+    LocalStore.shared.configureIfNeeded()
     return true
   }
 }
