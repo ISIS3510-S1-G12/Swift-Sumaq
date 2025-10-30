@@ -3,6 +3,8 @@
 //  SUMAQ
 //
 //  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
+
+// LOCAL STORAGE STRATEGY # 2 UserDefaults : Maria
 //
 //  UPDATE: Offline-first for dishes using UserDefaults (key–value storage)
 //  ----------------------------------------------------------------------
