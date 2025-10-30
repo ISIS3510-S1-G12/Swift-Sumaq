@@ -101,6 +101,15 @@ struct UserHomeView: View {
 
                 if loading {
                     ProgressView().padding()
+                    Text("Loading Home…")
+                    .font(.custom("Montserrat-Regular", size: 14))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    Text("If you are having a slow connection or if you are offline, we will show you the restaurant's location and information as soon as we have data for you. Thank you for your patience!")
+                    .font(.custom("Montserrat-Regular", size: 12))
+                    .foregroundStyle(.secondary.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
                 } else if let error {
                     Text(error).foregroundColor(.red).padding(.horizontal, 16)
                 } else if filtered.isEmpty {
