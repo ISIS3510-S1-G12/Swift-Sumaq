@@ -1,3 +1,21 @@
+//
+//  HomeUserView.swift
+//  SUMAQ
+//
+//  Header — Structured Concurrency on the Home screen
+//  --------------------------------------------------
+// Home screen more responsive by *orchestrating* all initial fetches in
+//  parallel using Swift Structured Concurrency (Task Group).
+
+//   - Use `withTaskGroup(of: Void.self)` to start concurrent child tasks for:
+//       (1) loading restaurants (cards),
+//       (2) loading the "new restaurant" notification state,
+//       (3) initializing the map via MapController.
+//   - Store results in local variables inside the group and apply them to @State
+//     *once all tasks have completed*; this is the point where the loading indicator is hidden.
+//   - This preserves the public API and UI layout while making the first render reactive and efficient.
+//
+
 import SwiftUI
 import MapKit
 
@@ -64,7 +82,7 @@ struct UserHomeView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal, 16)
 
-                // banner por mealtime Colombia
+                // Mealtime banner
                 MealTimeBanner(meal: MealTime.nowInColombia())
                     .padding(.horizontal, 16)
                 
@@ -124,12 +142,13 @@ struct UserHomeView: View {
             }
             AnalyticsService.shared.screenEnd(ScreenName.home)
         }
-        .task { await mapCtrl.loadRestaurants() }
-        .task { await loadRestaurants() }
-        .task { await loadNewRestaurantNotification() }
+        // Structured Concurrency orchestration entry point:
+        // Run all initial fetches in parallel and commit state once they're all done.
+        .task { await initializeScreenConcurrently() }
         .background(Color(.systemBackground).ignoresSafeArea())
     }
 
+    // MARK: - Derived filtering (unchanged)
     private var filtered: [Restaurant] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return restaurants }
@@ -140,6 +159,68 @@ struct UserHomeView: View {
         }
     }
 
+    // MARK: - Structured Concurrency Orchestration
+    /// Orchestrates the initial content loading using Task Group.
+    private func initializeScreenConcurrently() async {
+        // Show loading and clear prior error at kickoff.
+        await MainActor.run {
+            loading = true
+            error = nil
+        }
+
+        // Local result holders to be committed after the group finishes.
+        var tmpRestaurants: [Restaurant] = []
+        var tmpError: String?
+        var tmpLastVisit: Date?
+        var tmpShowNotification = false
+
+        await withTaskGroup(of: Void.self) { group in
+            // Task 1 — Restaurants (Cards)
+            group.addTask {
+                do {
+                    let list = try await repo.all()
+                    await MainActor.run { tmpRestaurants = list }
+                } catch {
+                    await MainActor.run { tmpError = error.localizedDescription }
+                }
+            }
+
+            // Task 2 — Map initial state (delegates to controller; it updates its own @Published)
+            group.addTask {
+                await mapCtrl.loadRestaurants()
+            }
+
+            // Task 3 — New restaurant notification
+            group.addTask {
+                let last = await visitsRepo.getLastNewRestaurantVisit()
+                let show: Bool
+                if let last {
+                    show = daysSinceLastVisit(last) > 3
+                } else {
+                    show = true
+                }
+                await MainActor.run {
+                    tmpLastVisit = last
+                    tmpShowNotification = show
+                }
+            }
+        }
+
+        // Commit all results to the view state *once all tasks have completed*.
+        await MainActor.run {
+            if let tmpError {
+                error = tmpError
+            } else {
+                restaurants = tmpRestaurants
+            }
+            lastNewRestaurantVisit = tmpLastVisit
+            showNewRestaurantNotification = tmpShowNotification
+            loading = false
+        }
+    }
+
+    // MARK: - Legacy single-purpose loaders (kept for compatibility; no longer used by `.task`)
+    // These functions are intentionally preserved to avoid changing public surface or other call sites.
     private func loadRestaurants() async {
         loading = true; error = nil
         do { restaurants = try await repo.all() }
@@ -149,27 +230,19 @@ struct UserHomeView: View {
     
     private func loadNewRestaurantNotification() async {
         lastNewRestaurantVisit = await visitsRepo.getLastNewRestaurantVisit()
-        
-        print("🔍 DEBUG: lastNewRestaurantVisit = \(lastNewRestaurantVisit?.description ?? "nil")")
-        
-
         if let lastVisit = lastNewRestaurantVisit {
             let daysSince = daysSinceLastVisit(lastVisit)
             showNewRestaurantNotification = daysSince > 3
-            
         } else {
             showNewRestaurantNotification = true
-            
         }
     }
     
     private func daysSinceLastVisit(_ date: Date) -> Int {
         let calendar = Calendar.current
         let now = Date()
-        
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.startOfDay(for: now)
-        
         let components = calendar.dateComponents([.day], from: startOfDay, to: endOfDay)
         return components.day ?? 0
     }
@@ -186,8 +259,8 @@ private enum MealTime {
         cal.timeZone = tz
         let hour = cal.component(.hour, from: date)
 
-        // Franja en Colombia:
-        // Desayuno: 5:00–10:59, Almuerzo: 11:00–15:59, Cena: 18:00–22:59
+        // Colombia ranges:
+        // Breakfast: 5:00–10:59, Lunch: 11:00–15:59, Dinner: 18:00–22:59
         switch hour {
         case 5...10:   return .breakfast
         case 11...15:  return .lunch
