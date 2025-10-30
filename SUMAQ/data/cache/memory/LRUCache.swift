@@ -2,13 +2,12 @@
 //  LRUCache.swift
 //  SUMAQ
 //
-//  Created by RODRIGO PAZ LONDO�O on 30/10/25.
+//  Created by RODRIGO PAZ LONDOÑO on 30/10/25.
 //
 
 import Foundation
-import Foundation
 
-public actor LRUCache<Key: Hashable, Value> {
+public final class LRUCache<Key: Hashable, Value> {
 
     private final class Node {
         let key: Key
@@ -23,13 +22,14 @@ public actor LRUCache<Key: Hashable, Value> {
         }
     }
 
+    private let lock = NSLock()
     private var dict: [Key: Node] = [:]
-    private var head: Node?
-    private var tail: Node?
+    private var head: Node? // MRU
+    private var tail: Node? // LRU
+    private var totalCost = 0
 
     private let countLimit: Int
     private let costLimit: Int
-    private var totalCost = 0
 
     public init(countLimit: Int = 300, costLimit: Int = 64 * 1024 * 1024) {
         precondition(countLimit > 0 && costLimit > 0)
@@ -38,53 +38,62 @@ public actor LRUCache<Key: Hashable, Value> {
     }
 
     public func value(for key: Key) -> Value? {
-        guard let node = dict[key] else { return nil }
-        moveToFront(node)
-        return node.value
+        lock.lock(); defer { lock.unlock() }
+        guard let n = dict[key] else { return nil }
+        moveToFront(n)
+        return n.value
     }
 
     public func set(_ value: Value, for key: Key, cost: Int = 1) {
-        if let node = dict[key] {
-            totalCost -= node.cost
-            node.value = value
-            node.cost  = max(1, cost)
-            totalCost += node.cost
-            moveToFront(node)
+        let c = max(1, cost)
+        lock.lock()
+        if let n = dict[key] {
+            totalCost -= n.cost
+            n.value = value
+            n.cost  = c
+            totalCost += c
+            moveToFront(n)
         } else {
-            let node = Node(key: key, value: value, cost: max(1, cost))
-            dict[key] = node
-            insertAtFront(node)
-            totalCost += node.cost
+            let n = Node(key: key, value: value, cost: c)
+            dict[key] = n
+            insertAtFront(n)
+            totalCost += c
         }
         evictIfNeeded()
+        lock.unlock()
     }
 
     public func remove(_ key: Key) {
+        lock.lock(); defer { lock.unlock() }
         guard let node = dict.removeValue(forKey: key) else { return }
         removeNode(node)
         totalCost -= node.cost
     }
 
     public func removeAll() {
+        lock.lock(); defer { lock.unlock() }
         dict.removeAll(); head = nil; tail = nil; totalCost = 0
     }
 
     // MARK: - Lista doble
-    private func insertAtFront(_ node: Node) {
-        node.prev = nil; node.next = head
-        head?.prev = node; head = node
-        if tail == nil { tail = node }
+    private func insertAtFront(_ n: Node) {
+        n.prev = nil; n.next = head
+        head?.prev = n; head = n
+        if tail == nil { tail = n }
     }
-    private func moveToFront(_ node: Node) {
-        guard head !== node else { return }
-        removeNode(node); insertAtFront(node)
+
+    private func moveToFront(_ n: Node) {
+        guard head !== n else { return }
+        removeNode(n); insertAtFront(n)
     }
-    private func removeNode(_ node: Node) {
-        let p = node.prev, n = node.next
-        if let p { p.next = n } else { head = n }
-        if let n { n.prev = p } else { tail = p }
-        node.prev = nil; node.next = nil
+
+    private func removeNode(_ n: Node) {
+        let p = n.prev, nx = n.next
+        if let p { p.next = nx } else { head = nx }
+        if let nx { nx.prev = p } else { tail = p }
+        n.prev = nil; n.next = nil
     }
+
     private func evictIfNeeded() {
         while (dict.count > countLimit || totalCost > costLimit), let lru = tail {
             dict.removeValue(forKey: lru.key)
