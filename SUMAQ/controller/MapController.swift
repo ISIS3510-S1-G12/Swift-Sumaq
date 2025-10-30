@@ -12,16 +12,13 @@
 //  - A lightweight `actor` guards the coordinate cache to make reads/writes safe across tasks.
 //  - Each geocoding task uses its own `CLGeocoder` instance (Apple recommends one request
 //    at a time per geocoder); this allows safe parallel geocoding across tasks.
-//  - A tiny delay is kept after non-cached geocodes to play nicely with rate limits.
 //
 //  Why:
 //  - The previous implementation geocoded addresses in a for-loop and (because the method
 //    was @MainActor) effectively serialized long-running work, delaying map rendering.
 //  - Using TaskGroup provides true parallelism on multi-core devices while keeping code
 //    structured and cancellable.
-//  - Only the minimal surface changed: the public API remains the same (`loadRestaurants()` is
-//    still `async`) and views keep calling it the same way.
-//
+
 //  Threading guarantees:
 //  - Background work: address filtering, cache lookups, and geocoding happen off the main actor.
 //  - Main thread hop: any mutation to `annotations`, `center`, or `errorMsg` occurs inside
