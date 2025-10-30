@@ -88,74 +88,37 @@ final class UsersRepository {
     }
 
     func listFavoriteRestaurantIds() async throws -> [String] {
-        guard let uid = currentUid() else {
-            throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
-        }
-
-        // A) LOCAL primero (instantáneo para UI)
-        let localIds = (try? local.favorites.listRestaurantIds(for: uid)) ?? []
-        
-        // B) Refresco en background (no bloquea el retorno local)
-        Task.detached { [weak self] in
-            guard let self else { return }
-            do {
-                let snap = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
-                    self.db.collection(self.coll).document(uid).getDocument { doc, err in
-                        if let err { cont.resume(throwing: err) }
-                        else if let doc { cont.resume(returning: doc) }
-                        else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
-                    }
-                }
-
-                // Parseo + ordenamiento en GCD (CPU-bound), como antes
-                let pairs: [(String, Date)] = await withCheckedContinuation { cont in
-                    DispatchQueue.global(qos: .userInitiated).async { [favField = self.favField] in
-                        let data = snap.data() ?? [:]
-                        let map  = UsersRepository.parseFavoritesMap(from: data, favField: favField)
-                        let out  = map.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
-                        cont.resume(returning: out)
-                    }
-                }
-
-                // Persistimos remoto → local (sin romper UI actual)
-                for (rid, when) in pairs {
-                    try? self.local.favorites.upsert(FavoriteRecord(userId: uid, restaurantId: rid, addedAt: when))
-                }
-                // Notificamos para que la vista pueda recargar si desea
-                NotificationCenter.default.post(name: .userFavoritesDidChange, object: nil)
-            } catch { /* silencioso */ }
-        }
-
-        // Si hay data local, la devolvemos ya (offline-first)
-        if !localIds.isEmpty { return localIds }
-
-        // C) Fallback: primera vez sin local → remoto con el MISMO patrón (GCD + persist)
-        let snap = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
-            db.collection(coll).document(uid).getDocument { doc, err in
-                if let err { cont.resume(throwing: err) }
-                else if let doc { cont.resume(returning: doc) }
-                else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+            guard let uid = currentUid() else {
+                throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
             }
-        }
 
-        // Parseo + ordenamiento en una cola global (preservamos tu multithreading)
-        let pairs: [(String, Date)] = await withCheckedContinuation { cont in
-            DispatchQueue.global(qos: .userInitiated).async { [favField = self.favField] in
-                let data = snap.data() ?? [:]
-                let map  = UsersRepository.parseFavoritesMap(from: data, favField: favField)
-                let out  = map.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
-                cont.resume(returning: out)
+          
+            let snap = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
+                db.collection(coll).document(uid).getDocument { doc, err in
+                    if let err { cont.resume(throwing: err) }
+                    else if let doc { cont.resume(returning: doc) }
+                    else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+                }
             }
-        }
 
-        try Task.checkCancellation()
+            let sortedIds: [String] = await withCheckedContinuation { cont in
+                DispatchQueue.global(qos: .userInitiated).async { [favField = self.favField] in
+                    let data = snap.data() ?? [:]
+                    let map  = UsersRepository.parseFavoritesMap(from: data, favField: favField)
 
-        // Persistimos en local y retornamos IDs
-        for (rid, when) in pairs {
-            try? local.favorites.upsert(FavoriteRecord(userId: uid, restaurantId: rid, addedAt: when))
+                    guard !map.isEmpty else {
+                        cont.resume(returning: [])
+                        return
+                    }
+
+                    let ids = map.sorted { $0.value > $1.value }.map { $0.key }
+                    cont.resume(returning: ids)
+                }
+            }
+
+            try Task.checkCancellation()
+            return sortedIds
         }
-        return pairs.map { $0.0 }
-    }
 
     
     // SPRINT 3 – Multithreading – Grand Central Dispatch (GCD)
