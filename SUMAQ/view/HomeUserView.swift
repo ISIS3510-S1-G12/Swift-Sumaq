@@ -15,7 +15,7 @@
 //    once all tasks have completed; this is the point where the loading indicator is hidden.
 //  - This preserves the public API and UI layout while making the first render reactive and efficient.
 //
-//  UPDATE: Offline-first with Local Storage
+//  Local storage: Offline-first with Local Storage
 //  ----------------------------------------
 //  - Added an online-first load for restaurants with a local storage fallback.
 //  - On remote success: render fresh data and upsert it to the local DB in a background detached Task.
@@ -150,7 +150,7 @@ struct UserHomeView: View {
             AnalyticsService.shared.screenEnd(ScreenName.home)
         }
         // Structured Concurrency orchestration entry point:
-        // UPDATE: call the new initializer that includes local-storage fallback logic.
+        // Local storage: call the new initializer that includes local-storage fallback logic.
         .task { await initializeScreenConcurrentlyWithLocalStorage() }
         .background(Color(.systemBackground).ignoresSafeArea())
     }
@@ -168,9 +168,9 @@ struct UserHomeView: View {
 
     // MARK: - Structured Concurrency Orchestration + Local Storage
     /// Orchestrates the initial content loading using Task Group.
-    /// UPDATE: Adds offline-first behavior (online-first with background upsert, local fallback on failure).
+    /// Local storage: Adds offline-first behavior (online-first with background upsert, local fallback on failure).
     private func initializeScreenConcurrentlyWithLocalStorage() async {
-        // UPDATE: Ensure the local database is configured (idempotent and fast).
+        // Local storage: Ensure the local database is configured (idempotent and fast).
         LocalStore.shared.configureIfNeeded()
 
         // Show loading and clear prior error at kickoff.
@@ -187,14 +187,14 @@ struct UserHomeView: View {
 
         await withTaskGroup(of: Void.self) { group in
             // Task 1 — Restaurants (Cards)
-            // UPDATE: Online-first. On success, render and upsert to local DB in background.
+            // Local storage: Online-first. On success, render and upsert to local DB in background.
             //         On failure, read from local DB and render.
             group.addTask {
                 do {
                     let list = try await repo.all()
                     await MainActor.run { tmpRestaurants = list }
 
-                    // UPDATE: Best-effort cache write on a detached background task to avoid blocking UI.
+                    // Local storage: Best-effort cache write on a detached background task to avoid blocking UI.
                     Task.detached(priority: .utility) {
                         do {
                             let dao = LocalStore.shared.restaurants
@@ -206,7 +206,7 @@ struct UserHomeView: View {
                         }
                     }
                 } catch {
-                    // UPDATE: Remote failed → fallback to local storage.
+                    // Local storage: Remote failed → fallback to local storage.
                     do {
                         let localRecords = try LocalStore.shared.restaurants.all()
                         let local = localRecords.map { toRestaurant(from: $0) }
@@ -388,7 +388,7 @@ private struct NewRestaurantNotification: View {
 }
 
 // MARK: - Local Storage mapping helpers
-// UPDATE: Map DAO `RestaurantRecord` (SQLite) to domain `Restaurant` for UI consumption.
+// Local storage: Map DAO `RestaurantRecord` (SQLite) to domain `Restaurant` for UI consumption.
 private func toRestaurant(from rec: RestaurantRecord) -> Restaurant {
     Restaurant(
         id: rec.id,
@@ -405,7 +405,7 @@ private func toRestaurant(from rec: RestaurantRecord) -> Restaurant {
     )
 }
 
-// UPDATE: Internal initializer to rebuild a `Restaurant` from local storage without changing public APIs.
+// Local storage: Internal initializer to rebuild a `Restaurant` from local storage without changing public APIs.
 private extension Restaurant {
     init(id: String,
          name: String,
