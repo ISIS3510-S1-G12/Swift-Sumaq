@@ -14,6 +14,7 @@ struct ReviewHistoryUserView: View {
     @State private var error: String?
     @State private var reviews: [Review] = []
     @State private var userName: String = "You"
+    @State private var userAvatarURL: String = ""
     @State private var restaurantsById: [String: Restaurant] = [:]
 
     private let reviewsRepo = ReviewsRepository()
@@ -49,7 +50,7 @@ struct ReviewHistoryUserView: View {
                                 restaurant: rname,
                                 rating: r.stars,
                                 comment: r.comment,
-                                avatarURL: "",
+                                avatarURL: userAvatarURL,
                                 reviewImageURL: r.imageURL,
                             )
                         }
@@ -120,7 +121,10 @@ struct ReviewHistoryUserView: View {
             
             // Check for errors
             if let e = userError ?? reviewsError { throw e }
-            if let u = userResult { userName = u.name }
+            if let u = userResult {
+                userName = u.name
+                userAvatarURL = u.profilePictureURL ?? ""
+            }
             self.reviews = reviewsResult
             
             // Load restaurants for the reviews
