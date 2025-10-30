@@ -2,9 +2,9 @@
 //  HomeUserView.swift
 //  SUMAQ
 //
-//  Header — Structured Concurrency on the Home screen
+//  Multithreading - STRATEGY #4 Task Group Maria
 //  --------------------------------------------------
-// Home screen more responsive by *orchestrating* all initial fetches in
+// Home screen more responsive by orchestrating all initial fetches in
 //  parallel using Swift Structured Concurrency (Task Group).
 
 //   - Use `withTaskGroup(of: Void.self)` to start concurrent child tasks for:
@@ -12,7 +12,7 @@
 //       (2) loading the "new restaurant" notification state,
 //       (3) initializing the map via MapController.
 //   - Store results in local variables inside the group and apply them to @State
-//     *once all tasks have completed*; this is the point where the loading indicator is hidden.
+//     once all tasks have completed; this is the point where the loading indicator is hidden.
 //   - This preserves the public API and UI layout while making the first render reactive and efficient.
 //
 
@@ -148,7 +148,7 @@ struct UserHomeView: View {
         .background(Color(.systemBackground).ignoresSafeArea())
     }
 
-    // MARK: - Derived filtering (unchanged)
+    // MARK: - Derived filtering
     private var filtered: [Restaurant] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return restaurants }
@@ -206,7 +206,7 @@ struct UserHomeView: View {
             }
         }
 
-        // Commit all results to the view state *once all tasks have completed*.
+        // Commit all results to the view state once all tasks have completed.
         await MainActor.run {
             if let tmpError {
                 error = tmpError

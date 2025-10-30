@@ -4,7 +4,8 @@
 //
 //  Created by Maria Alejandra Pinzon Roncancio on 30/09/25.
 //
-
+//  Multithreading - Strategy #1 Clousures : Maria
+//  ------------------------------------------------
 
 import Foundation
 import CoreBluetooth

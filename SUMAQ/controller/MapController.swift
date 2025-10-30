@@ -1,29 +1,19 @@
 //
 //  MapController.swift
 //  SUMAQ
-//
-//  Strategy #3 — Swift Concurrency (async/await, TaskGroup, @MainActor.run)
-//  ------------------------------------------------------------------------
-//  What changed:
-//  - Geocoding is no longer performed sequentially on the main actor.
+
+//  Multithreading - Strategy #3 Swift Concurrency (async/await) : Maria
+//  ---------------------------------------------------------------------
+
 //  - The controller now uses a Throwing TaskGroup to resolve restaurant addresses
 //    concurrently with a small, controlled degree of parallelism (maxConcurrent).
 //  - UI mutations (@Published properties) are funneled through `await MainActor.run { ... }`.
 //  - A lightweight `actor` guards the coordinate cache to make reads/writes safe across tasks.
 //  - Each geocoding task uses its own `CLGeocoder` instance (Apple recommends one request
 //    at a time per geocoder); this allows safe parallel geocoding across tasks.
-//
-//  Why:
-//  - The previous implementation geocoded addresses in a for-loop and (because the method
-//    was @MainActor) effectively serialized long-running work, delaying map rendering.
 //  - Using TaskGroup provides true parallelism on multi-core devices while keeping code
 //    structured and cancellable.
 
-//  Threading guarantees:
-//  - Background work: address filtering, cache lookups, and geocoding happen off the main actor.
-//  - Main thread hop: any mutation to `annotations`, `center`, or `errorMsg` occurs inside
-//    `await MainActor.run { ... }`.
-//  - Cache safety: the `CoordCache` actor serializes access to the dictionary.
 //
 import Foundation
 import MapKit
@@ -57,7 +47,7 @@ final class MapController: ObservableObject {
             var index = 0
             let total = list.count
 
-            // We collect results as (restaurantId, coordinate?), then build annotations on main.
+            // collect results as (restaurantId, coordinate?), then build annotations on main.
             var coords: [(Restaurant, CLLocationCoordinate2D)] = []
             coords.reserveCapacity(total)
 
@@ -158,7 +148,7 @@ final class MapController: ObservableObject {
 
 // MARK: - Actor-protected cache
 
-/// Simple actor that serializes access to a String → CLLocationCoordinate2D dictionary.
+/// Simple actor that serializes access to a String  CLLocationCoordinate2D dictionary.
 private actor CoordCache {
     private var dict: [String: CLLocationCoordinate2D] = [:]
 

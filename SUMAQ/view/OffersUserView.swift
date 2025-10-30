@@ -2,7 +2,10 @@
 //  OffersUserView.swift
 //  SUMAQ
 //
-//  Strategy #2 — GCD (DispatchQueue)  +  Strategy #5 — Combine
+
+//  Multithreading - Strategy #2 — GCD (DispatchQueue)  +  Strategy #5 — Combine : Maria
+//  ------------------------------------------------------------------------------------------
+
 
 //  What (GCD):
 //  - Offload CPU bound filtering (text match) and grouping (Dictionary(grouping:))
@@ -203,7 +206,6 @@ struct OffersUserView: View {
 
     // MARK: - GCD-backed filtering and grouping  (Strategy #2)
     /// Schedules debounced filtering and grouping work on a background queue.
-    /// - Note: Cancels any in-flight work to avoid racing/stale updates. Results are delivered on the main thread.
     private func scheduleFilteringAndGrouping(term: String, sourceOffers: [Offer]) {
         // Cancel previously scheduled work if any, to debounce rapid changes.
         pendingSearchWork?.cancel()
