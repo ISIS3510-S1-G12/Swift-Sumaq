@@ -2,22 +2,55 @@
 //  OffersUserView.swift
 //  SUMAQ
 //
-//  Summary of GCD usage for this file:
-//  - What: Offload CPU-bound filtering and grouping of offers to a background queue using Grand Central Dispatch (DispatchQueue).
-//  - Where off-main: Filtering (text match) and grouping (Dictionary(grouping:)) are executed on a dedicated concurrent queue with QoS .userInitiated.
-//  - Hop back to main: All @State mutations (filteredOffers, groupedOffers, loading, error) are assigned on DispatchQueue.main.
-//  - Debounce/cancellation: A DispatchWorkItem is used to debounce search input and cancel in-flight background computations to avoid stale UI updates.
+//  Strategy #2 — GCD (DispatchQueue)  +  Strategy #5 — Combine
+
+//  What (GCD):
+//  - Offload CPU bound filtering (text match) and grouping (Dictionary(grouping:))
+//    to a background queue. Results are delivered back on the main queue before
+//    mutating @State.
 //
-//  Rationale:
-//  SwiftUI recomputes view bodies frequently on the main thread. Performing heavy list massaging (filtering/grouping) inside computed
-//  properties can block the main thread and cause UI jank. Using GCD here ensures the UI remains responsive while background work runs.
+//  Where off-main (GCD):
+//  - `filterQueue` (QoS .userInitiated, concurrent) executes heavy work.
+//  - `scheduleFilteringAndGrouping(...)` builds `newFiltered` and `newGrouped` on
+//    `filterQueue`, then hops to main with `DispatchQueue.main.async`.
 //
-//  Public API stability:
-//  - No changes to repositories (OffersRepository, RestaurantsRepository).
-//  - View external API remains the same (same initializer and properties).
+//  Hop back to main (GCD):
+//  - Inside `scheduleFilteringAndGrouping(...)`, the assignments to
+//    `filteredOffers` and `groupedOffers` are done on the main thread.
+//
+//  Debounce/cancellation (GCD):
+//  - A `DispatchWorkItem` is used to cancel any in-flight computation when the
+//    user keeps typing, avoiding stale results.
+//
+//  What (Combine):
+//  - Debounce and coalesce search input events reactively.
+//  - A `PassthroughSubject<String, Never>` receives raw search text changes,
+//    then a Combine pipeline `.debounce` + `.removeDuplicates` triggers the
+//    background GCD computation only after the user pauses typing.
+//
+//  Where (Combine):
+//  - `searchSubject` and `searchCancellable` fields (see "Combine infrastructure").
+//  - `.onAppear` sets up the Combine pipeline.
+//  - `.onChange(of: searchText)` publishes each keystroke into `searchSubject`.
+//  - When the debounced value arrives in `.sink`, we call
+//    `scheduleFilteringAndGrouping(...)` (GCD) to do the heavy work off-main.
+//
+//  Important note about captures in SwiftUI Views:
+//  - SwiftUI views are `struct`s (value types). Using `[weak self]` is invalid here
+//    and causes the compiler error “weak may only be applied to class and class-bound
+//    protocol types”. This file intentionally **does not** use `[weak self]` in the
+//    Combine `.sink` closure. There is no retain cycle because:
+//      (1) `OffersUserView` is a value type,
+//      (2) The `AnyCancellable` is stored in `@State`, and
+//      (3) SwiftUI will recreate the view as needed.
+//    We still avoid long-lived background work by cancelling the `DispatchWorkItem`
+//    on `onDisappear`.
+//
+
 //
 
 import SwiftUI
+import Combine // (Strategy #5 — Combine)
 
 struct OffersUserView: View {
     var embedded: Bool = false
@@ -31,8 +64,7 @@ struct OffersUserView: View {
     @State private var offers: [Offer] = []
     @State private var restaurantsById: [String: Restaurant] = [:]
 
-    // Derived data now backed by state (filled via GCD background work)
-    // These used to be computed properties; moving them to @State avoids recomputing heavy work on main during view updates.
+    // Derived data backed by state (filled via GCD background work)
     @State private var filteredOffers: [Offer] = []
     @State private var groupedOffers: [String: [Offer]] = [:]
 
@@ -45,12 +77,15 @@ struct OffersUserView: View {
     // Screen tracking
     @State private var screenStartTime: Date?
 
-    // MARK: - Concurrency (GCD) infrastructure
-    // Dedicated queue for CPU-bound filtering and grouping. Using .concurrent allows multiple tasks if needed.
-    private let filterQueue = DispatchQueue(label: "offers.filter.queue", qos: .userInitiated, attributes: .concurrent)
-
-    // Debounce work item to cancel stale computations when the user keeps typing.
+    // MARK: - Concurrency (GCD) — Strategy #2
+    private let filterQueue = DispatchQueue(label: "offers.filter.queue",
+                                            qos: .userInitiated,
+                                            attributes: .concurrent)
     @State private var pendingSearchWork: DispatchWorkItem?
+
+    // MARK: - Combine — Strategy #5
+    @State private var searchSubject = PassthroughSubject<String, Never>()
+    @State private var searchCancellable: AnyCancellable?
 
     var body: some View {
         ScrollView {
@@ -101,22 +136,42 @@ struct OffersUserView: View {
             screenStartTime = Date()
             SessionTracker.shared.trackScreenView(ScreenName.offers, category: ScreenCategory.mainNavigation)
 
-            // If data was previously loaded (e.g., returning to the screen), recompute derived data once.
+            // (Strategy #5 — Combine) Build the debounced search pipeline once.
+            if searchCancellable == nil {
+                searchCancellable = searchSubject
+                    .debounce(for: .milliseconds(250), scheduler: DispatchQueue.main) // Wait for user to pause typing
+                    .removeDuplicates() // Avoid recomputing for the same term
+                    .sink { term in
+                        // Call the GCD-backed heavy work with the current offers snapshot.
+                        scheduleFilteringAndGrouping(term: term, sourceOffers: offers)
+                    }
+            }
+
+            // Recompute derived data once (e.g., when returning to the screen).
             scheduleFilteringAndGrouping(term: searchText, sourceOffers: offers)
+
+            // Seed the pipeline with the current searchText value.
+            searchSubject.send(searchText)
         }
         .onDisappear {
             if let startTime = screenStartTime {
                 let duration = Date().timeIntervalSince(startTime)
-                SessionTracker.shared.trackScreenEnd(ScreenName.offers, duration: duration, category: ScreenCategory.mainNavigation)
+                SessionTracker.shared.trackScreenEnd(ScreenName.offers,
+                                                     duration: duration,
+                                                     category: ScreenCategory.mainNavigation)
             }
-            // Cancel any pending background work when leaving the screen to avoid wasted CPU.
+            // (Strategy #2 — GCD) Cancel any pending background work when leaving the screen to avoid wasted CPU.
             pendingSearchWork?.cancel()
+            // (Strategy #5 — Combine) Stop listening for search changes.
+            searchCancellable?.cancel()
+            searchCancellable = nil
         }
         // Async network load is kept as-is; the GCD strategy applies to post-fetch transformations only.
         .task { await load() }
-        // Debounced filtering when the search text changes.
+        // (Strategy #5 — Combine) Publish every keystroke to the Combine pipeline; the pipeline
+        // will handle debounce and call the GCD-based computation at the right time.
         .onChange(of: searchText) { newTerm in
-            scheduleFilteringAndGrouping(term: newTerm, sourceOffers: offers)
+            searchSubject.send(newTerm)
         }
     }
 
@@ -127,17 +182,14 @@ struct OffersUserView: View {
             self.error = nil
         }
         do {
-            // Network/Firestore calls may already run on background threads; keep as-is.
             let offs = try await offersRepo.listAll()
             let rests = try await restaurantsRepo.all()
 
-            // Assign raw data on main and then trigger background processing.
             DispatchQueue.main.async {
                 self.offers = offs
                 self.restaurantsById = Dictionary(uniqueKeysWithValues: rests.map { ($0.id, $0) })
             }
 
-            // After fetching, compute derived lists off-main.
             scheduleFilteringAndGrouping(term: searchText, sourceOffers: offs)
         } catch {
             DispatchQueue.main.async {
@@ -149,8 +201,7 @@ struct OffersUserView: View {
         }
     }
 
-    // MARK: - GCD-backed filtering and grouping
-
+    // MARK: - GCD-backed filtering and grouping  (Strategy #2)
     /// Schedules debounced filtering and grouping work on a background queue.
     /// - Note: Cancels any in-flight work to avoid racing/stale updates. Results are delivered on the main thread.
     private func scheduleFilteringAndGrouping(term: String, sourceOffers: [Offer]) {
@@ -188,7 +239,6 @@ struct OffersUserView: View {
 
         // Keep a reference for potential cancellation and dispatch with a small debounce.
         pendingSearchWork = work
-        // NOTE: Using DispatchTime.now() explicitly avoids parser quirks reported by some toolchains.
         filterQueue.asyncAfter(deadline: DispatchTime.now() + .milliseconds(200), execute: work)
     }
 }
