@@ -20,6 +20,7 @@ struct UserRestaurantDetailView: View {
     @State private var loadingReviews = true
     @State private var errorReviews: String?
     @State private var userNamesById: [String: String] = [:]
+    @State private var userAvatarsById: [String: String] = [:]
 
     private let usersRepo = UsersRepository()
     @State private var markingFavorite = false
@@ -190,7 +191,8 @@ struct UserRestaurantDetailView: View {
                         ReviewsTab(reviews: reviews,
                                    loading: loadingReviews,
                                    error: errorReviews,
-                                   userNamesById: userNamesById)
+                                   userNamesById: userNamesById,
+                                   userAvatarsById: userAvatarsById)
                     default:
                         MenuTab(dishes: dishes, loading: loadingMenu, error: errorMenu)
                     }
@@ -361,11 +363,17 @@ extension UserRestaurantDetailView {
                     throw error
                 }
                 
-                var map: [String: String] = [:]
-                for u in usersResult { map[u.id] = u.name }
-                self.userNamesById = map
+                var names: [String: String] = [:]
+                var avatars: [String: String] = [:]
+                for u in usersResult {
+                    names[u.id] = u.name
+                    if let url = u.profilePictureURL, !url.isEmpty { avatars[u.id] = url }
+                }
+                self.userNamesById = names
+                self.userAvatarsById = avatars
             } else {
                 self.userNamesById = [:]
+                self.userAvatarsById = [:]
             }
         } catch {
             self.errorReviews = error.localizedDescription
@@ -527,6 +535,7 @@ private struct ReviewsTab: View {
     let loading: Bool
     let error: String?
     let userNamesById: [String: String]
+    let userAvatarsById: [String: String]
 
     var body: some View {
         VStack(spacing: 12) {
@@ -536,12 +545,13 @@ private struct ReviewsTab: View {
             else {
                 ForEach(reviews) { r in
                     let author = userNamesById[r.userId] ?? "#\(r.userId.suffix(5))"
+                    let avatar = userAvatarsById[r.userId] ?? ""
                     ReviewCard(
                         author: author,
                         restaurant: "—",
                         rating: r.stars,
                         comment: r.comment,
-                        avatarURL: "",
+                        avatarURL: avatar,
                         reviewImageURL: r.imageURL
                     )
                 }
