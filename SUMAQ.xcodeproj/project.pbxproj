@@ -73,7 +73,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		180C8FB22E8C3EED009B691C /* repositories */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = repositories; sourceTree = "<group>"; };
+		495A8D7F2EB4028D00D23617 /* data */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = data; sourceTree = "<group>"; };
 		667BDBB32EB2DBA00097CB59 /* model */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = model; sourceTree = "<group>"; };
 		667BDBD22EB2DC050097CB59 /* controller */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = controller; sourceTree = "<group>"; };
 		667BDBDE2EB2DDE20097CB59 /* storage */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = storage; sourceTree = "<group>"; };
@@ -153,12 +153,12 @@
 		18A77B182E7CC6C200032509 /* SUMAQ */ = {
 			isa = PBXGroup;
 			children = (
+				495A8D7F2EB4028D00D23617 /* data */,
 				667BDBF32EB2F5CD0097CB59 /* view */,
 				667BDBDE2EB2DDE20097CB59 /* storage */,
 				667BDBB32EB2DBA00097CB59 /* model */,
 				18A3DB6D2E8F163A00BA59B7 /* Info.plist */,
 				667BDBD22EB2DC050097CB59 /* controller */,
-				180C8FB22E8C3EED009B691C /* repositories */,
 				664197022E8302540039DBF6 /* GoogleService-Info.plist */,
 				18A77B1D2E7CC6C300032509 /* Assets.xcassets */,
 				18A77B192E7CC6C200032509 /* SUMAQApp.swift */,
@@ -208,7 +208,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				180C8FB22E8C3EED009B691C /* repositories */,
+				495A8D7F2EB4028D00D23617 /* data */,
 				667BDBB32EB2DBA00097CB59 /* model */,
 				667BDBD22EB2DC050097CB59 /* controller */,
 				667BDBDE2EB2DDE20097CB59 /* storage */,

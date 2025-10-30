@@ -12,6 +12,7 @@ struct ReviewsContent: View {
     
     @State private var reviews: [Review] = []
     @State private var userNamesById: [String: String] = [:]
+    @State private var userAvatarsById: [String: String] = [:]
     @State private var loading = true
     @State private var error: String?
     
@@ -40,12 +41,13 @@ struct ReviewsContent: View {
                 } else {
                     ForEach(reviews) { review in
                         let author = userNamesById[review.userId] ?? "#\(review.userId.suffix(5))"
+                        let avatar = userAvatarsById[review.userId] ?? ""
                         ReviewCard(
                             author: author,
                             restaurant: "—",
                             rating: review.stars,
                             comment: review.comment,
-                            avatarURL: "",
+                            avatarURL: avatar,
                             reviewImageURL: review.imageURL
                         )
                     }
@@ -78,11 +80,16 @@ struct ReviewsContent: View {
             }
             
             let users = try await usersRepo.getManyBasic(ids: ids)
-            var map: [String: String] = [:]
+            var names: [String: String] = [:]
+            var avatars: [String: String] = [:]
             for user in users { 
-                map[user.id] = user.name 
+                names[user.id] = user.name
+                if let url = user.profilePictureURL, !url.isEmpty {
+                    avatars[user.id] = url
+                }
             }
-            self.userNamesById = map
+            self.userNamesById = names
+            self.userAvatarsById = avatars
         } catch {
             self.error = error.localizedDescription
         }
