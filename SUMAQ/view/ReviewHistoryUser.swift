@@ -10,6 +10,7 @@ struct ReviewHistoryUserView: View {
     @State private var selectedFilter: FilterOptionReviewHistoryView? = nil
     @State private var selectedTab = 3
 
+    @ObservedObject private var session = SessionController.shared
     @State private var loading = true
     @State private var error: String?
     @State private var reviews: [Review] = []
@@ -46,11 +47,11 @@ struct ReviewHistoryUserView: View {
                         ForEach(filtered) { r in
                             let rname = restaurantsById[r.restaurantId]?.name ?? "—"
                             ReviewCard(
-                                author: userName,
+                                author: session.currentUser?.name ?? userName,
                                 restaurant: rname,
                                 rating: r.stars,
                                 comment: r.comment,
-                                avatarURL: userAvatarURL,
+                                avatarURL: session.currentUser?.profilePictureURL ?? userAvatarURL,
                                 reviewImageURL: r.imageURL,
                             )
                         }
