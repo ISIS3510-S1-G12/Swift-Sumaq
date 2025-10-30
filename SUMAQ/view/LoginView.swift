@@ -4,8 +4,11 @@
 //
 //  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 //
+//  UPDATE: Added "Remember Me" functionality using Keychain to store last login email.
+//
 
 import SwiftUI
+import Security // UPDATE: Required for Keychain operations through KeychainHelper.
 
 struct LoginView: View {
     let role: UserType
@@ -57,11 +60,10 @@ struct LoginView: View {
                         .padding(.horizontal, 32)
                         .multilineTextAlignment(.center)
                 }
-                
+
                 NavigationLink(destination: UserRootView(),
                                isActive: $goToUserHome) { EmptyView() }
                     .hidden()
-
 
                 NavigationLink(destination: RestaurantHomeView(),
                                isActive: $goToRestaurantHome) { EmptyView() }
@@ -71,6 +73,12 @@ struct LoginView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white.ignoresSafeArea())
+            // UPDATE: Preload saved email on view appear using KeychainHelper.
+            .onAppear {
+                if let savedEmail = KeychainHelper.shared.getLastLoginEmail() { // UPDATE: Fetch email from Keychain.
+                    user = savedEmail // UPDATE: Prefill email field if exists.
+                }
+            }
         }
     }
 
@@ -83,6 +91,9 @@ struct LoginView: View {
                 isLoading = false
                 switch result {
                 case .success(let dest):
+                    // UPDATE: Save email securely to Keychain on successful login.
+                    KeychainHelper.shared.saveLastLoginEmail(user)
+
                     switch dest {
                     case .userHome:
                         goToUserHome = true

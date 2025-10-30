@@ -15,7 +15,7 @@
 //    once all tasks have completed; this is the point where the loading indicator is hidden.
 //  - This preserves the public API and UI layout while making the first render reactive and efficient.
 //
-//  Local storage: Offline-first with Local Storage
+//  Local storage: Offline-first with Local Storage STRATEGY #1 : Maria
 //  ----------------------------------------
 //  - Added an online-first load for restaurants with a local storage fallback.
 //  - On remote success: render fresh data and upsert it to the local DB in a background detached Task.
