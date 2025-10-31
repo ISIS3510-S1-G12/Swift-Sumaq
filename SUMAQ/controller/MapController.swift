@@ -1,20 +1,20 @@
 //
 //  MapController.swift
 //  SUMAQ
-
+//
 //  Multithreading - Strategy #3 Swift Concurrency (async/await) : Maria
 //  ---------------------------------------------------------------------
-
+//
 //  - The controller now uses a Throwing TaskGroup to resolve restaurant addresses
 //    concurrently with a small, controlled degree of parallelism (maxConcurrent).
 //  - UI mutations (@Published properties) are funneled through `await MainActor.run { ... }`.
 //  - A lightweight `actor` guards the coordinate cache to make reads/writes safe across tasks.
 //  - Each geocoding task uses its own `CLGeocoder` instance (Apple recommends one request
-//    at a time per geocoder); this allows safe parallel geocoding across tasks.
+//    at a time per geocoder); this allows multiple concurrent requests safely.
 //  - Using TaskGroup provides true parallelism on multi-core devices while keeping code
 //    structured and cancellable.
-
 //
+
 import Foundation
 import MapKit
 import CoreLocation
@@ -47,7 +47,7 @@ final class MapController: ObservableObject {
             var index = 0
             let total = list.count
 
-            // collect results as (restaurantId, coordinate?), then build annotations on main.
+            // Collect results as (restaurant, coordinate?), then build annotations on main.
             var coords: [(Restaurant, CLLocationCoordinate2D)] = []
             coords.reserveCapacity(total)
 
@@ -95,7 +95,11 @@ final class MapController: ObservableObject {
 
         } catch {
             await MainActor.run {
-                self.errorMsg = error.localizedDescription
+                // UPDATE: When remote fetch fails (offline), also clear pins and center so the UI
+                // UPDATE: can detect the absence of valid map data and show the offline message.
+                self.errorMsg = error.localizedDescription // UPDATE: Preserve previous behavior (surface error).
+                self.annotations = []                      // UPDATE: Clear stale annotations to avoid showing old pins.
+                self.center = nil                          // UPDATE: Clear center so HomeUserView won't render the map.
             }
         }
     }
@@ -131,7 +135,7 @@ final class MapController: ObservableObject {
     }
 
     /// Geocode helper using a *fresh* CLGeocoder per call.
-    /// Using a new instance per request allows multiple concurrent requests safely.
+    /// Using a new instance per request allows safe parallel geocoding across tasks.
     private static func geocode(_ address: String) async throws -> CLLocationCoordinate2D? {
         try await withCheckedThrowingContinuation { cont in
             let geocoder = CLGeocoder()
@@ -148,7 +152,7 @@ final class MapController: ObservableObject {
 
 // MARK: - Actor-protected cache
 
-/// Simple actor that serializes access to a String  CLLocationCoordinate2D dictionary.
+/// Simple actor that serializes access to a String -> CLLocationCoordinate2D dictionary.
 private actor CoordCache {
     private var dict: [String: CLLocationCoordinate2D] = [:]
 
