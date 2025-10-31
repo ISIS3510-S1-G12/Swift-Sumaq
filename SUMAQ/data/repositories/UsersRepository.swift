@@ -291,6 +291,12 @@ extension UsersRepository {
             result.append(contentsOf: qs.documents.compactMap { AppUser(doc: $0) })
         }
         
+        // Populate cache with newly fetched users (non-blocking)
+        // This helps subsequent views access user data instantly
+        if !result.isEmpty {
+            UserBasicDataCache.shared.setAppUsers(result)
+        }
+        
         // Save users to SQLite for offline access (best-effort, non-blocking)
         Task.detached(priority: .utility) { [local = self.local] in
             for user in result {

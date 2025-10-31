@@ -23,6 +23,7 @@ struct FavoritesUserView: View {
     @ObservedObject private var session = SessionController.shared
 
     @State private var loadTask: Task<Void, Never>?
+    @State private var isLoadingData = false
     
     // Screen tracking
     @State private var screenStartTime: Date?
@@ -98,13 +99,18 @@ struct FavoritesUserView: View {
                 SessionTracker.shared.trackScreenEnd(ScreenName.favorites, duration: duration, category: ScreenCategory.mainNavigation)
             }
         }
-        .task { await safeLoadFavorites() }
+        .task {
+            guard !isLoadingData else { return }
+            await safeLoadFavorites()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .userFavoritesDidChange)) { _ in
             loadTask?.cancel()
+            guard !isLoadingData else { return }
             loadTask = Task { await safeLoadFavorites() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .authStateDidChange)) { _ in
             loadTask?.cancel()
+            guard !isLoadingData else { return }
             loadTask = Task { await safeLoadFavorites() }
         }
     }
@@ -120,9 +126,19 @@ struct FavoritesUserView: View {
     }
 
     private func safeLoadFavorites() async {
+        // Prevent multiple simultaneous loads
+        guard !isLoadingData else { return }
+        isLoadingData = true
+        
         loading = true; error = nil
-        defer { loading = false }
+        defer { 
+            loading = false
+            isLoadingData = false
+        }
         do {
+            // Check for cancellation before proceeding
+            try Task.checkCancellation()
+            
             guard session.isAuthenticated, session.role == .user else {
                 favoriteIds = []; restaurants = []; stats = FavoritesInsight.makeStats(from: [])
                 return
