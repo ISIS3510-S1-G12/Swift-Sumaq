@@ -480,8 +480,7 @@ extension UserRestaurantDetailView {
         reviewsCancellable = reviewsRepo.reviewsPublisher(for: restaurant.id)
             .receive(on: DispatchQueue.main)
             .sink(
-                receiveCompletion: { [weak self] completion in
-                    guard let self = self else { return }
+                receiveCompletion: { completion in
                     if case .failure(let err) = completion {
                         // Only show error if we don't have local data
                         Task { @MainActor in
@@ -491,9 +490,7 @@ extension UserRestaurantDetailView {
                         }
                     }
                 },
-                receiveValue: { [weak self] newReviews in
-                    guard let self = self else { return }
-                    
+                receiveValue: { newReviews in
                     // Update reviews from real-time stream
                     self.reviews = newReviews
                     
@@ -505,8 +502,7 @@ extension UserRestaurantDetailView {
                     }
                     
                     // Load user data for the new reviews
-                    Task { [weak self] in
-                        guard let self = self else { return }
+                    Task {
                         await self.loadUserDataForReviews(newReviews)
                     }
                 }

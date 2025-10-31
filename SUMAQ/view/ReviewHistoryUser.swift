@@ -253,8 +253,7 @@ struct ReviewHistoryUserView: View {
         reviewsCancellable = reviewsRepo.myReviewsPublisher()
             .receive(on: DispatchQueue.main)
             .sink(
-                receiveCompletion: { [weak self] completion in
-                    guard let self = self else { return }
+                receiveCompletion: { completion in
                     if case .failure(let err) = completion {
                         // Only show error if we don't have local data
                         if self.reviews.isEmpty {
@@ -262,9 +261,7 @@ struct ReviewHistoryUserView: View {
                         }
                     }
                 },
-                receiveValue: { [weak self] newReviews in
-                    guard let self = self else { return }
-                    
+                receiveValue: { newReviews in
                     // Update reviews from real-time stream
                     self.reviews = newReviews
                     
@@ -276,8 +273,7 @@ struct ReviewHistoryUserView: View {
                     }
                     
                     // Load restaurant names for the new reviews
-                    Task { [weak self] in
-                        guard let self = self else { return }
+                    Task {
                         await self.loadRestaurantsForReviews(newReviews)
                     }
                 }
