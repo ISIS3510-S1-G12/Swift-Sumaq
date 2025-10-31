@@ -79,39 +79,45 @@ struct UserHomeView: View {
                 )
                 .padding(.horizontal, 16)
 
-                // MARK: - Map section with EC
-                if let center = mapCtrl.center {
-                    // Tenemos centro → intentamos mostrar el mapa real
-                    OSMMapView(
-                        annotations: mapCtrl.annotations,
-                        center: center,
-                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
-                        showsUserLocation: true
-                    )
-                    .frame(height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding(.horizontal, 16)
-                } else {
-                    // No hay centro → probablemente no hubo red o no cargaron los tiles
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color(.secondarySystemBackground))
-                        .frame(height: 240)
-                        .overlay(
-                            VStack(spacing: 6) {
-                                Image(systemName: "wifi.exclamationmark")
-                                    .font(.system(size: 26, weight: .semibold))
-                                    .foregroundStyle(.secondary)
-                                Text("Map can’t be displayed right now.")
-                                    .font(.custom("Montserrat-SemiBold", size: 14))
-                                    .foregroundStyle(.primary)
-                                Text("We loaded the restaurant locations, but we need a connection to render the map tiles.")
-                                    .font(.custom("Montserrat-Regular", size: 11))
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 24)
-                            }
+                // MARK: - Map section with EC (force no pins when map is degraded)
+                Group {
+                    // condición de “mapa bueno”: necesitamos centro Y al menos 1 pin
+                    let hasCenter = mapCtrl.center != nil
+                    let hasPins   = !mapCtrl.annotations.isEmpty
+
+                    if hasCenter && hasPins {
+                        // ✅ online / todo listo → mostramos mapa completo
+                        OSMMapView(
+                            annotations: mapCtrl.annotations,            // pines reales
+                            center: mapCtrl.center!,                     // seguro porque hasCenter == true
+                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
+                            showsUserLocation: true
                         )
+                        .frame(height: 240)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .padding(.horizontal, 16)
+                    } else {
+                        // ❌ modo degradado → NO mandamos pines
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color(.secondarySystemBackground))
+                            .frame(height: 240)
+                            .overlay(
+                                VStack(spacing: 6) {
+                                    Image(systemName: "wifi.slash")
+                                        .font(.system(size: 26, weight: .semibold))
+                                        .foregroundStyle(.secondary)
+                                    Text("Map is not available right now.")
+                                        .font(.custom("Montserrat-SemiBold", size: 14))
+                                        .foregroundStyle(.primary)
+                                    Text("We couldn’t download the map tiles. You can still browse restaurants below.")
+                                        .font(.custom("Montserrat-Regular", size: 11))
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 24)
+                                }
+                            )
+                            .padding(.horizontal, 16)
+                    }
                 }
 
 
