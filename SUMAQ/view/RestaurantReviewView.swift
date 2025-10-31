@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct ReviewsContent: View {
     @ObservedObject private var session = SessionController.shared
@@ -21,8 +22,13 @@ struct ReviewsContent: View {
     @State private var hasCheckedConnectivity = false
     @State private var isLoadingData = false
     
+    // Combine - Real-time streaming
+    @State private var reviewsCancellable: AnyCancellable?
+    @State private var isSubscribedToPublisher = false
+    
     private let reviewsRepo = ReviewsRepository()
     private let usersRepo = UsersRepository()
+    private let localStore = LocalStore.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -98,16 +104,16 @@ struct ReviewsContent: View {
                 checkInternetConnection()
                 hasCheckedConnectivity = true
             }
+            // Start real-time streaming with Combine
+            startRealTimeUpdates()
+        }
+        .onDisappear {
+            // Cancel Combine subscription
+            stopRealTimeUpdates()
         }
         .task {
             guard !isLoadingData else { return }
             await loadReviews()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .userReviewsDidChange)) { _ in
-            Task {
-                guard !isLoadingData else { return }
-                await loadReviews()
-            }
         }
     }
     
@@ -143,15 +149,49 @@ struct ReviewsContent: View {
         do {
             // Check for cancellation before proceeding
             try Task.checkCancellation()
-            let list = try await reviewsRepo.listForRestaurant(restaurantId)
-            self.reviews = list
             
-            let ids = Array(Set(list.map { $0.userId }))
-            guard !ids.isEmpty else { 
-                self.userNamesById = [:]
-                return 
+            // Hybrid approach: Load from SQLite first (fast, offline-first strategy intact)
+            if let localRecords = try? localStore.reviews.listForRestaurant(restaurantId),
+               !localRecords.isEmpty {
+                let localReviews = localRecords.map { toReview(from: $0) }
+                    .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+                
+                await MainActor.run {
+                    self.reviews = localReviews
+                }
+                
+                // Load user data for local reviews
+                await loadUserData(for: localReviews)
             }
             
+            // Then load from Firestore (listForRestaurant has offline-first built in)
+            let list = try await reviewsRepo.listForRestaurant(restaurantId)
+            
+            // Only update if we got new data (Combine will handle real-time updates)
+            if !list.isEmpty {
+                await MainActor.run {
+                    self.reviews = list
+                }
+                await loadUserData(for: list)
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+    
+    private func loadUserData(for reviewsToLoad: [Review]) async {
+        let ids = Array(Set(reviewsToLoad.map { $0.userId }))
+        guard !ids.isEmpty else { 
+            await MainActor.run {
+                self.userNamesById = [:]
+                self.userAvatarsById = [:]
+            }
+            return 
+        }
+        
+        do {
             let users = try await usersRepo.getManyBasic(ids: ids)
             var names: [String: String] = [:]
             var avatars: [String: String] = [:]
@@ -161,10 +201,72 @@ struct ReviewsContent: View {
                     avatars[user.id] = url
                 }
             }
-            self.userNamesById = names
-            self.userAvatarsById = avatars
+            await MainActor.run {
+                self.userNamesById = names
+                self.userAvatarsById = avatars
+            }
         } catch {
-            self.error = error.localizedDescription
+            // Non-fatal: user data is optional
         }
+    }
+    
+    // MARK: - Combine Real-Time Streaming
+    private func startRealTimeUpdates() {
+        guard !isSubscribedToPublisher,
+              let restaurantId = session.currentRestaurant?.id else { return }
+        isSubscribedToPublisher = true
+        
+        // Subscribe to real-time reviews publisher
+        reviewsCancellable = reviewsRepo.reviewsPublisher(for: restaurantId)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    guard let self = self else { return }
+                    if case .failure(let err) = completion {
+                        // Only show error if we don't have local data
+                        if self.reviews.isEmpty {
+                            self.error = err.localizedDescription
+                        }
+                    }
+                },
+                receiveValue: { [weak self] newReviews in
+                    guard let self = self else { return }
+                    
+                    // Update reviews from real-time stream
+                    self.reviews = newReviews
+                    
+                    // Update SQLite cache in background (existing strategy remains intact)
+                    Task.detached { [localStore = self.localStore] in
+                        for review in newReviews {
+                            try? localStore.reviews.upsert(ReviewRecord(from: review))
+                        }
+                    }
+                    
+                    // Load user data for the new reviews
+                    Task { [weak self] in
+                        guard let self = self else { return }
+                        await self.loadUserData(for: newReviews)
+                    }
+                }
+            )
+    }
+    
+    private func stopRealTimeUpdates() {
+        reviewsCancellable?.cancel()
+        reviewsCancellable = nil
+        isSubscribedToPublisher = false
+    }
+    
+    // Helper to convert ReviewRecord to Review
+    private func toReview(from record: ReviewRecord) -> Review {
+        Review(
+            id: record.id,
+            userId: record.userId,
+            restaurantId: record.restaurantId,
+            stars: record.stars,
+            comment: record.comment,
+            imageURL: record.imageUrl,
+            createdAt: record.createdAt
+        )
     }
 }
