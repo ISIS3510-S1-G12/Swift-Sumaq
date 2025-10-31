@@ -79,15 +79,41 @@ struct UserHomeView: View {
                 )
                 .padding(.horizontal, 16)
 
-                OSMMapView(
-                    annotations: mapCtrl.annotations,
-                    center: mapCtrl.center ?? CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
-                    showsUserLocation: true
-                )
-                .frame(height: 240)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .padding(.horizontal, 16)
+                // MARK: - Map section with EC
+                if let center = mapCtrl.center {
+                    // Tenemos centro → intentamos mostrar el mapa real
+                    OSMMapView(
+                        annotations: mapCtrl.annotations,
+                        center: center,
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
+                        showsUserLocation: true
+                    )
+                    .frame(height: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 16)
+                } else {
+                    // No hay centro → probablemente no hubo red o no cargaron los tiles
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(.secondarySystemBackground))
+                        .frame(height: 240)
+                        .overlay(
+                            VStack(spacing: 6) {
+                                Image(systemName: "wifi.exclamationmark")
+                                    .font(.system(size: 26, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                Text("Map can’t be displayed right now.")
+                                    .font(.custom("Montserrat-SemiBold", size: 14))
+                                    .foregroundStyle(.primary)
+                                Text("We loaded the restaurant locations, but we need a connection to render the map tiles.")
+                                    .font(.custom("Montserrat-Regular", size: 11))
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 24)
+                            }
+                        )
+                        .padding(.horizontal, 16)
+                }
+
 
                 // Mealtime banner
                 MealTimeBanner(meal: MealTime.nowInColombia())
