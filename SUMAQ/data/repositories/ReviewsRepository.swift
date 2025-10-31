@@ -94,15 +94,30 @@ final class ReviewsRepository {
             }
 
             let path = "reviews/\(uid)/\(ref.documentID).jpg"
-            let urlString = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<String, Error>) in
-                StorageService.shared.uploadImageData(data, to: path, contentType: "image/jpeg", progress: progress) { res in
-                    switch res {
-                    case .success(let url): cont.resume(returning: url)
-                    case .failure(let err): cont.resume(throwing: err)
+            do {
+                let urlString = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<String, Error>) in
+                    StorageService.shared.uploadImageData(data, to: path, contentType: "image/jpeg", progress: progress) { res in
+                        switch res {
+                        case .success(let url): cont.resume(returning: url)
+                        case .failure(let err): cont.resume(throwing: err)
+                        }
                     }
                 }
+                payload["imageURL"] = urlString
+            } catch {
+                // If image upload fails, still save the review without image
+                // But provide a helpful error message
+                let errorMsg = error.localizedDescription
+                if errorMsg.contains("permisos") || errorMsg.contains("permission") || errorMsg.contains("Permission") {
+                    // Re-throw with more context
+                    throw NSError(domain: "ReviewsRepository", code: 403,
+                                 userInfo: [NSLocalizedDescriptionKey: "Error al subir la imagen: \(errorMsg). La review se guardó localmente pero no se pudo subir a Firebase Storage. Verifica las reglas de Storage en Firebase Console."])
+                }
+                // For other errors, throw as-is but ensure review can still be created
+                // Log the error but don't block review creation
+                print("⚠️ Error uploading review image: \(errorMsg)")
+                // Continue without image URL - review will be saved without image
             }
-            payload["imageURL"] = urlString
         }
 
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
@@ -413,7 +428,15 @@ extension ReviewsRepository {
             .order(by: "createdAt", descending: true)
             .addSnapshotListener { [weak subject] snapshot, error in
                 if let error = error {
-                    subject?.send(completion: .failure(error))
+                    // Improve error message for missing index
+                    let nsError = error as NSError
+                    if nsError.localizedDescription.contains("requires an index") || nsError.localizedDescription.contains("index") {
+                        let improvedError = NSError(domain: "Firestore", code: nsError.code,
+                                                  userInfo: [NSLocalizedDescriptionKey: "Firestore necesita un índice compuesto para esta consulta. El error incluye un enlace directo para crearlo. Por favor, copia el enlace del mensaje de error y ábrelo en tu navegador. Original: \(error.localizedDescription)"])
+                        subject?.send(completion: .failure(improvedError))
+                    } else {
+                        subject?.send(completion: .failure(error))
+                    }
                 } else if let snapshot = snapshot {
                     let items = snapshot.documents.compactMap { Review(doc: $0) }
                     subject?.send(items)
@@ -440,7 +463,15 @@ extension ReviewsRepository {
                 .order(by: "createdAt", descending: true)
                 .addSnapshotListener { [weak subject] snapshot, error in
                     if let error = error {
-                        subject?.send(completion: .failure(error))
+                        // Improve error message for missing index
+                        let nsError = error as NSError
+                        if nsError.localizedDescription.contains("requires an index") || nsError.localizedDescription.contains("index") {
+                            let improvedError = NSError(domain: "Firestore", code: nsError.code,
+                                                      userInfo: [NSLocalizedDescriptionKey: "Firestore necesita un índice compuesto para esta consulta. El error incluye un enlace directo para crearlo. Por favor, copia el enlace del mensaje de error y ábrelo en tu navegador. Original: \(error.localizedDescription)"])
+                            subject?.send(completion: .failure(improvedError))
+                        } else {
+                            subject?.send(completion: .failure(error))
+                        }
                     } else if let snapshot = snapshot {
                         let items = snapshot.documents.compactMap { Review(doc: $0) }
                         subject?.send(items)
