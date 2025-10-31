@@ -2,25 +2,26 @@
 //  HomeUserView.swift
 //  SUMAQ
 //
-//  Multithreading - STRATEGY #4 Task Group Maria
-//  --------------------------------------------------
-//  Home screen more responsive by orchestrating all initial fetches in
-//  parallel using Swift Structured Concurrency (Task Group).
+//  MULTITRHEADING - Strategy #4 Task Group Maria
+
+//  LOCAL STORAGE #1 - DB local : Maria
+
+
+//  Home screen orchestrating all initial fetches in
+//  parallel using Swift Structured Concurrency Task Group.
 //
-//  - Use `withTaskGroup(of: Void.self)` to start concurrent child tasks for:
-//      (1) loading restaurants (cards),
+//  -  `withTaskGroup(of: Void.self)` to start concurrent child tasks for:
+//      (1) loading restaurants cards,
 //      (2) loading the "new restaurant" notification state,
 //      (3) initializing the map via MapController.
 //  - Store results in local variables inside the group and apply them to @State
 //    once all tasks have completed; this is the point where the loading indicator is hidden.
-//  - This preserves the public API and UI layout while making the first render reactive and efficient.
 //
-//  Local storage: Offline-first with Local Storage STRATEGY #1 : Maria
-//  ----------------------------------------
-//  - Added an online-first load for restaurants with a local storage fallback.
+
+
+//  - load for restaurants with a local storage fallback.
 //  - On remote success: render fresh data and upsert it to the local DB in a background detached Task.
 //  - On remote failure: read restaurants from local DB and render them so the Home remains usable offline.
-//  - All UI mutations remain on the MainActor; repository/business logic stays untouched.
 //
 
 import SwiftUI
@@ -194,7 +195,7 @@ struct UserHomeView: View {
             AnalyticsService.shared.screenEnd(ScreenName.home)
         }
         // Structured Concurrency orchestration entry point:
-        // Local storage: call the new initializer that includes local-storage fallback logic.
+        // Local storage: call the new initializer that includes local storage fallback logic.
         .task { await initializeScreenConcurrentlyWithLocalStorage() }
         .background(Color(.systemBackground).ignoresSafeArea())
     }
@@ -212,9 +213,9 @@ struct UserHomeView: View {
 
     // MARK: - Structured Concurrency Orchestration + Local Storage
     /// Orchestrates the initial content loading using Task Group.
-    /// Local storage: Adds offline-first behavior (online-first with background upsert, local fallback on failure).
+    /// Local storage: Adds offline first behavior
     private func initializeScreenConcurrentlyWithLocalStorage() async {
-        // Local storage: Ensure the local database is configured (idempotent and fast).
+        // Local storage: Ensure the local database is configured
         LocalStore.shared.configureIfNeeded()
 
         // Show loading and clear prior error at kickoff.
@@ -231,14 +232,14 @@ struct UserHomeView: View {
 
         await withTaskGroup(of: Void.self) { group in
             // Task 1 — Restaurants (Cards)
-            // Local storage: Online-first. On success, render and upsert to local DB in background.
+            // Local storage:  On success, render and upsert to local DB in background.
             //         On failure, read from local DB and render.
             group.addTask {
                 do {
                     let list = try await repo.all()
                     await MainActor.run { tmpRestaurants = list }
 
-                    // Local storage: Best-effort cache write on a detached background task to avoid blocking UI.
+                    // Local storage: Best effort cache write on a detached background task to avoid blocking UI.
                     Task.detached(priority: .utility) {
                         do {
                             let dao = LocalStore.shared.restaurants
@@ -246,11 +247,11 @@ struct UserHomeView: View {
                                 try dao.upsert(RestaurantRecord(from: r))
                             }
                         } catch {
-                            // Non-fatal: cache write failure is ignored to keep UX smooth.
+                            // cache write failure is ignored to keep UX smooth.
                         }
                     }
                 } catch {
-                    // Local storage: Remote failed → fallback to local storage.
+                    // Local storage: Remote failed thenn fallback to local storage.
                     do {
                         let localRecords = try LocalStore.shared.restaurants.all()
                         let local = localRecords.map { toRestaurant(from: $0) }
@@ -445,7 +446,7 @@ private struct NewRestaurantNotification: View {
 }
 
 // MARK: - Local Storage mapping helpers
-// Local storage: Map DAO `RestaurantRecord` (SQLite) to domain `Restaurant` for UI consumption.
+// Local storage: Map DAO `RestaurantRecord` with SQLite to domain `Restaurant` for UI consumption.
 private func toRestaurant(from rec: RestaurantRecord) -> Restaurant {
     Restaurant(
         id: rec.id,

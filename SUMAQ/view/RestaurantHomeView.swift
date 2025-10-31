@@ -2,12 +2,15 @@
 //  RestaurantHomeView.swift
 //  SUMAQ
 //
-//  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
+//  Created by RODRIGO PAZ LONDOÑO on 20/09/25
 
-// LOCAL STORAGE STRATEGY # 2 UserDefaults : Maria
+// LOCAL STORAGE  # 2 - UserDefaults : Maria
+
+// EVENTUAL CONECTIVITY #3  : Maria
+
 //
-//  UPDATE: Offline-first for dishes using UserDefaults (key–value storage)
-//  ----------------------------------------------------------------------
+//  LOCAL STORAGE:  for dishes using UserDefaults key–value storage
+
 //  - Goal: Make the restaurant “Menu” tab resilient offline by caching the
 //    dishes snapshot in UserDefaults and rendering it immediately when there is
 //    no connectivity.
@@ -30,6 +33,7 @@
 import SwiftUI
 import MapKit
 import FirebaseAuth
+import Network //  EVENTUAL CONECTIVITY: Needed to observe online/offline status via NWPathMonitor.
 
 struct RestaurantHomeView: View {
     // 0 = Menú, 1 = Offers, 2 = Review
@@ -104,17 +108,17 @@ struct RestaurantHomeView: View {
 }
 
 private struct MenuContent: View {
-    // UPDATE: Use a lightweight KV model for offline rendering to avoid constructing domain `Dish`.
+    // LOCAL STORAGE: Use a lightweight KV model for offline rendering to avoid constructing domain `Dish`.
     @State private var dishes: [DishKV] = []
     @State private var loading = true
     @State private var error: String?
     private let repo = DishesRepository() // unchanged public API
 
-    // UPDATE: KV keys builder for this restaurant.
+    // LOCAL STORAGE: KV keys builder for this restaurant.
     private func kvKeyDishes(_ rid: String) -> String { "dishes.byRestaurant.\(rid)" }
     private func kvKeyLastSync(_ rid: String) -> String { "dishes.lastSyncAt.\(rid)" }
 
-    // UPDATE: Simple KV API using UserDefaults with Codable payloads.
+    // LOCAL STORAGE: Simple KV API using UserDefaults with Codable payloads.
     private func kvSet<T: Codable>(_ value: T, key: String) {
         // Writes are small but perform them off the main thread to keep UI responsive.
         Task.detached(priority: .utility) {
@@ -132,7 +136,7 @@ private struct MenuContent: View {
         return try? decoder.decode(T.self, from: data)
     }
 
-    // UPDATE: Persistable KV model with only the fields used by the UI.
+    // LOCAL STORAGE: Persistable KV model with only the fields used by the UI.
     // Keep it minimal to avoid coupling to the full domain `Dish` type.
     private struct DishKV: Codable, Identifiable {
         let id: String
@@ -142,7 +146,7 @@ private struct MenuContent: View {
         let rating: Double? // optional; may be absent in some payloads
     }
 
-    // UPDATE: Mapping from domain `Dish` to `DishKV`.
+    // LOCAL STORAGE: Mapping from domain `Dish` to `DishKV`.
     // Only touch fields that are guaranteed to exist in the current UI usage.
     private func toKV(_ d: Dish) -> DishKV {
         // If `Dish.rating` is not Double, drop it safely (nil).
@@ -180,8 +184,12 @@ private struct MenuContent: View {
         )
     }
 
-    // UPDATE: Optional "Last updated" label fed by UserDefaults.
+    // LOCAL STORAGE: Optional "Last updated" label fed by UserDefaults.
     @State private var lastSyncAt: Date?
+
+    //  EVENTUAL CONECTIVITY: View-scoped connectivity monitor and banner state; does not change existing data logic.
+    @StateObject private var connectivity = HomeConnectivityMonitor()
+    @State private var showConnectivityNotice: Bool = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -210,6 +218,16 @@ private struct MenuContent: View {
             } else if dishes.isEmpty {
                 Text("No dishes yet").foregroundColor(.secondary).padding()
             } else {
+                // LOCAL STORAGE EVENTUAL CONECTIVITY: Show the offline notice above the cards when device is offline.
+                if connectivity.isOffline && showConnectivityNotice {
+                    ConnectivityNoticeCard(
+                        title: "You're offline",
+                        message: "You are viewing saved menu items for this restaurant on this device. Create or update actions will be queued and retried when the connection returns."
+                    )
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 VStack(spacing: 12) {
                     ForEach(dishes) { d in
                         RestaurantDishCard(
@@ -219,7 +237,7 @@ private struct MenuContent: View {
                             rating: Int(d.rating ?? 0.0)
                         )
                     }
-                    // UPDATE: Show "Last updated" timestamp if available from KV.
+                    // LOCAL STORAGE: Show "Last updated" timestamp if available from KV.
                     if let lastSyncAt {
                         Text("Last updated \(relativeTimeString(from: lastSyncAt))")
                             .font(.custom("Montserrat-Regular", size: 12))
@@ -245,18 +263,29 @@ private struct MenuContent: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        // UPDATE: Offline-first loader. Renders KV snapshot first, then fetches remote and updates KV.
+        //  EVENTUAL CONECTIVITY: Start & stop monitoring and sync banner with reachability changes.
+        .onAppear {
+            connectivity.start()
+            showConnectivityNotice = connectivity.isOffline
+        }
+        .onReceive(connectivity.$isOffline.removeDuplicates()) { offline in
+            showConnectivityNotice = offline
+        }
+        .onDisappear {
+            connectivity.stop()
+        }
+        // LOCAL STORAGE: Renders KV snapshot first, then fetches remote and updates KV.
         .task { await loadOfflineFirst() }
     }
 
-    // UPDATE: Returns a human-friendly relative time string.
+    // LOCAL STORAGE: Returns a relative time string
     private func relativeTimeString(from date: Date) -> String {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .abbreviated
         return f.localizedString(for: date, relativeTo: Date())
     }
 
-    // UPDATE: Offline-first loading using KV snapshot + remote write-through.
+    // LOCAL STORAGE:  loading using KV snapshot + remote write
     @MainActor
     private func loadOfflineFirst() async {
         guard let uid = Auth.auth().currentUser?.uid else {
@@ -322,5 +351,54 @@ private struct SmallCapsuleButton: View {
             .background(background)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
+    }
+}
+
+//  EVENTUAL CONECTIVITY: Reusable banner (message only, no button).
+private struct ConnectivityNoticeCard: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.custom("Montserrat-Bold", size: 16))
+                .foregroundColor(.primary)
+            Text(message)
+                .font(.custom("Montserrat-Regular", size: 14))
+                .foregroundColor(.secondary)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color(.tertiaryLabel), lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(title). \(message)"))
+    }
+}
+
+//  EVENTUAL CONECTIVITY: View-local NWPathMonitor wrapper to publish `isOffline` for this screen.
+final class HomeConnectivityMonitor: ObservableObject {
+    @Published var isOffline: Bool = false
+
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "sumaq.connectivity.monitor.restaurant.home")
+
+    func start() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.isOffline = (path.status != .satisfied)
+            }
+        }
+        monitor.start(queue: queue)
+    }
+
+    func stop() {
+        monitor.cancel()
     }
 }
