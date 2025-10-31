@@ -20,6 +20,16 @@ final class ReviewsRepository {
         throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
     }
     
+    // Shared URLSession for downloading images with optimized timeouts
+    private static let imageSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 10.0
+        config.timeoutIntervalForResource = 30.0
+        config.waitsForConnectivity = false
+        config.requestCachePolicy = .returnCacheDataElseLoad
+        return URLSession(configuration: config)
+    }()
+    
     // MARK: - Helper: Convert ReviewRecord to Review domain model
     private func toReview(from record: ReviewRecord) -> Review {
         return Review(
@@ -31,6 +41,32 @@ final class ReviewsRepository {
             imageURL: record.imageUrl,
             createdAt: record.createdAt
         )
+    }
+    
+    // MARK: - Helper: Save image locally (only for current user's reviews)
+    private func saveImageLocallyIfMine(imageURL: String, reviewId: String, reviewUserId: String) async {
+        // Only save images for current user's reviews
+        guard let currentUserId = Auth.auth().currentUser?.uid,
+              reviewUserId == currentUserId,
+              !imageURL.isEmpty,
+              imageURL.hasPrefix("http") else {
+            return
+        }
+        
+        // Skip if already exists
+        if ReviewImageStore.shared.hasLocalImage(reviewId: reviewId) {
+            return
+        }
+        
+        do {
+            guard let url = URL(string: imageURL) else { return }
+            let (data, _) = try await Self.imageSession.data(from: url)
+            
+            // Save locally (non-blocking, best-effort)
+            try? ReviewImageStore.shared.saveImage(data: data, reviewId: reviewId)
+        } catch {
+            // Non-fatal: silently fail
+        }
     }
 
     func createReview(restaurantId: String,
