@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseStorage
+import FirebaseAuth
 
 final class StorageService {
     static let shared = StorageService()
@@ -19,12 +20,61 @@ final class StorageService {
                          contentType: String? = nil,
                          progress: ((Double) -> Void)? = nil,
                          completion: @escaping (Result<String, Error>) -> Void) {
+        // Ensure user is authenticated and token is fresh before uploading
+        guard let user = Auth.auth().currentUser else {
+            return completion(.failure(NSError(domain: "Storage", code: 401,
+                                              userInfo: [NSLocalizedDescriptionKey: "User not authenticated. Please log in again."])))
+        }
+        
+        // Refresh the auth token to ensure it's valid for Storage operations
+        user.getIDToken(forcingRefresh: false) { token, tokenError in
+            if let tokenError {
+                // If token refresh fails, try forcing a refresh
+                user.getIDToken(forcingRefresh: true) { refreshedToken, forceRefreshError in
+                    if let forceRefreshError {
+                        return completion(.failure(NSError(domain: "Storage", code: 401,
+                                                           userInfo: [NSLocalizedDescriptionKey: "Authentication failed. Please log in again."])))
+                    }
+                    // Token refreshed, proceed with upload
+                    self.performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
+                }
+            } else if token != nil {
+                // Token is valid, proceed with upload
+                self.performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
+            } else {
+                return completion(.failure(NSError(domain: "Storage", code: 401,
+                                                   userInfo: [NSLocalizedDescriptionKey: "Authentication failed. Please log in again."])))
+            }
+        }
+    }
+    
+    private func performUpload(data: Data,
+                               path: String,
+                               contentType: String?,
+                               progress: ((Double) -> Void)?,
+                               completion: @escaping (Result<String, Error>) -> Void) {
         let ref = storage.reference(withPath: path)
         let md = StorageMetadata()
         md.contentType = contentType ?? "image/jpeg"
 
         let task = ref.putData(data, metadata: md) { _, err in
-            if let err { return completion(.failure(err)) }
+            if let err { 
+                // Provide more helpful error messages for permission errors
+                let nsError = err as NSError
+                if nsError.domain == "FIRStorageErrorDomain" {
+                    switch nsError.code {
+                    case -13021: // Unauthorized
+                        return completion(.failure(NSError(domain: "Storage", code: 401,
+                                                           userInfo: [NSLocalizedDescriptionKey: "Permission denied. Please ensure you are logged in and try again."])))
+                    case -13020: // Object not found (but in this context might be permission)
+                        return completion(.failure(NSError(domain: "Storage", code: 403,
+                                                           userInfo: [NSLocalizedDescriptionKey: "Permission denied. Please check your authentication status."])))
+                    default:
+                        return completion(.failure(err))
+                    }
+                }
+                return completion(.failure(err)) 
+            }
             ref.downloadURL { url, err in
                 if let err { completion(.failure(err)) }
                 else if let url { completion(.success(url.absoluteString)) }
