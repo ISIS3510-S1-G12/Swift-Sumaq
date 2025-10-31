@@ -22,8 +22,11 @@ final class StorageService {
                          completion: @escaping (Result<String, Error>) -> Void) {
         // Ensure user is authenticated before uploading
         guard let user = Auth.auth().currentUser else {
-            return completion(.failure(NSError(domain: "Storage", code: 401,
+            DispatchQueue.main.async {
+                completion(.failure(NSError(domain: "Storage", code: 401,
                                               userInfo: [NSLocalizedDescriptionKey: "User not authenticated. Please log in again."])))
+            }
+            return
         }
         
         // Refresh auth token to ensure it's valid for Storage operations
@@ -54,8 +57,10 @@ final class StorageService {
                 } catch {
                     // Even forced refresh failed - authentication is not valid
                     print("❌ Token refresh completely failed: \(error.localizedDescription)")
-                    completion(.failure(NSError(domain: "Storage", code: 401,
-                                               userInfo: [NSLocalizedDescriptionKey: "Authentication failed. Please log in again."])))
+                    await MainActor.run {
+                        completion(.failure(NSError(domain: "Storage", code: 401,
+                                                   userInfo: [NSLocalizedDescriptionKey: "Authentication failed. Please log in again."])))
+                    }
                 }
             }
         }
@@ -68,8 +73,11 @@ final class StorageService {
                                completion: @escaping (Result<String, Error>) -> Void) {
         // Double-check authentication before creating reference
         guard let user = Auth.auth().currentUser else {
-            return completion(.failure(NSError(domain: "Storage", code: 401,
+            DispatchQueue.main.async {
+                completion(.failure(NSError(domain: "Storage", code: 401,
                                               userInfo: [NSLocalizedDescriptionKey: "User not authenticated. Please log in again."])))
+            }
+            return
         }
         
         // Create Storage reference
@@ -82,6 +90,7 @@ final class StorageService {
         md.customMetadata = ["uploadedBy": user.uid]
 
         let task = ref.putData(data, metadata: md) { metadata, err in
+            // Ensure completion handler runs on main thread
             if let err { 
                 // Log detailed error information for debugging
                 let nsError = err as NSError
@@ -92,32 +101,39 @@ final class StorageService {
                 print("❌ Path: \(path)")
                 
                 // Provide more helpful error messages for permission errors
-                if nsError.domain == "FIRStorageErrorDomain" {
-                    switch nsError.code {
-                    case -13021: // Unauthorized
-                        return completion(.failure(NSError(domain: "Storage", code: 401,
+                DispatchQueue.main.async {
+                    if nsError.domain == "FIRStorageErrorDomain" {
+                        switch nsError.code {
+                        case -13021: // Unauthorized
+                            completion(.failure(NSError(domain: "Storage", code: 401,
                                                            userInfo: [NSLocalizedDescriptionKey: "Permission denied. User ID: \(user.uid). Please ensure Firebase Storage rules allow authenticated users to write."])))
-                    case -13020: // Object not found (but in this context might be permission)
-                        return completion(.failure(NSError(domain: "Storage", code: 403,
+                        case -13020: // Object not found (but in this context might be permission)
+                            completion(.failure(NSError(domain: "Storage", code: 403,
                                                            userInfo: [NSLocalizedDescriptionKey: "Permission denied. Please check your authentication status and Firebase Storage rules."])))
-                    default:
-                        return completion(.failure(err))
+                        default:
+                            completion(.failure(err))
+                        }
+                    } else {
+                        completion(.failure(err))
                     }
                 }
-                return completion(.failure(err)) 
+                return
             }
             ref.downloadURL { url, err in
-                if let err { 
-                    print("❌ Error getting download URL: \(err.localizedDescription)")
-                    completion(.failure(err)) 
-                }
-                else if let url { 
-                    print("✅ Upload successful! URL: \(url.absoluteString)")
-                    completion(.success(url.absoluteString)) 
-                }
-                else { 
-                    completion(.failure(NSError(domain: "Storage", code: -3,
-                                                   userInfo: [NSLocalizedDescriptionKey:"No URL"])) ) 
+                // Ensure completion handler runs on main thread
+                DispatchQueue.main.async {
+                    if let err { 
+                        print("❌ Error getting download URL: \(err.localizedDescription)")
+                        completion(.failure(err)) 
+                    }
+                    else if let url { 
+                        print("✅ Upload successful! URL: \(url.absoluteString)")
+                        completion(.success(url.absoluteString)) 
+                    }
+                    else { 
+                        completion(.failure(NSError(domain: "Storage", code: -3,
+                                                       userInfo: [NSLocalizedDescriptionKey:"No URL"])) ) 
+                    }
                 }
             }
         }
@@ -128,7 +144,10 @@ final class StorageService {
                       total > 0,
                       let completed = snapshot.progress?.completedUnitCount else { return }
                 let pct = Double(completed) / Double(total)
-                progress(pct)
+                // Ensure progress callback runs on main thread
+                DispatchQueue.main.async {
+                    progress(pct)
+                }
             }
         }
     }
