@@ -2,15 +2,15 @@
 //  RestaurantHomeView.swift
 //  SUMAQ
 //
-//  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
+//  Created by RODRIGO PAZ LONDOÑO on 20/09/25
 
-// LOCAL STORAGE STRATEGY # 2 UserDefaults : Maria
+// LOCAL STORAGE  # 2 - UserDefaults : Maria
 
-// EVENTUAL CONECTIVITY 3  : Maria
+// EVENTUAL CONECTIVITY #3  : Maria
 
 //
-//  UPDATE: Offline-first for dishes using UserDefaults (key–value storage)
-//  ----------------------------------------------------------------------
+//  LOCAL STORAGE:  for dishes using UserDefaults key–value storage
+
 //  - Goal: Make the restaurant “Menu” tab resilient offline by caching the
 //    dishes snapshot in UserDefaults and rendering it immediately when there is
 //    no connectivity.
@@ -33,7 +33,7 @@
 import SwiftUI
 import MapKit
 import FirebaseAuth
-import Network // UPDATE EVENTUAL CONECTIVITY: Needed to observe online/offline status via NWPathMonitor.
+import Network //  EVENTUAL CONECTIVITY: Needed to observe online/offline status via NWPathMonitor.
 
 struct RestaurantHomeView: View {
     // 0 = Menú, 1 = Offers, 2 = Review
@@ -108,17 +108,17 @@ struct RestaurantHomeView: View {
 }
 
 private struct MenuContent: View {
-    // UPDATE: Use a lightweight KV model for offline rendering to avoid constructing domain `Dish`.
+    // LOCAL STORAGE: Use a lightweight KV model for offline rendering to avoid constructing domain `Dish`.
     @State private var dishes: [DishKV] = []
     @State private var loading = true
     @State private var error: String?
     private let repo = DishesRepository() // unchanged public API
 
-    // UPDATE: KV keys builder for this restaurant.
+    // LOCAL STORAGE: KV keys builder for this restaurant.
     private func kvKeyDishes(_ rid: String) -> String { "dishes.byRestaurant.\(rid)" }
     private func kvKeyLastSync(_ rid: String) -> String { "dishes.lastSyncAt.\(rid)" }
 
-    // UPDATE: Simple KV API using UserDefaults with Codable payloads.
+    // LOCAL STORAGE: Simple KV API using UserDefaults with Codable payloads.
     private func kvSet<T: Codable>(_ value: T, key: String) {
         // Writes are small but perform them off the main thread to keep UI responsive.
         Task.detached(priority: .utility) {
@@ -136,7 +136,7 @@ private struct MenuContent: View {
         return try? decoder.decode(T.self, from: data)
     }
 
-    // UPDATE: Persistable KV model with only the fields used by the UI.
+    // LOCAL STORAGE: Persistable KV model with only the fields used by the UI.
     // Keep it minimal to avoid coupling to the full domain `Dish` type.
     private struct DishKV: Codable, Identifiable {
         let id: String
@@ -146,7 +146,7 @@ private struct MenuContent: View {
         let rating: Double? // optional; may be absent in some payloads
     }
 
-    // UPDATE: Mapping from domain `Dish` to `DishKV`.
+    // LOCAL STORAGE: Mapping from domain `Dish` to `DishKV`.
     // Only touch fields that are guaranteed to exist in the current UI usage.
     private func toKV(_ d: Dish) -> DishKV {
         // If `Dish.rating` is not Double, drop it safely (nil).
@@ -184,10 +184,10 @@ private struct MenuContent: View {
         )
     }
 
-    // UPDATE: Optional "Last updated" label fed by UserDefaults.
+    // LOCAL STORAGE: Optional "Last updated" label fed by UserDefaults.
     @State private var lastSyncAt: Date?
 
-    // UPDATE EVENTUAL CONECTIVITY: View-scoped connectivity monitor and banner state; does not change existing data logic.
+    //  EVENTUAL CONECTIVITY: View-scoped connectivity monitor and banner state; does not change existing data logic.
     @StateObject private var connectivity = HomeConnectivityMonitor()
     @State private var showConnectivityNotice: Bool = false
 
@@ -218,7 +218,7 @@ private struct MenuContent: View {
             } else if dishes.isEmpty {
                 Text("No dishes yet").foregroundColor(.secondary).padding()
             } else {
-                // UPDATE EVENTUAL CONECTIVITY: Show the offline notice above the cards when device is offline.
+                // LOCAL STORAGE EVENTUAL CONECTIVITY: Show the offline notice above the cards when device is offline.
                 if connectivity.isOffline && showConnectivityNotice {
                     ConnectivityNoticeCard(
                         title: "You're offline",
@@ -237,7 +237,7 @@ private struct MenuContent: View {
                             rating: Int(d.rating ?? 0.0)
                         )
                     }
-                    // UPDATE: Show "Last updated" timestamp if available from KV.
+                    // LOCAL STORAGE: Show "Last updated" timestamp if available from KV.
                     if let lastSyncAt {
                         Text("Last updated \(relativeTimeString(from: lastSyncAt))")
                             .font(.custom("Montserrat-Regular", size: 12))
@@ -263,7 +263,7 @@ private struct MenuContent: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        // UPDATE EVENTUAL CONECTIVITY: Start/stop monitoring and sync banner with reachability changes.
+        //  EVENTUAL CONECTIVITY: Start & stop monitoring and sync banner with reachability changes.
         .onAppear {
             connectivity.start()
             showConnectivityNotice = connectivity.isOffline
@@ -274,18 +274,18 @@ private struct MenuContent: View {
         .onDisappear {
             connectivity.stop()
         }
-        // UPDATE: Offline-first loader. Renders KV snapshot first, then fetches remote and updates KV.
+        // LOCAL STORAGE: Renders KV snapshot first, then fetches remote and updates KV.
         .task { await loadOfflineFirst() }
     }
 
-    // UPDATE: Returns a human-friendly relative time string.
+    // LOCAL STORAGE: Returns a relative time string
     private func relativeTimeString(from date: Date) -> String {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .abbreviated
         return f.localizedString(for: date, relativeTo: Date())
     }
 
-    // UPDATE: Offline-first loading using KV snapshot + remote write-through.
+    // LOCAL STORAGE:  loading using KV snapshot + remote write
     @MainActor
     private func loadOfflineFirst() async {
         guard let uid = Auth.auth().currentUser?.uid else {
@@ -354,7 +354,7 @@ private struct SmallCapsuleButton: View {
     }
 }
 
-// UPDATE EVENTUAL CONECTIVITY: Reusable banner (message only, no button).
+//  EVENTUAL CONECTIVITY: Reusable banner (message only, no button).
 private struct ConnectivityNoticeCard: View {
     let title: String
     let message: String
@@ -382,7 +382,7 @@ private struct ConnectivityNoticeCard: View {
     }
 }
 
-// UPDATE EVENTUAL CONECTIVITY: View-local NWPathMonitor wrapper to publish `isOffline` for this screen.
+//  EVENTUAL CONECTIVITY: View-local NWPathMonitor wrapper to publish `isOffline` for this screen.
 final class HomeConnectivityMonitor: ObservableObject {
     @Published var isOffline: Bool = false
 

@@ -1,20 +1,20 @@
 import SwiftUI
 import FirebaseAuth
-import Network // UPDATE EVENTUAL CONECTIVITY: Used to monitor online/offline status via NWPathMonitor.
+import Network // EVENTUAL CONECTIVITY: Used to monitor online/offline status via NWPathMonitor.
 
-// CACHING STRATEGY #2 NSCache : Maria
+// CACHING STRATEGY #2 - NSCache : Maria
 
-// UPDATE: NSCache-based in-memory caching for restaurant offers.
-// UPDATE: This view caches offers per restaurantId in a static NSCache<NSString, NSArray>.
-// UPDATE: On load(), it first serves cached data instantly (no loading spinner) if available,
-// UPDATE: then fetches fresh data in the background and updates both UI and cache.
-// UPDATE: On reload() (after creating a new offer), it invalidates the cache before fetching.
+// CACHING STRATEGY: NSCache-based in-memory caching for restaurant offers.
+// CACHING STRATEGY: This view caches offers per restaurantId in a static NSCache<NSString, NSArray>.
+// CACHING STRATEGY: On load(), it first serves cached data instantly (no loading spinner) if available,
+// CACHING STRATEGY: then fetches fresh data in the background and updates both UI and cache.
+// CACHING STRATEGY: On reload() (after creating a new offer), it invalidates the cache before fetching.
 
 // EVENTUAL CONECTIVITY 2: Maria
 
 struct OffersContent: View {
-    // UPDATE: Static cache lives for the app session; key = restaurantId, value = NSArray of Offer.
-    @MainActor private static let cache = NSCache<NSString, NSArray>() // UPDATE: In-memory LRU-like cache managed by the system.
+    // CACHING STRATEGY: Static cache lives for the app session; key = restaurantId, value = NSArray of Offer.
+    @MainActor private static let cache = NSCache<NSString, NSArray>() // CACHING STRATEGY
 
     @State private var searchText: String = ""
     @State private var offers: [Offer] = []
@@ -23,8 +23,8 @@ struct OffersContent: View {
 
     private let repo = OffersRepository()
 
-    // UPDATE EVENTUAL CONECTIVITY: View-scoped connectivity monitor and banner state.
-    // UPDATE EVENTUAL CONECTIVITY: Use a view-local monitor name to avoid type collisions with other files.
+    //  EVENTUAL CONECTIVITY: View-scoped connectivity monitor and banner state.
+    //  EVENTUAL CONECTIVITY: Use a view-local monitor name to avoid type collisions with other files.
     @StateObject private var connectivity = OffersConnectivityMonitor()
     @State private var showConnectivityNotice: Bool = false
 
@@ -44,7 +44,7 @@ struct OffersContent: View {
             } else if filteredOffers.isEmpty {
                 Text("No offers yet").foregroundColor(.secondary).padding()
             } else {
-                // UPDATE EVENTUAL CONECTIVITY: Show the offline notice above the list of cards when device is offline.
+                // EVENTUAL CONECTIVITY: Show the offline notice above the list of cards when device is offline.
                 if connectivity.isOffline && showConnectivityNotice {
                     ConnectivityNoticeCard(
                         title: "You're offline",
@@ -84,7 +84,7 @@ struct OffersContent: View {
             .padding(.bottom, 24)
         }
         .task { await load() }
-        // UPDATE EVENTUAL CONECTIVITY: Start/stop monitoring and keep banner in sync with reachability.
+        //  EVENTUAL CONECTIVITY: Start/stop monitoring and keep banner in sync with reachability.
         .onAppear {
             connectivity.start()
             showConnectivityNotice = connectivity.isOffline
@@ -107,42 +107,42 @@ struct OffersContent: View {
         }
     }
 
-    // UPDATE: Load sequence with NSCache.
-    // UPDATE: 1) If cached, present immediately and skip showing the spinner.
-    // UPDATE: 2) Always refresh from network in the background and update cache+UI on success.
+    // CACHING STRATEGY: Load sequence with NSCache.
+    // CACHING STRATEGY: 1) If cached, present immediately and skip showing the spinner.
+    // CACHING STRATEGY: 2) Always refresh from network in the background and update cache+UI on success.
     private func load() async {
         guard let uid = Auth.auth().currentUser?.uid else { return }
-        let cacheKey = NSString(string: uid) // UPDATE: Key by restaurantId.
+        let cacheKey = NSString(string: uid) // CACHING STRATEGY: Key by restaurantId.
 
         if let cachedArray = await MainActor.run(body: { OffersContent.cache.object(forKey: cacheKey) }) {
             if let cached = cachedArray as? [Offer] {
                 await MainActor.run {
-                    self.offers = cached     // UPDATE: Serve cached data instantly.
-                    self.loading = false     // UPDATE: Avoid spinner if cache exists.
+                    self.offers = cached     // CACHING STRATEGY: Serve cached data instantly.
+                    self.loading = false     // CACHING STRATEGY: Avoid spinner if cache exists.
                     self.error = nil
                 }
             }
         } else {
             await MainActor.run {
-                self.loading = true        // UPDATE: No cache → show spinner while fetching.
+                self.loading = true        // CACHING STRATEGY: No cache → show spinner while fetching.
                 self.error = nil
             }
         }
 
-        // UPDATE: Background refresh to keep data fresh, regardless of cache hit.
+        // CACHING STRATEGY: Background refresh to keep data fresh, regardless of cache hit.
         Task.detached(priority: .userInitiated) {
             do {
                 let fresh = try await repo.listForRestaurant(uid: uid)
-                // UPDATE: Update cache with the latest snapshot.
+                // CACHING STRATEGY: Update cache with the latest snapshot.
                 await MainActor.run {
                     OffersContent.cache.setObject(NSArray(array: fresh), forKey: cacheKey)
-                    self.offers = fresh     // UPDATE: Reflect fresh data on UI.
+                    self.offers = fresh     // CACHING STRATEGY: Reflect fresh data on UI.
                     self.loading = false
                     self.error = nil
                 }
             } catch {
                 await MainActor.run {
-                    // UPDATE: Keep whatever is on screen; only surface error if nothing to show.
+                    // CACHING STRATEGY: Keep whatever is on screen; only surface error if nothing to show.
                     if self.offers.isEmpty {
                         self.error = error.localizedDescription
                         self.loading = false
@@ -152,16 +152,16 @@ struct OffersContent: View {
         }
     }
 
-    // UPDATE: Explicit reload after creating a new offer:
-    // UPDATE: Invalidate the cache for this restaurant and trigger a fresh load.
+    // CACHING STRATEGY: Explicit reload after creating a new offer:
+    // CACHING STRATEGY: Invalidate the cache for this restaurant and trigger a fresh load.
     private func reload() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let cacheKey = NSString(string: uid)
         Task {
             await MainActor.run {
-                OffersContent.cache.removeObject(forKey: cacheKey) // UPDATE: Ensure new offers appear immediately.
+                OffersContent.cache.removeObject(forKey: cacheKey) // CACHING STRATEGY: Ensure new offers appear immediately.
             }
-            await load() // UPDATE: Re-run load sequence.
+            await load() // CACHING STRATEGY: run again load sequence.
         }
     }
 }
@@ -183,7 +183,7 @@ private struct SmallCapsuleButton: View {
     }
 }
 
-// UPDATE EVENTUAL CONECTIVITY: Reusable banner (message only, no button).
+//  EVENTUAL CONECTIVITY: Reusable banner (message only, no button).
 private struct ConnectivityNoticeCard: View {
     let title: String
     let message: String
@@ -211,8 +211,8 @@ private struct ConnectivityNoticeCard: View {
     }
 }
 
-// UPDATE EVENTUAL CONECTIVITY: View-local NWPathMonitor wrapper that publishes `isOffline`.
-// UPDATE EVENTUAL CONECTIVITY: Named `OffersConnectivityMonitor` to avoid clashes with other files.
+//  EVENTUAL CONECTIVITY: View-local NWPathMonitor wrapper that publishes `isOffline`.
+//  EVENTUAL CONECTIVITY: Named `OffersConnectivityMonitor` to avoid clashes with other files.
 final class OffersConnectivityMonitor: ObservableObject {
     @Published var isOffline: Bool = false
 

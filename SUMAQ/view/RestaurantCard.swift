@@ -1,3 +1,5 @@
+//  CACHING #1 - LRU : Maria
+
 import SwiftUI
 
 struct RestaurantCard: View {
@@ -31,7 +33,7 @@ struct RestaurantCard: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(panelColor)
 
-            RemoteImage(urlString: imageURL)
+            RemoteImage(urlString: imageURL) //  CACHING: Use LRU
                 .frame(width: 140, height: 128)
                 .clipped()
         }

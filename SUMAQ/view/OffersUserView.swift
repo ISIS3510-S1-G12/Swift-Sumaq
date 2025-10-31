@@ -3,58 +3,50 @@
 //  SUMAQ
 //
 
-//  Multithreading - Strategy #2 — GCD (DispatchQueue)  +  Strategy #5 — Combine : Maria
-//  ------------------------------------------------------------------------------------------
+//  MULTITHREADING - Strategy #2 — GCD (DispatchQueue) : Maria
+//  MULTITHREADING -  Strategy #5 — Combine : Maria
+//  EVENTUAL CONECTIVITY 1: Maria
 
 
-//  What (GCD):
-//  - Offload CPU bound filtering (text match) and grouping (Dictionary(grouping:))
-//    to a background queue. Results are delivered back on the main queue before
-//    mutating @State.
-//
-//  Where off-main (GCD):
+//  #2 GCD (DispatchQueue)
+
+//  - Offload CPU bound filtering and grouping to a background queue. Results are delivered
+// back on the main queue before mutating @State.
+
 //  - `filterQueue` (QoS .userInitiated, concurrent) executes heavy work.
+
 //  - `scheduleFilteringAndGrouping(...)` builds `newFiltered` and `newGrouped` on
 //    `filterQueue`, then hops to main with `DispatchQueue.main.async`.
-//
-//  Hop back to main (GCD):
+
 //  - Inside `scheduleFilteringAndGrouping(...)`, the assignments to
 //    `filteredOffers` and `groupedOffers` are done on the main thread.
-//
-//  Debounce/cancellation (GCD):
+
 //  - A `DispatchWorkItem` is used to cancel any in-flight computation when the
 //    user keeps typing, avoiding stale results.
-//
-//  What (Combine):
+
+//  #5 Combine:
+
 //  - Debounce and coalesce search input events reactively.
+
 //  - A `PassthroughSubject<String, Never>` receives raw search text changes,
 //    then a Combine pipeline `.debounce` + `.removeDuplicates` triggers the
 //    background GCD computation only after the user pauses typing.
-//
-//  Where (Combine):
+
 //  - `searchSubject` and `searchCancellable` fields (see "Combine infrastructure").
+
 //  - `.onAppear` sets up the Combine pipeline.
+
 //  - `.onChange(of: searchText)` publishes each keystroke into `searchSubject`.
+
 //  - When the debounced value arrives in `.sink`, we call
 //    `scheduleFilteringAndGrouping(...)` (GCD) to do the heavy work off-main.
-//
-//  Important note about captures in SwiftUI Views:
-//  - SwiftUI views are `struct`s (value types). Using `[weak self]` is invalid here
-//    and causes the compiler error “weak may only be applied to class and class-bound
-//    protocol types”. This file intentionally **does not** use `[weak self]` in the
-//    Combine `.sink` closure. There is no retain cycle because:
-//      (1) `OffersUserView` is a value type,
-//      (2) The `AnyCancellable` is stored in `@State`, and
-//      (3) SwiftUI will recreate the view as needed.
-//    We still avoid long-lived background work by cancelling the `DispatchWorkItem`
-//    on `onDisappear`.
-//
 
-// EVENTUAL CONECTIVITY 1: Maria
+
+
 
 import SwiftUI
-import Combine // (Strategy #5 — Combine)
-import Network // UPDATE EVENTUAL CONECTIVITY: Needed to monitor online/offline status via NWPathMonitor.
+import Combine // Strategy #5 — Combine
+import Network // EVENTUAL CONECTIVITY: Needed to monitor online/offline status via NWPathMonitor.
 
 struct OffersUserView: View {
     var embedded: Bool = false
@@ -68,7 +60,7 @@ struct OffersUserView: View {
     @State private var offers: [Offer] = []
     @State private var restaurantsById: [String: Restaurant] = [:]
 
-    // Derived data backed by state (filled via GCD background work)
+    // Derived data backed by state
     @State private var filteredOffers: [Offer] = []
     @State private var groupedOffers: [String: [Offer]] = [:]
 
@@ -91,14 +83,14 @@ struct OffersUserView: View {
     @State private var searchSubject = PassthroughSubject<String, Never>()
     @State private var searchCancellable: AnyCancellable?
 
-    // UPDATE EVENTUAL CONECTIVITY: View-scoped connectivity monitor and banner state (does not touch multithreading paths).
+    //  EVENTUAL CONECTIVITY: View scoped connectivity monitor and banner state
     @StateObject private var connectivity = ConnectivityMonitor()
     @State private var showConnectivityNotice: Bool = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // UPDATE EVENTUAL CONECTIVITY: Show banner only when offline; message only, no button.
+                //  EVENTUAL CONECTIVITY: Show banner only when offline
                 if connectivity.isOffline && showConnectivityNotice {
                     ConnectivityNoticeCard(
                         title: "You're offline",
@@ -154,7 +146,7 @@ struct OffersUserView: View {
             screenStartTime = Date()
             SessionTracker.shared.trackScreenView(ScreenName.offers, category: ScreenCategory.mainNavigation)
 
-            // (Strategy #5 — Combine) Build the debounced search pipeline once.
+            // Strategy #5 — Combine Build the debounced search pipeline once.
             if searchCancellable == nil {
                 searchCancellable = searchSubject
                     .debounce(for: .milliseconds(250), scheduler: DispatchQueue.main) // Wait for user to pause typing
@@ -165,17 +157,17 @@ struct OffersUserView: View {
                     }
             }
 
-            // Recompute derived data once (e.g., when returning to the screen).
+            // Recompute derived data once
             scheduleFilteringAndGrouping(term: searchText, sourceOffers: offers)
 
-            // Seed the pipeline with the current searchText value.
+            // Seed the pipeline with the current searchText value
             searchSubject.send(searchText)
 
-            // UPDATE EVENTUAL CONECTIVITY: Start connectivity monitoring and present banner if currently offline.
+            //  EVENTUAL CONECTIVITY: Start connectivity monitoring and present banner if currently offline
             connectivity.start()
             showConnectivityNotice = connectivity.isOffline
         }
-        // UPDATE EVENTUAL CONECTIVITY: React to connectivity flips; re-show banner on going offline, hide on going online.
+        //  EVENTUAL CONECTIVITY: React to connectivity flips; re-show banner on going offline, hide on going online
         .onReceive(connectivity.$isOffline.removeDuplicates()) { offline in
             showConnectivityNotice = offline
         }
@@ -186,25 +178,25 @@ struct OffersUserView: View {
                                                      duration: duration,
                                                      category: ScreenCategory.mainNavigation)
             }
-            // (Strategy #2 — GCD) Cancel any pending background work when leaving the screen to avoid wasted CPU.
+            // Strategy #2 — GCD Cancel any pending background work when leaving the screen to avoid wasted CPU
             pendingSearchWork?.cancel()
-            // (Strategy #5 — Combine) Stop listening for search changes.
+            // Strategy #5 — Combine Stop listening for search changes.
             searchCancellable?.cancel()
             searchCancellable = nil
 
-            // UPDATE EVENTUAL CONECTIVITY: Stop connectivity monitoring to release resources.
+            //  EVENTUAL CONECTIVITY: Stop connectivity monitoring to release resources.
             connectivity.stop()
         }
-        // Async network load is kept as-is; the GCD strategy applies to post-fetch transformations only.
+
         .task { await load() }
-        // (Strategy #5 — Combine) Publish every keystroke to the Combine pipeline; the pipeline
+        // Strategy #5 — Combine Publish every keystroke to the Combine pipeline; the pipeline
         // will handle debounce and call the GCD-based computation at the right time.
         .onChange(of: searchText) { newTerm in
             searchSubject.send(newTerm)
         }
     }
 
-    // MARK: - Data loading (network I/O remains unchanged)
+    // MARK: - Data loading
     private func load() async {
         DispatchQueue.main.async {
             self.loading = true
@@ -230,7 +222,7 @@ struct OffersUserView: View {
         }
     }
 
-    // MARK: - GCD-backed filtering and grouping  (Strategy #2)
+    // MARK: - GCD-backed filtering and grouping  (trategy #2
     /// Schedules debounced filtering and grouping work on a background queue.
     private func scheduleFilteringAndGrouping(term: String, sourceOffers: [Offer]) {
         // Cancel previously scheduled work if any, to debounce rapid changes.
@@ -241,7 +233,7 @@ struct OffersUserView: View {
         let snapshotOffers = sourceOffers
 
         let work = DispatchWorkItem {
-            // Heavy work: filter and group off the main queue.
+            //  filter and group off the main queue
             let newFiltered: [Offer]
             if snapshotTerm.isEmpty {
                 newFiltered = snapshotOffers
@@ -258,7 +250,7 @@ struct OffersUserView: View {
 
             let newGrouped = Dictionary(grouping: newFiltered, by: { $0.restaurantId })
 
-            // Deliver results to the UI on the main thread.
+            // Deliver results to the UI on the main thread
             DispatchQueue.main.async {
                 self.filteredOffers = newFiltered
                 self.groupedOffers = newGrouped
@@ -271,7 +263,7 @@ struct OffersUserView: View {
     }
 }
 
-// MARK: - UI Section Header (unchanged)
+// MARK: - UI Section Header
 private struct OffersSectionHeader: View {
     let title: String
     var body: some View {
@@ -283,7 +275,7 @@ private struct OffersSectionHeader: View {
     }
 }
 
-// UPDATE EVENTUAL CONECTIVITY: Reusable banner (message only, no button).
+//  EVENTUAL CONECTIVITY:  banner
 private struct ConnectivityNoticeCard: View {
     let title: String
     let message: String
@@ -311,7 +303,7 @@ private struct ConnectivityNoticeCard: View {
     }
 }
 
-// UPDATE EVENTUAL CONECTIVITY: NWPathMonitor wrapper that publishes `isOffline` for the view to react to.
+//  EVENTUAL CONECTIVITY: NWPathMonitor wrapper that publishes isOffline for the view to react to.
 final class ConnectivityMonitor: ObservableObject {
     @Published var isOffline: Bool = false
 

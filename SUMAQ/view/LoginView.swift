@@ -4,12 +4,14 @@
 //
 //  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 //
-//  UPDATE: Added "Remember Me" functionality using Keychain to store last login email.
-//
+
+// LOCAL STORAGE # 3 - Keychain: Maria
+
+//  using Keychain to store last login email.
 
 import SwiftUI
-import Security // UPDATE: Required for Keychain operations through KeychainHelper.
-import SystemConfiguration // UPDATE: Required for network connectivity check.
+import Security // LOCAL STORAGE:  for Keychain operations through KeychainHelper.
+import SystemConfiguration // for network connectivity check.
 
 struct LoginView: View {
     let role: UserType
@@ -74,10 +76,10 @@ struct LoginView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white.ignoresSafeArea())
-            // UPDATE: Preload saved email on view appear using KeychainHelper.
+            // LOCAL STORAGE : Preload saved email on view appear using KeychainHelper
             .onAppear {
-                if let savedEmail = KeychainHelper.shared.getLastLoginEmail() { // UPDATE: Fetch email from Keychain.
-                    user = savedEmail // UPDATE: Prefill email field if exists.
+                if let savedEmail = KeychainHelper.shared.getLastLoginEmail() { // LOCAL STORAGE: Fetch email from Keychain
+                    user = savedEmail // LOCAL STORAGE : Prefill email field if exists.
                 }
             }
         }
@@ -131,7 +133,7 @@ struct LoginView: View {
                 isLoading = false
                 switch result {
                 case .success(let dest):
-                    // UPDATE: Save email securely to Keychain on successful login.
+                    // LOCAL STORAGE : Save email securely to Keychain on successful login.
                     KeychainHelper.shared.saveLastLoginEmail(user)
 
                     switch dest {
