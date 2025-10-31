@@ -21,15 +21,36 @@ final class StorageService {
                          progress: ((Double) -> Void)? = nil,
                          completion: @escaping (Result<String, Error>) -> Void) {
         // Ensure user is authenticated before uploading
-        guard Auth.auth().currentUser != nil else {
+        guard let user = Auth.auth().currentUser else {
             return completion(.failure(NSError(domain: "Storage", code: 401,
                                               userInfo: [NSLocalizedDescriptionKey: "User not authenticated. Please log in again."])))
         }
         
-        // Firebase Storage automatically uses the current user's auth token
-        // If the token is expired, Firebase will refresh it automatically
-        // Proceed directly with upload - Firebase Storage will handle authentication
-        performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
+        // Refresh auth token to ensure it's valid for Storage operations
+        // This is critical after offline login or when coming back online
+        Task {
+            do {
+                // Try to get a fresh token (this will refresh if needed)
+                let _ = try await user.getIDToken(forcingRefresh: false)
+                // Token is valid - proceed with upload on main thread
+                await MainActor.run {
+                    self.performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
+                }
+            } catch {
+                // Token refresh failed - try forcing a refresh
+                do {
+                    let _ = try await user.getIDToken(forcingRefresh: true)
+                    // Token refreshed successfully - proceed with upload
+                    await MainActor.run {
+                        self.performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
+                    }
+                } catch {
+                    // Even forced refresh failed - authentication is not valid
+                    completion(.failure(NSError(domain: "Storage", code: 401,
+                                               userInfo: [NSLocalizedDescriptionKey: "Authentication failed. Please log in again."])))
+                }
+            }
+        }
     }
     
     private func performUpload(data: Data,

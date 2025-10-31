@@ -124,12 +124,13 @@ func loginOffline(completion: @escaping (Result<AppDestination, LoginError>) -> 
                 // Network error but we have valid saved credentials - allow offline login
                 // Firebase Auth may still have persisted state
                 if let currentUser = Auth.auth().currentUser, currentUser.uid == credentials.uid {
+                    // We have a valid persisted Firebase Auth session - proceed
                     let destination: AppDestination = credentials.role == "restaurant" ? .restaurantHome : .userHome
                     return completion(.success(destination))
                 } else {
-                    // No persisted session, but we'll allow offline access with saved credentials
-                    let destination: AppDestination = credentials.role == "restaurant" ? .restaurantHome : .userHome
-                    return completion(.success(destination))
+                    // No persisted Firebase Auth session - cannot authenticate offline
+                    // User must have network to authenticate with Firebase
+                    return completion(.failure(.offlineLoginFailed))
                 }
             } else {
                 // Authentication failed - invalid credentials
