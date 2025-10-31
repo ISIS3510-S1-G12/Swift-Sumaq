@@ -48,7 +48,8 @@ struct ReviewsContent: View {
                             rating: review.stars,
                             comment: review.comment,
                             avatarURL: avatar,
-                            reviewImageURL: review.imageURL
+                            reviewImageURL: review.imageURL,
+                            reviewLocalPath: review.imageLocalPath
                         )
                     }
                 }

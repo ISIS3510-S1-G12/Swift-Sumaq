@@ -552,7 +552,8 @@ private struct ReviewsTab: View {
                         rating: r.stars,
                         comment: r.comment,
                         avatarURL: avatar,
-                        reviewImageURL: r.imageURL
+                        reviewImageURL: r.imageURL,
+                        reviewLocalPath: r.imageLocalPath
                     )
                 }
             }

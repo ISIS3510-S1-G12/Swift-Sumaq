@@ -35,6 +35,8 @@ final class SessionController: ObservableObject {
                 self.currentUser = nil
                 self.currentRestaurant = nil
                 self.role = nil
+                // Clear offline credentials on logout
+                KeychainHelper.shared.deleteOfflineCredentials()
                 NotificationCenter.default.post(name: .authDidLogout, object: nil)
             }
         }

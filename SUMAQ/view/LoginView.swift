@@ -9,6 +9,7 @@
 
 import SwiftUI
 import Security // UPDATE: Required for Keychain operations through KeychainHelper.
+import SystemConfiguration // UPDATE: Required for network connectivity check.
 
 struct LoginView: View {
     let role: UserType
@@ -86,6 +87,45 @@ struct LoginView: View {
         errorMsg = nil
         isLoading = true
 
+        // Check network connectivity
+        if !NetworkHelper.shared.isConnectedToNetwork() {
+            // No internet connection - try offline login
+            // Check if user entered credentials match saved offline credentials
+            if let savedCredentials = KeychainHelper.shared.getOfflineCredentials(),
+               savedCredentials.email.lowercased() == user.lowercased() &&
+               savedCredentials.password == pass {
+                // Credentials match saved offline credentials - proceed with offline login
+                loginOffline { result in
+                    DispatchQueue.main.async {
+                        isLoading = false
+                        switch result {
+                        case .success(let dest):
+                            // Update email in Keychain
+                            KeychainHelper.shared.saveLastLoginEmail(user)
+                            
+                            switch dest {
+                            case .userHome:
+                                goToUserHome = true
+                            case .restaurantHome:
+                                goToRestaurantHome = true
+                            }
+                        case .failure(let e):
+                            errorMsg = e.localizedDescription
+                        }
+                    }
+                }
+                return
+            } else {
+                // No internet and credentials don't match saved credentials
+                DispatchQueue.main.async {
+                    isLoading = false
+                    errorMsg = "No hay conexión a internet. Las credenciales ingresadas no coinciden con las guardadas para inicio de sesión offline."
+                }
+                return
+            }
+        }
+
+        // Has internet connection - proceed with normal login
         login(email: user, password: pass) { result in
             DispatchQueue.main.async {
                 isLoading = false

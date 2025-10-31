@@ -13,10 +13,60 @@ import Combine
 final class ReviewsRepository {
     private let db = Firestore.firestore()
     private let coll = "Reviews"
+    private let local = LocalStore.shared   // acceso a SQLite para offline
 
     private func currentUid() throws -> String {
         if let uid = Auth.auth().currentUser?.uid { return uid }
         throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
+    }
+    
+    // Shared URLSession for downloading images with optimized timeouts
+    private static let imageSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 10.0
+        config.timeoutIntervalForResource = 30.0
+        config.waitsForConnectivity = false
+        config.requestCachePolicy = .returnCacheDataElseLoad
+        return URLSession(configuration: config)
+    }()
+    
+    // MARK: - Helper: Convert ReviewRecord to Review domain model
+    private func toReview(from record: ReviewRecord) -> Review {
+        return Review(
+            id: record.id,
+            userId: record.userId,
+            restaurantId: record.restaurantId,
+            stars: record.stars,
+            comment: record.comment,
+            imageURL: record.imageUrl,
+            createdAt: record.createdAt
+        )
+    }
+    
+    // MARK: - Helper: Save image locally (only for current user's reviews)
+    private func saveImageLocallyIfMine(imageURL: String, reviewId: String, reviewUserId: String) async {
+        // Only save images for current user's reviews
+        guard let currentUserId = Auth.auth().currentUser?.uid,
+              reviewUserId == currentUserId,
+              !imageURL.isEmpty,
+              imageURL.hasPrefix("http") else {
+            return
+        }
+        
+        // Skip if already exists
+        if ReviewImageStore.shared.hasLocalImage(reviewId: reviewId) {
+            return
+        }
+        
+        do {
+            guard let url = URL(string: imageURL) else { return }
+            let (data, _) = try await Self.imageSession.data(from: url)
+            
+            // Save locally (non-blocking, best-effort)
+            try? ReviewImageStore.shared.saveImage(data: data, reviewId: reviewId)
+        } catch {
+            // Non-fatal: silently fail
+        }
     }
 
     func createReview(restaurantId: String,
@@ -36,15 +86,11 @@ final class ReviewsRepository {
         ]
 
         if let data = imageData, !data.isEmpty {
+            // Save image locally for offline access (simple file storage)
             do {
-                let localURL = try LocalFileStore.shared.save(
-                    data: data,
-                    fileName: "\(ref.documentID).jpg",
-                    subfolder: "reviews/\(uid)"
-                )
-                payload["image_local_path"] = localURL.path
+                _ = try ReviewImageStore.shared.saveImage(data: data, reviewId: ref.documentID)
             } catch {
-                print("Local save error: \(error)")
+                // Non-fatal: continue even if local save fails
             }
 
             let path = "reviews/\(uid)/\(ref.documentID).jpg"
@@ -63,6 +109,20 @@ final class ReviewsRepository {
             ref.setData(payload) { err in
                 if let err { cont.resume(throwing: err) }
                 else {
+                    // Save review to SQLite for offline access
+                    // Image was already saved locally above when uploading
+                    Task.detached(priority: .utility) { [local = self.local, ref] in
+                        do {
+                            // Get the created review from Firestore to save locally
+                            if let doc = try? await self.db.collection(self.coll).document(ref.documentID).getDocument(),
+                               let review = Review(doc: doc) {
+                                try? local.reviews.upsert(ReviewRecord(from: review))
+                            }
+                        } catch {
+                            // Non-fatal: cache write failure is ignored
+                        }
+                    }
+                    
                     NotificationCenter.default.post(name: .userReviewsDidChange, object: nil)
                     NotificationCenter.default.post(name: .reviewDidCreate, object: nil)
                     cont.resume(returning: ())
@@ -73,6 +133,66 @@ final class ReviewsRepository {
 
     func listMyReviews() async throws -> [Review] {
         let uid = try currentUid()
+        
+        // Offline-first: Try to read from SQLite first (fast, no loading)
+        let localRecords = (try? local.reviews.listForUser(uid)) ?? []
+        
+        if !localRecords.isEmpty {
+            // We have local data, return it immediately
+            // and refresh from Firestore in background
+            Task.detached { [weak self] in
+                guard let self else { return }
+                do {
+                    let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
+                        self.db.collection(self.coll)
+                            .whereField("user_id", isEqualTo: uid)
+                            .getDocuments { qs, err in
+                                if let err { cont.resume(throwing: err) }
+                                else if let qs { cont.resume(returning: qs) }
+                                else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+                            }
+                    }
+                    
+                    let items = qs.documents.compactMap { Review(doc: $0) }
+                    
+                    // Save to SQLite in background
+                    // Also save images locally for current user's reviews (sync all existing images)
+                    for review in items {
+                        try? self.local.reviews.upsert(ReviewRecord(from: review))
+                        
+                        // Always try to download image if URL exists and not already local
+                        // This ensures existing reviews get their images downloaded
+                        if let imageURL = review.imageURL {
+                            await self.saveImageLocallyIfMine(imageURL: imageURL, reviewId: review.id, reviewUserId: review.userId)
+                        }
+                    }
+                    
+                    // Notify view to refresh if needed (images may now be available)
+                    NotificationCenter.default.post(name: .userReviewsDidChange, object: nil)
+                } catch {
+                    // Background refresh failure is non-fatal
+                }
+            }
+            
+            // Also check local records for missing images and download them in background
+            // This handles the case where reviews exist in SQLite but images weren't downloaded yet
+            Task.detached(priority: .utility) { [weak self] in
+                guard let self else { return }
+                for record in localRecords {
+                    // Only download if URL exists and image not already local
+                    if let imageURL = record.imageUrl, 
+                       !ReviewImageStore.shared.hasLocalImage(reviewId: record.id) {
+                        await self.saveImageLocallyIfMine(imageURL: imageURL, reviewId: record.id, reviewUserId: record.userId)
+                    }
+                }
+            }
+            
+            // Return local data immediately
+            return localRecords.map { toReview(from: $0) }
+                .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+        }
+        
+        // No local data: fetch from Firestore
         let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
             db.collection(coll)
                 .whereField("user_id", isEqualTo: uid)
@@ -84,22 +204,94 @@ final class ReviewsRepository {
         }
 
         let items = qs.documents.compactMap { Review(doc: $0) }
-        return items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+        let sortedItems = items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+        
+        // Save to SQLite for next time (best-effort, non-blocking)
+        // Also save images locally for current user's reviews
+        Task.detached(priority: .utility) { [weak self, local = self.local] in
+            guard let self else { return }
+            for review in sortedItems {
+                try? local.reviews.upsert(ReviewRecord(from: review))
+                
+                // Save image locally if it's the current user's review
+                if let imageURL = review.imageURL {
+                    await self.saveImageLocallyIfMine(imageURL: imageURL, reviewId: review.id, reviewUserId: review.userId)
+                }
+            }
+        }
+        
+        return sortedItems
     }
 
     func listForRestaurant(restaurantId: String) async throws -> [Review] {
-        let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
-            db.collection(coll)
-                .whereField("restaurant_id", isEqualTo: restaurantId)
-                .getDocuments { qs, err in
-                    if let err { cont.resume(throwing: err) }
-                    else if let qs { cont.resume(returning: qs) }
-                    else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+        // Offline-first: Try to read from SQLite first (fast, no loading)
+        let localRecords = (try? local.reviews.listForRestaurant(restaurantId)) ?? []
+        
+        if !localRecords.isEmpty {
+            // We have local data, return it immediately
+            // and refresh from Firestore in background
+            Task.detached { [weak self] in
+                guard let self else { return }
+                do {
+                    let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
+                        self.db.collection(self.coll)
+                            .whereField("restaurant_id", isEqualTo: restaurantId)
+                            .getDocuments { qs, err in
+                                if let err { cont.resume(throwing: err) }
+                                else if let qs { cont.resume(returning: qs) }
+                                else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+                            }
+                    }
+                    
+                    let items = qs.documents.compactMap { Review(doc: $0) }
+                    
+                    // Save to SQLite in background
+                    for review in items {
+                        try? self.local.reviews.upsert(ReviewRecord(from: review))
+                    }
+                    
+                    // Notify view to refresh if needed
+                    NotificationCenter.default.post(name: .userReviewsDidChange, object: nil)
+                } catch {
+                    // Background refresh failure is non-fatal
                 }
+            }
+            
+            // Return local data immediately
+            return localRecords.map { toReview(from: $0) }
+                .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
         }
+        
+        // No local data or online-first: fetch from Firestore
+        // Online-first with offline fallback (similar to restaurants in HomeUserView)
+        do {
+            let qs = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<QuerySnapshot, Error>) in
+                db.collection(coll)
+                    .whereField("restaurant_id", isEqualTo: restaurantId)
+                    .getDocuments { qs, err in
+                        if let err { cont.resume(throwing: err) }
+                        else if let qs { cont.resume(returning: qs) }
+                        else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+                    }
+            }
 
-        let items = qs.documents.compactMap { Review(doc: $0) }
-        return items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+            let items = qs.documents.compactMap { Review(doc: $0) }
+            let sortedItems = items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+            
+            // Save to SQLite in background (best-effort, non-blocking)
+            Task.detached(priority: .utility) { [local = self.local] in
+                for review in sortedItems {
+                    try? local.reviews.upsert(ReviewRecord(from: review))
+                }
+            }
+            
+            return sortedItems
+        } catch {
+            // Fallback to offline: read from SQLite if remote fails
+            let fallbackRecords = (try? local.reviews.listForRestaurant(restaurantId)) ?? []
+            return fallbackRecords.map { toReview(from: $0) }
+                .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+        }
     }
 
     func listForRestaurant(_ restaurantId: String) async throws -> [Review] {
