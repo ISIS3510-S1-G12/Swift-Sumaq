@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseFirestore
+import FirebaseAuth
 
 struct Review: Identifiable {
     let id: String
@@ -16,6 +17,15 @@ struct Review: Identifiable {
     let comment: String
     let imageURL: String?
     let createdAt: Date?
+    
+    // Computed property: local image path (only for current user's reviews)
+    var imageLocalPath: String? {
+        guard let currentUserId = Auth.auth().currentUser?.uid,
+              userId == currentUserId else {
+            return nil
+        }
+        return ReviewImageStore.shared.getImagePath(reviewId: id)
+    }
 
     init?(doc: DocumentSnapshot) {
         let d = doc.data() ?? [:]
@@ -39,5 +49,16 @@ struct Review: Identifiable {
         self.imageURL     = d["imageURL"] as? String
         if let ts = d["createdAt"] as? Timestamp { self.createdAt = ts.dateValue() }
         else { self.createdAt = nil }
+    }
+    
+    // Initializer for creating Review from ReviewRecord (SQLite)
+    init(id: String, userId: String, restaurantId: String, stars: Int, comment: String, imageURL: String?, createdAt: Date?) {
+        self.id = id
+        self.userId = userId
+        self.restaurantId = restaurantId
+        self.stars = stars
+        self.comment = comment
+        self.imageURL = imageURL
+        self.createdAt = createdAt
     }
 }

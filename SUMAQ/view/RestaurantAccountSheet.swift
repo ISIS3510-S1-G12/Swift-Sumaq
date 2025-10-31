@@ -32,6 +32,8 @@ struct RestaurantAccountSheet: View {
                 Button {
                     do {
                         try Auth.auth().signOut()
+                        // Clear offline credentials on logout
+                        KeychainHelper.shared.deleteOfflineCredentials()
                         onLoggedOut?()
                         dismiss()
                     } catch {
