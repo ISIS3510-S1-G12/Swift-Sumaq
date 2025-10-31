@@ -20,16 +20,6 @@ final class ReviewsRepository {
         throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "No session"])
     }
     
-    // Shared URLSession for downloading images with optimized timeouts
-    private static let imageSession: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 10.0
-        config.timeoutIntervalForResource = 30.0
-        config.waitsForConnectivity = false
-        config.requestCachePolicy = .returnCacheDataElseLoad
-        return URLSession(configuration: config)
-    }()
-    
     // MARK: - Helper: Convert ReviewRecord to Review domain model
     private func toReview(from record: ReviewRecord) -> Review {
         return Review(
@@ -41,32 +31,6 @@ final class ReviewsRepository {
             imageURL: record.imageUrl,
             createdAt: record.createdAt
         )
-    }
-    
-    // MARK: - Helper: Save image locally (only for current user's reviews)
-    private func saveImageLocallyIfMine(imageURL: String, reviewId: String, reviewUserId: String) async {
-        // Only save images for current user's reviews
-        guard let currentUserId = Auth.auth().currentUser?.uid,
-              reviewUserId == currentUserId,
-              !imageURL.isEmpty,
-              imageURL.hasPrefix("http") else {
-            return
-        }
-        
-        // Skip if already exists
-        if ReviewImageStore.shared.hasLocalImage(reviewId: reviewId) {
-            return
-        }
-        
-        do {
-            guard let url = URL(string: imageURL) else { return }
-            let (data, _) = try await Self.imageSession.data(from: url)
-            
-            // Save locally (non-blocking, best-effort)
-            try? ReviewImageStore.shared.saveImage(data: data, reviewId: reviewId)
-        } catch {
-            // Non-fatal: silently fail
-        }
     }
 
     func createReview(restaurantId: String,
@@ -156,20 +120,34 @@ final class ReviewsRepository {
                     let items = qs.documents.compactMap { Review(doc: $0) }
                     
                     // Save to SQLite in background
-                    // Also save images locally for current user's reviews
+                    // Also save images locally for current user's reviews (sync all existing images)
                     for review in items {
                         try? self.local.reviews.upsert(ReviewRecord(from: review))
                         
-                        // Save image locally if it's the current user's review
+                        // Always try to download image if URL exists and not already local
+                        // This ensures existing reviews get their images downloaded
                         if let imageURL = review.imageURL {
                             await self.saveImageLocallyIfMine(imageURL: imageURL, reviewId: review.id, reviewUserId: review.userId)
                         }
                     }
                     
-                    // Notify view to refresh if needed
+                    // Notify view to refresh if needed (images may now be available)
                     NotificationCenter.default.post(name: .userReviewsDidChange, object: nil)
                 } catch {
                     // Background refresh failure is non-fatal
+                }
+            }
+            
+            // Also check local records for missing images and download them in background
+            // This handles the case where reviews exist in SQLite but images weren't downloaded yet
+            Task.detached(priority: .utility) { [weak self] in
+                guard let self else { return }
+                for record in localRecords {
+                    // Only download if URL exists and image not already local
+                    if let imageURL = record.imageUrl, 
+                       !ReviewImageStore.shared.hasLocalImage(reviewId: record.id) {
+                        await self.saveImageLocallyIfMine(imageURL: imageURL, reviewId: record.id, reviewUserId: record.userId)
+                    }
                 }
             }
             

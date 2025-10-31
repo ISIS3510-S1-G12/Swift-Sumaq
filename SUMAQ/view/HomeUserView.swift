@@ -43,6 +43,9 @@ struct UserHomeView: View {
     @State private var showNewRestaurantNotification = false
     private let visitsRepo = VisitsRepository()
     
+    // Network connectivity
+    @State private var hasInternetConnection = true
+    
     // Screen tracking
     @State private var screenStartTime: Date?
 
@@ -79,15 +82,40 @@ struct UserHomeView: View {
                 )
                 .padding(.horizontal, 16)
 
-                OSMMapView(
-                    annotations: mapCtrl.annotations,
-                    center: mapCtrl.center ?? CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
-                    showsUserLocation: true
-                )
-                .frame(height: 240)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .padding(.horizontal, 16)
+                // Show map only if there's internet connection
+                if hasInternetConnection {
+                    OSMMapView(
+                        annotations: mapCtrl.annotations,
+                        center: mapCtrl.center ?? CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
+                        showsUserLocation: true
+                    )
+                    .frame(height: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 16)
+                } else {
+                    // Show message when no internet connection
+                    VStack(spacing: 12) {
+                        Image(systemName: "wifi.slash")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+                        
+                        Text("Problemas de conexión")
+                            .font(.custom("Montserrat-SemiBold", size: 16))
+                            .foregroundColor(.primary)
+                        
+                        Text("No se puede mostrar el mapa debido a problemas de conexión")
+                            .font(.custom("Montserrat-Regular", size: 14))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                    }
+                    .frame(height: 240)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 16)
+                }
 
                 // Mealtime banner
                 MealTimeBanner(meal: MealTime.nowInColombia())
@@ -141,6 +169,13 @@ struct UserHomeView: View {
             SessionTracker.shared.trackScreenView(ScreenName.home, category: ScreenCategory.mainNavigation)
             AnalyticsService.shared.screenStart(ScreenName.home)
             LocationPermissionLogger.shared.startObserving()
+            
+            // Check internet connection
+            checkInternetConnection()
+        }
+        .onChange(of: selectedTab) { _ in
+            // Re-check internet connection when tab changes
+            checkInternetConnection()
         }
         .onDisappear {
             if let startTime = screenStartTime {
@@ -277,6 +312,19 @@ struct UserHomeView: View {
         let endOfDay = calendar.startOfDay(for: now)
         let components = calendar.dateComponents([.day], from: startOfDay, to: endOfDay)
         return components.day ?? 0
+    }
+    
+    // MARK: - Network Connectivity
+    private func checkInternetConnection() {
+        // Use simple synchronous check for immediate UI update
+        hasInternetConnection = NetworkHelper.shared.isConnectedToNetwork()
+        
+        // Also use async check for more accurate result
+        NetworkHelper.shared.checkNetworkConnection { isConnected in
+            Task { @MainActor in
+                self.hasInternetConnection = isConnected
+            }
+        }
     }
 }
 

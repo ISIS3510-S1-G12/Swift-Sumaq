@@ -17,6 +17,7 @@ struct ReviewHistoryUserView: View {
     @State private var userName: String = "You"
     @State private var userAvatarURL: String = ""
     @State private var restaurantsById: [String: Restaurant] = [:]
+    @State private var isLoadingData = false
 
     private let reviewsRepo = ReviewsRepository()
     private let usersRepo = UsersRepository()
@@ -53,6 +54,7 @@ struct ReviewHistoryUserView: View {
                                 comment: r.comment,
                                 avatarURL: session.currentUser?.profilePictureURL ?? userAvatarURL,
                                 reviewImageURL: r.imageURL,
+                                reviewLocalPath: r.imageLocalPath
                             )
                         }
                     }
@@ -79,8 +81,15 @@ struct ReviewHistoryUserView: View {
     }
 
     private func load() async {
+        // Prevent multiple simultaneous loads
+        guard !isLoadingData else { return }
+        isLoadingData = true
+        
         loading = true; error = nil
-        defer { loading = false }
+        defer { 
+            loading = false
+            isLoadingData = false
+        }
         
         do {
             // Use GCD to parallelize independent operations
