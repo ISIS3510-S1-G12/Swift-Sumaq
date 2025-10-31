@@ -50,15 +50,11 @@ final class ReviewsRepository {
         ]
 
         if let data = imageData, !data.isEmpty {
+            // Save image locally for offline access (simple file storage)
             do {
-                let localURL = try LocalFileStore.shared.save(
-                    data: data,
-                    fileName: "\(ref.documentID).jpg",
-                    subfolder: "reviews/\(uid)"
-                )
-                payload["image_local_path"] = localURL.path
+                _ = try ReviewImageStore.shared.saveImage(data: data, reviewId: ref.documentID)
             } catch {
-                print("Local save error: \(error)")
+                // Non-fatal: continue even if local save fails
             }
 
             let path = "reviews/\(uid)/\(ref.documentID).jpg"
@@ -78,6 +74,7 @@ final class ReviewsRepository {
                 if let err { cont.resume(throwing: err) }
                 else {
                     // Save review to SQLite for offline access
+                    // Image was already saved locally above when uploading
                     Task.detached(priority: .utility) { [local = self.local, ref] in
                         do {
                             // Get the created review from Firestore to save locally
@@ -123,8 +120,14 @@ final class ReviewsRepository {
                     let items = qs.documents.compactMap { Review(doc: $0) }
                     
                     // Save to SQLite in background
+                    // Also save images locally for current user's reviews
                     for review in items {
                         try? self.local.reviews.upsert(ReviewRecord(from: review))
+                        
+                        // Save image locally if it's the current user's review
+                        if let imageURL = review.imageURL {
+                            await self.saveImageLocallyIfMine(imageURL: imageURL, reviewId: review.id, reviewUserId: review.userId)
+                        }
                     }
                     
                     // Notify view to refresh if needed
@@ -154,9 +157,16 @@ final class ReviewsRepository {
         let sortedItems = items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
         
         // Save to SQLite for next time (best-effort, non-blocking)
-        Task.detached(priority: .utility) { [local = self.local] in
+        // Also save images locally for current user's reviews
+        Task.detached(priority: .utility) { [weak self, local = self.local] in
+            guard let self else { return }
             for review in sortedItems {
                 try? local.reviews.upsert(ReviewRecord(from: review))
+                
+                // Save image locally if it's the current user's review
+                if let imageURL = review.imageURL {
+                    await self.saveImageLocallyIfMine(imageURL: imageURL, reviewId: review.id, reviewUserId: review.userId)
+                }
             }
         }
         
