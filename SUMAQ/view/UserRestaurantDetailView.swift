@@ -24,6 +24,10 @@ struct UserRestaurantDetailView: View {
     
     // Network connectivity for reviews
     @State private var hasInternetConnectionReviews = true
+    
+    // Navigation and alert states for "Do a review"
+    @State private var showAddReview = false
+    @State private var showOfflineAlert = false
 
     private let usersRepo = UsersRepository()
     @State private var markingFavorite = false
@@ -158,30 +162,45 @@ struct UserRestaurantDetailView: View {
                 }
 
                 if selectedTab == 2 {
-                    NavigationLink {
-                        AddReviewView(restaurant: restaurant)
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "square.and.pencil")
-                            Text("Do a review")
-                                .font(.custom("Montserrat-SemiBold", size: 16))
+                    HStack {
+                        Button {
+                            // Check internet connection before navigating
+                            if NetworkHelper.shared.isConnectedToNetwork() {
+                                showAddReview = true
+                                AnalyticsService.shared.log(EventName.reviewTap, [
+                                    "screen": ScreenName.restaurantDetail,
+                                    "restaurant_id": restaurant.id
+                                ])
+                            } else {
+                                showOfflineAlert = true
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "square.and.pencil")
+                                Text("Do a review")
+                                    .font(.custom("Montserrat-SemiBold", size: 16))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 24)
+                            .background(Palette.burgundy)
+                            .clipShape(Capsule())
+                            .shadow(radius: 2, y: 1)
                         }
-                        .foregroundColor(.white)
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 24)
-                        .background(Palette.burgundy)
-                        .clipShape(Capsule())
-                        .shadow(radius: 2, y: 1)
+                        NavigationLink(destination: AddReviewView(restaurant: restaurant),
+                                     isActive: $showAddReview) {
+                            EmptyView()
+                        }
+                        .hidden()
                     }
-                    .simultaneousGesture(TapGesture().onEnded {
-                        AnalyticsService.shared.log(EventName.reviewTap, [
-                            "screen": ScreenName.restaurantDetail,
-                            "restaurant_id": restaurant.id
-                        ])
-                    })
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
+                    .alert("No internet connection", isPresented: $showOfflineAlert) {
+                        Button("OK", role: .cancel) { }
+                    } message: {
+                        Text("We know your opinion is important, but please try again when you have an internet connection. Reviews need to be uploaded to be saved.")
+                    }
                 }
 
                 Group {

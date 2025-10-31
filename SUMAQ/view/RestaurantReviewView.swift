@@ -18,6 +18,8 @@ struct ReviewsContent: View {
     
     // Network connectivity
     @State private var hasInternetConnection = true
+    @State private var hasCheckedConnectivity = false
+    @State private var isLoadingData = false
     
     private let reviewsRepo = ReviewsRepository()
     private let usersRepo = UsersRepository()
@@ -91,12 +93,21 @@ struct ReviewsContent: View {
             .padding(.bottom, 32)
         }
         .onAppear {
-            // Check internet connection
-            checkInternetConnection()
+            // Check internet connection only once
+            if !hasCheckedConnectivity {
+                checkInternetConnection()
+                hasCheckedConnectivity = true
+            }
         }
-        .task { await loadReviews() }
+        .task {
+            guard !isLoadingData else { return }
+            await loadReviews()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .userReviewsDidChange)) { _ in
-            Task { await loadReviews() }
+            Task {
+                guard !isLoadingData else { return }
+                await loadReviews()
+            }
         }
     }
     
@@ -105,10 +116,12 @@ struct ReviewsContent: View {
         // Use simple synchronous check for immediate UI update
         hasInternetConnection = NetworkHelper.shared.isConnectedToNetwork()
         
-        // Also use async check for more accurate result
+        // Also use async check for more accurate result (only update if different to avoid unnecessary re-renders)
         NetworkHelper.shared.checkNetworkConnection { isConnected in
             Task { @MainActor in
-                self.hasInternetConnection = isConnected
+                if self.hasInternetConnection != isConnected {
+                    self.hasInternetConnection = isConnected
+                }
             }
         }
     }
@@ -116,11 +129,20 @@ struct ReviewsContent: View {
     private func loadReviews() async {
         guard let restaurantId = session.currentRestaurant?.id else { return }
         
+        // Prevent multiple simultaneous loads
+        guard !isLoadingData else { return }
+        isLoadingData = true
+        
         loading = true
         error = nil
-        defer { loading = false }
+        defer { 
+            loading = false
+            isLoadingData = false
+        }
         
         do {
+            // Check for cancellation before proceeding
+            try Task.checkCancellation()
             let list = try await reviewsRepo.listForRestaurant(restaurantId)
             self.reviews = list
             
