@@ -191,6 +191,27 @@ struct ReviewsContent: View {
             return 
         }
         
+        // Check cache first for immediate display
+        let cache = UserBasicDataCache.shared
+        let cachedData = cache.getUsersData(userIds: ids)
+        
+        if !cachedData.isEmpty {
+            var names: [String: String] = [:]
+            var avatars: [String: String] = [:]
+            for (userId, data) in cachedData {
+                names[userId] = data.name
+                if let url = data.avatarURL, !url.isEmpty {
+                    avatars[userId] = url
+                }
+            }
+            // Update UI immediately with cached data
+            await MainActor.run {
+                self.userNamesById.merge(names) { _, new in new }
+                self.userAvatarsById.merge(avatars) { _, new in new }
+            }
+        }
+        
+        // Fetch fresh data in background (populates cache automatically)
         do {
             let users = try await usersRepo.getManyBasic(ids: ids)
             var names: [String: String] = [:]
@@ -201,6 +222,7 @@ struct ReviewsContent: View {
                     avatars[user.id] = url
                 }
             }
+            // Update UI with fresh data
             await MainActor.run {
                 self.userNamesById = names
                 self.userAvatarsById = avatars
