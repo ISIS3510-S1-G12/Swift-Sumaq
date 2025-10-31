@@ -21,6 +21,9 @@ struct UserRestaurantDetailView: View {
     @State private var errorReviews: String?
     @State private var userNamesById: [String: String] = [:]
     @State private var userAvatarsById: [String: String] = [:]
+    
+    // Network connectivity for reviews
+    @State private var hasInternetConnectionReviews = true
 
     private let usersRepo = UsersRepository()
     @State private var markingFavorite = false
@@ -192,7 +195,8 @@ struct UserRestaurantDetailView: View {
                                    loading: loadingReviews,
                                    error: errorReviews,
                                    userNamesById: userNamesById,
-                                   userAvatarsById: userAvatarsById)
+                                   userAvatarsById: userAvatarsById,
+                                   hasInternetConnection: hasInternetConnectionReviews)
                     default:
                         MenuTab(dishes: dishes, loading: loadingMenu, error: errorMenu)
                     }
@@ -214,6 +218,8 @@ struct UserRestaurantDetailView: View {
             Task { await loadFavoriteState() }
         }
         .onAppear {
+            // Check internet connection for reviews
+            checkInternetConnectionReviews()
             screenStartTime = Date()
             AnalyticsService.shared.screenStart(ScreenName.restaurantDetail)
             AnalyticsService.shared.log(EventName.restaurantVisit, [
@@ -379,6 +385,19 @@ extension UserRestaurantDetailView {
             self.errorReviews = error.localizedDescription
         }
     }
+    
+    // MARK: - Network Connectivity for Reviews
+    private func checkInternetConnectionReviews() {
+        // Use simple synchronous check for immediate UI update
+        hasInternetConnectionReviews = NetworkHelper.shared.isConnectedToNetwork()
+        
+        // Also use async check for more accurate result
+        NetworkHelper.shared.checkNetworkConnection { isConnected in
+            Task { @MainActor in
+                self.hasInternetConnectionReviews = isConnected
+            }
+        }
+    }
 }
 
 extension UserRestaurantDetailView {
@@ -536,13 +555,47 @@ private struct ReviewsTab: View {
     let error: String?
     let userNamesById: [String: String]
     let userAvatarsById: [String: String]
+    let hasInternetConnection: Bool
 
     var body: some View {
         VStack(spacing: 12) {
-            if loading { ProgressView().padding() }
-            else if let error { Text(error).foregroundColor(.red) }
-            else if reviews.isEmpty { Text("No reviews yet").foregroundColor(.secondary) }
-            else {
+            if loading {
+                ProgressView().padding()
+                Text("Loading Reviews…")
+                    .font(.custom("Montserrat-Regular", size: 14))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Text("If you are having a slow connection or if you are offline, we will show you the saved reviews in a moment.")
+                    .font(.custom("Montserrat-Regular", size: 12))
+                    .foregroundStyle(.secondary.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            } else if let error {
+                VStack(spacing: 12) {
+                    if !hasInternetConnection {
+                        Image(systemName: "wifi.slash")
+                            .font(.system(size: 32, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Text("No internet connection")
+                            .font(.custom("Montserrat-SemiBold", size: 16))
+                            .foregroundStyle(.primary)
+                        Text("We couldn't load the reviews. Please check your internet connection and try again.")
+                            .font(.custom("Montserrat-Regular", size: 14))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    } else {
+                        Text(error)
+                            .font(.custom("Montserrat-Regular", size: 14))
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+                }
+                .padding(.vertical, 16)
+            } else if reviews.isEmpty {
+                Text("No reviews yet").foregroundColor(.secondary)
+            } else {
                 ForEach(reviews) { r in
                     let author = userNamesById[r.userId] ?? "#\(r.userId.suffix(5))"
                     let avatar = userAvatarsById[r.userId] ?? ""

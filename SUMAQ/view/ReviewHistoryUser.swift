@@ -19,6 +19,9 @@ struct ReviewHistoryUserView: View {
     @State private var restaurantsById: [String: Restaurant] = [:]
     @State private var isLoadingData = false
 
+    // Network connectivity
+    @State private var hasInternetConnection = true
+
     private let reviewsRepo = ReviewsRepository()
     private let usersRepo = UsersRepository()
     private let restaurantsRepo = RestaurantsRepository()
@@ -39,8 +42,38 @@ struct ReviewHistoryUserView: View {
 
                 if loading {
                     ProgressView().padding()
+                    Text("Loading your Reviews…")
+                        .font(.custom("Montserrat-Regular", size: 14))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    Text("If you are having a slow connection or if you are offline, we will show you your saved reviews in a moment.")
+                        .font(.custom("Montserrat-Regular", size: 12))
+                        .foregroundStyle(.secondary.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
                 } else if let error {
-                    Text(error).foregroundColor(.red).padding(.horizontal, 16)
+                    VStack(spacing: 12) {
+                        if !hasInternetConnection {
+                            Image(systemName: "wifi.slash")
+                                .font(.system(size: 32, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            Text("No internet connection")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                                .foregroundStyle(.primary)
+                            Text("We couldn't load your reviews. Please check your internet connection and try again.")
+                                .font(.custom("Montserrat-Regular", size: 14))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        } else {
+                            Text(error)
+                                .font(.custom("Montserrat-Regular", size: 14))
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        }
+                    }
+                    .padding(.vertical, 16)
                 } else if filtered.isEmpty {
                     Text("No reviews yet").foregroundColor(.secondary).padding()
                 } else {
@@ -65,6 +98,10 @@ struct ReviewHistoryUserView: View {
             .padding(.top, embedded ? 0 : 8)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
+        .onAppear {
+            // Check internet connection
+            checkInternetConnection()
+        }
         .task { await load() }
         .onReceive(NotificationCenter.default.publisher(for: .userReviewsDidChange)) { _ in
             Task { await load() }
@@ -167,6 +204,19 @@ struct ReviewHistoryUserView: View {
             self.restaurantsById = Dictionary(uniqueKeysWithValues: restsResult.map { ($0.id, $0) })
         } catch {
             self.error = error.localizedDescription
+        }
+    }
+
+    // MARK: - Network Connectivity
+    private func checkInternetConnection() {
+        // Use simple synchronous check for immediate UI update
+        hasInternetConnection = NetworkHelper.shared.isConnectedToNetwork()
+        
+        // Also use async check for more accurate result
+        NetworkHelper.shared.checkNetworkConnection { isConnected in
+            Task { @MainActor in
+                self.hasInternetConnection = isConnected
+            }
         }
     }
 }

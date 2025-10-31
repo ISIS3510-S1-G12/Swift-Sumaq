@@ -16,6 +16,9 @@ struct ReviewsContent: View {
     @State private var loading = true
     @State private var error: String?
     
+    // Network connectivity
+    @State private var hasInternetConnection = true
+    
     private let reviewsRepo = ReviewsRepository()
     private let usersRepo = UsersRepository()
     
@@ -34,8 +37,38 @@ struct ReviewsContent: View {
 
                 if loading {
                     ProgressView().padding()
+                    Text("Loading Reviews…")
+                        .font(.custom("Montserrat-Regular", size: 14))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    Text("If you are having a slow connection or if you are offline, we will show you the saved reviews in a moment.")
+                        .font(.custom("Montserrat-Regular", size: 12))
+                        .foregroundStyle(.secondary.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
                 } else if let error {
-                    Text(error).foregroundColor(.red).padding(.horizontal, 16)
+                    VStack(spacing: 12) {
+                        if !hasInternetConnection {
+                            Image(systemName: "wifi.slash")
+                                .font(.system(size: 32, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            Text("No internet connection")
+                                .font(.custom("Montserrat-SemiBold", size: 16))
+                                .foregroundStyle(.primary)
+                            Text("We couldn't load the reviews. Please check your internet connection and try again.")
+                                .font(.custom("Montserrat-Regular", size: 14))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        } else {
+                            Text(error)
+                                .font(.custom("Montserrat-Regular", size: 14))
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        }
+                    }
+                    .padding(.vertical, 16)
                 } else if reviews.isEmpty {
                     Text("No reviews yet").foregroundColor(.secondary).padding(.horizontal, 16)
                 } else {
@@ -57,9 +90,26 @@ struct ReviewsContent: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
         }
+        .onAppear {
+            // Check internet connection
+            checkInternetConnection()
+        }
         .task { await loadReviews() }
         .onReceive(NotificationCenter.default.publisher(for: .userReviewsDidChange)) { _ in
             Task { await loadReviews() }
+        }
+    }
+    
+    // MARK: - Network Connectivity
+    private func checkInternetConnection() {
+        // Use simple synchronous check for immediate UI update
+        hasInternetConnection = NetworkHelper.shared.isConnectedToNetwork()
+        
+        // Also use async check for more accurate result
+        NetworkHelper.shared.checkNetworkConnection { isConnected in
+            Task { @MainActor in
+                self.hasInternetConnection = isConnected
+            }
         }
     }
     
