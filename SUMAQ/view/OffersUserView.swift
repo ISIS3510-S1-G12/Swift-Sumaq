@@ -50,10 +50,11 @@
 //    on `onDisappear`.
 //
 
-//
+// EVENTUAL CONECTIVITY 1: Maria
 
 import SwiftUI
 import Combine // (Strategy #5 — Combine)
+import Network // UPDATE EVENTUAL CONECTIVITY: Needed to monitor online/offline status via NWPathMonitor.
 
 struct OffersUserView: View {
     var embedded: Bool = false
@@ -90,9 +91,23 @@ struct OffersUserView: View {
     @State private var searchSubject = PassthroughSubject<String, Never>()
     @State private var searchCancellable: AnyCancellable?
 
+    // UPDATE EVENTUAL CONECTIVITY: View-scoped connectivity monitor and banner state (does not touch multithreading paths).
+    @StateObject private var connectivity = ConnectivityMonitor()
+    @State private var showConnectivityNotice: Bool = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // UPDATE EVENTUAL CONECTIVITY: Show banner only when offline; message only, no button.
+                if connectivity.isOffline && showConnectivityNotice {
+                    ConnectivityNoticeCard(
+                        title: "You're offline",
+                        message: "You are viewing saved offers from your recent visits on this device. Updates and redemptions will be queued and retried when the connection returns."
+                    )
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 if !embedded {
                     TopBar()
                     SegmentedTabs(selectedIndex: $selectedTab)
@@ -155,6 +170,14 @@ struct OffersUserView: View {
 
             // Seed the pipeline with the current searchText value.
             searchSubject.send(searchText)
+
+            // UPDATE EVENTUAL CONECTIVITY: Start connectivity monitoring and present banner if currently offline.
+            connectivity.start()
+            showConnectivityNotice = connectivity.isOffline
+        }
+        // UPDATE EVENTUAL CONECTIVITY: React to connectivity flips; re-show banner on going offline, hide on going online.
+        .onReceive(connectivity.$isOffline.removeDuplicates()) { offline in
+            showConnectivityNotice = offline
         }
         .onDisappear {
             if let startTime = screenStartTime {
@@ -168,6 +191,9 @@ struct OffersUserView: View {
             // (Strategy #5 — Combine) Stop listening for search changes.
             searchCancellable?.cancel()
             searchCancellable = nil
+
+            // UPDATE EVENTUAL CONECTIVITY: Stop connectivity monitoring to release resources.
+            connectivity.stop()
         }
         // Async network load is kept as-is; the GCD strategy applies to post-fetch transformations only.
         .task { await load() }
@@ -254,5 +280,54 @@ private struct OffersSectionHeader: View {
             .foregroundStyle(Palette.purple)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 6)
+    }
+}
+
+// UPDATE EVENTUAL CONECTIVITY: Reusable banner (message only, no button).
+private struct ConnectivityNoticeCard: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.custom("Montserrat-Bold", size: 16))
+                .foregroundColor(.primary)
+            Text(message)
+                .font(.custom("Montserrat-Regular", size: 14))
+                .foregroundColor(.secondary)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color(.tertiaryLabel), lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(title). \(message)"))
+    }
+}
+
+// UPDATE EVENTUAL CONECTIVITY: NWPathMonitor wrapper that publishes `isOffline` for the view to react to.
+final class ConnectivityMonitor: ObservableObject {
+    @Published var isOffline: Bool = false
+
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "sumaq.connectivity.monitor")
+
+    func start() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.isOffline = (path.status != .satisfied)
+            }
+        }
+        monitor.start(queue: queue)
+    }
+
+    func stop() {
+        monitor.cancel()
     }
 }

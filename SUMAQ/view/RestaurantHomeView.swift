@@ -5,6 +5,9 @@
 //  Created by RODRIGO PAZ LONDOÑO on 20/09/25.
 
 // LOCAL STORAGE STRATEGY # 2 UserDefaults : Maria
+
+// EVENTUAL CONECTIVITY 3  : Maria
+
 //
 //  UPDATE: Offline-first for dishes using UserDefaults (key–value storage)
 //  ----------------------------------------------------------------------
@@ -30,6 +33,7 @@
 import SwiftUI
 import MapKit
 import FirebaseAuth
+import Network // UPDATE EVENTUAL CONECTIVITY: Needed to observe online/offline status via NWPathMonitor.
 
 struct RestaurantHomeView: View {
     // 0 = Menú, 1 = Offers, 2 = Review
@@ -183,6 +187,10 @@ private struct MenuContent: View {
     // UPDATE: Optional "Last updated" label fed by UserDefaults.
     @State private var lastSyncAt: Date?
 
+    // UPDATE EVENTUAL CONECTIVITY: View-scoped connectivity monitor and banner state; does not change existing data logic.
+    @StateObject private var connectivity = HomeConnectivityMonitor()
+    @State private var showConnectivityNotice: Bool = false
+
     var body: some View {
         VStack(spacing: 16) {
 
@@ -210,6 +218,16 @@ private struct MenuContent: View {
             } else if dishes.isEmpty {
                 Text("No dishes yet").foregroundColor(.secondary).padding()
             } else {
+                // UPDATE EVENTUAL CONECTIVITY: Show the offline notice above the cards when device is offline.
+                if connectivity.isOffline && showConnectivityNotice {
+                    ConnectivityNoticeCard(
+                        title: "You're offline",
+                        message: "You are viewing saved menu items for this restaurant on this device. Create or update actions will be queued and retried when the connection returns."
+                    )
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 VStack(spacing: 12) {
                     ForEach(dishes) { d in
                         RestaurantDishCard(
@@ -244,6 +262,17 @@ private struct MenuContent: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
+        }
+        // UPDATE EVENTUAL CONECTIVITY: Start/stop monitoring and sync banner with reachability changes.
+        .onAppear {
+            connectivity.start()
+            showConnectivityNotice = connectivity.isOffline
+        }
+        .onReceive(connectivity.$isOffline.removeDuplicates()) { offline in
+            showConnectivityNotice = offline
+        }
+        .onDisappear {
+            connectivity.stop()
         }
         // UPDATE: Offline-first loader. Renders KV snapshot first, then fetches remote and updates KV.
         .task { await loadOfflineFirst() }
@@ -322,5 +351,54 @@ private struct SmallCapsuleButton: View {
             .background(background)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
+    }
+}
+
+// UPDATE EVENTUAL CONECTIVITY: Reusable banner (message only, no button).
+private struct ConnectivityNoticeCard: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.custom("Montserrat-Bold", size: 16))
+                .foregroundColor(.primary)
+            Text(message)
+                .font(.custom("Montserrat-Regular", size: 14))
+                .foregroundColor(.secondary)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color(.tertiaryLabel), lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(title). \(message)"))
+    }
+}
+
+// UPDATE EVENTUAL CONECTIVITY: View-local NWPathMonitor wrapper to publish `isOffline` for this screen.
+final class HomeConnectivityMonitor: ObservableObject {
+    @Published var isOffline: Bool = false
+
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "sumaq.connectivity.monitor.restaurant.home")
+
+    func start() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.isOffline = (path.status != .satisfied)
+            }
+        }
+        monitor.start(queue: queue)
+    }
+
+    func stop() {
+        monitor.cancel()
     }
 }
