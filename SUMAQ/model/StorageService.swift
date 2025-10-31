@@ -20,32 +20,16 @@ final class StorageService {
                          contentType: String? = nil,
                          progress: ((Double) -> Void)? = nil,
                          completion: @escaping (Result<String, Error>) -> Void) {
-        // Ensure user is authenticated and token is fresh before uploading
-        guard let user = Auth.auth().currentUser else {
+        // Ensure user is authenticated before uploading
+        guard Auth.auth().currentUser != nil else {
             return completion(.failure(NSError(domain: "Storage", code: 401,
                                               userInfo: [NSLocalizedDescriptionKey: "User not authenticated. Please log in again."])))
         }
         
-        // Refresh the auth token to ensure it's valid for Storage operations
-        user.getIDToken(forcingRefresh: false) { token, tokenError in
-            if let tokenError {
-                // If token refresh fails, try forcing a refresh
-                user.getIDToken(forcingRefresh: true) { refreshedToken, forceRefreshError in
-                    if let forceRefreshError {
-                        return completion(.failure(NSError(domain: "Storage", code: 401,
-                                                           userInfo: [NSLocalizedDescriptionKey: "Authentication failed. Please log in again."])))
-                    }
-                    // Token refreshed, proceed with upload
-                    self.performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
-                }
-            } else if token != nil {
-                // Token is valid, proceed with upload
-                self.performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
-            } else {
-                return completion(.failure(NSError(domain: "Storage", code: 401,
-                                                   userInfo: [NSLocalizedDescriptionKey: "Authentication failed. Please log in again."])))
-            }
-        }
+        // Firebase Storage automatically uses the current user's auth token
+        // If the token is expired, Firebase will refresh it automatically
+        // Proceed directly with upload - Firebase Storage will handle authentication
+        performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
     }
     
     private func performUpload(data: Data,
