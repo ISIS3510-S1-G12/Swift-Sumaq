@@ -27,17 +27,17 @@ final class StorageService {
         }
         
         // Refresh the auth token to ensure it's valid for Storage operations
-        user.getIDToken(forcingRefresh: false) { token, tokenError in
+        user.getIDToken(forcingRefresh: false, completion: { token, tokenError in
             if let tokenError {
                 // If token refresh fails, try forcing a refresh
-                user.getIDToken(forcingRefresh: true) { refreshedToken, forceRefreshError in
+                user.getIDToken(forcingRefresh: true, completion: { refreshedToken, forceRefreshError in
                     if let forceRefreshError {
                         return completion(.failure(NSError(domain: "Storage", code: 401,
                                                            userInfo: [NSLocalizedDescriptionKey: "Authentication failed. Please log in again."])))
                     }
                     // Token refreshed, proceed with upload
                     self.performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
-                }
+                })
             } else if token != nil {
                 // Token is valid, proceed with upload
                 self.performUpload(data: data, path: path, contentType: contentType, progress: progress, completion: completion)
@@ -45,7 +45,7 @@ final class StorageService {
                 return completion(.failure(NSError(domain: "Storage", code: 401,
                                                    userInfo: [NSLocalizedDescriptionKey: "Authentication failed. Please log in again."])))
             }
-        }
+        })
     }
     
     private func performUpload(data: Data,
