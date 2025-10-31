@@ -40,4 +40,15 @@ struct Review: Identifiable {
         if let ts = d["createdAt"] as? Timestamp { self.createdAt = ts.dateValue() }
         else { self.createdAt = nil }
     }
+    
+    // Initializer for creating Review from ReviewRecord (SQLite)
+    init(id: String, userId: String, restaurantId: String, stars: Int, comment: String, imageURL: String?, createdAt: Date?) {
+        self.id = id
+        self.userId = userId
+        self.restaurantId = restaurantId
+        self.stars = stars
+        self.comment = comment
+        self.imageURL = imageURL
+        self.createdAt = createdAt
+    }
 }

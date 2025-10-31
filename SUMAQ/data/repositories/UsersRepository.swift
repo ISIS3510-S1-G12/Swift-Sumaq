@@ -290,6 +290,14 @@ extension UsersRepository {
             }
             result.append(contentsOf: qs.documents.compactMap { AppUser(doc: $0) })
         }
+        
+        // Save users to SQLite for offline access (best-effort, non-blocking)
+        Task.detached(priority: .utility) { [local = self.local] in
+            for user in result {
+                try? local.users.upsert(UserRecord(from: user))
+            }
+        }
+        
         return result
     }
 }
