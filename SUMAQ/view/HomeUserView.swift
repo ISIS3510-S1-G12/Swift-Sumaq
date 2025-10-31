@@ -95,25 +95,24 @@ struct UserHomeView: View {
                     .padding(.horizontal, 16)
                 } else {
                     // Show message when no internet connection
-                    VStack(spacing: 12) {
-                        Image(systemName: "wifi.slash")
-                            .font(.system(size: 32))
-                            .foregroundColor(.secondary)
-                        
-                        Text("Problemas de conexión")
-                            .font(.custom("Montserrat-SemiBold", size: 16))
-                            .foregroundColor(.primary)
-                        
-                        Text("No se puede mostrar el mapa debido a problemas de conexión")
-                            .font(.custom("Montserrat-Regular", size: 14))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 16)
-                    }
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
                     .frame(height: 240)
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        VStack(spacing: 6) {
+                            Image(systemName: "wifi.slash")
+                                .font(.system(size: 26, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            Text("Map is not available right now.")
+                                .font(.custom("Montserrat-SemiBold", size: 14))
+                                .foregroundStyle(.primary)
+                            Text("We couldn’t download the map tiles. You can still browse restaurants below.")
+                                .font(.custom("Montserrat-Regular", size: 11))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        }
+                    )
                     .padding(.horizontal, 16)
                 }
 
@@ -129,6 +128,15 @@ struct UserHomeView: View {
 
                 if loading {
                     ProgressView().padding()
+                    Text("Loading Home…")
+                    .font(.custom("Montserrat-Regular", size: 14))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    Text("If you are having a slow connection or if you are offline, we will show you the restaurant's location and information as soon as we have data for you. Thank you for your patience!")
+                    .font(.custom("Montserrat-Regular", size: 12))
+                    .foregroundStyle(.secondary.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
                 } else if let error {
                     Text(error).foregroundColor(.red).padding(.horizontal, 16)
                 } else if filtered.isEmpty {
