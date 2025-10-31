@@ -70,16 +70,17 @@ struct ReviewCard: View {
 
     @ViewBuilder
     private var reviewPhotoSection: some View {
-        if let url = reviewImageURL, !url.isEmpty {
-            RemoteImage(urlString: url)
+        // Prioritize local path for offline access (simple file storage)
+        if let path = reviewLocalPath, !path.isEmpty, FileManager.default.fileExists(atPath: path), let ui = UIImage(contentsOfFile: path) {
+            Image(uiImage: ui)
+                .resizable()
                 .scaledToFill()
                 .frame(height: 120)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .clipped()
                 .padding(.vertical, 6)
-        } else if let path = reviewLocalPath, !path.isEmpty, let ui = UIImage(contentsOfFile: path) {
-            Image(uiImage: ui)
-                .resizable()
+        } else if let url = reviewImageURL, !url.isEmpty {
+            RemoteImage(urlString: url)
                 .scaledToFill()
                 .frame(height: 120)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))

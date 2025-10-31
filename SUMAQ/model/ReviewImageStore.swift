@@ -2,8 +2,8 @@
 //  ReviewImageStore.swift
 //  SUMAQ
 //
-//  Created by RODRIGO PAZ LONDO�O on 30/10/25.
-//
+//  Simple local file storage for review images (only current user's reviews)
+//  Strategy: Archivos locales (simple)
 
 import Foundation
 import FirebaseAuth
@@ -19,7 +19,7 @@ final class ReviewImageStore {
     
     // Save review image locally (only for current user)
     func saveImage(data: Data, reviewId: String) throws -> String {
-        guard let userId = currentUserId() else {
+        guard currentUserId() != nil else {
             throw NSError(domain: "ReviewImageStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "No user session"])
         }
         
@@ -57,3 +57,4 @@ final class ReviewImageStore {
         try? FileManager.default.removeItem(atPath: path)
     }
 }
+

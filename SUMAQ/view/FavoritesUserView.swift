@@ -50,6 +50,15 @@ struct FavoritesUserView: View {
 
                 if loading {
                     ProgressView().padding()
+                    Text("Loading your Favorites…")
+                    .font(.custom("Montserrat-Regular", size: 14))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    Text("If you are having a slow connection or if you are offline, we will show you your saved favorites in a moment.")
+                    .font(.custom("Montserrat-Regular", size: 12))
+                    .foregroundStyle(.secondary.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
                 } else if let error {
                     Text(error).foregroundColor(.red).padding(.horizontal, 16)
                 } else if filtered.isEmpty {
