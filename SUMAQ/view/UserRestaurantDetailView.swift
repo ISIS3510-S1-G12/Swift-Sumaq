@@ -24,6 +24,8 @@ struct UserRestaurantDetailView: View {
     
     // Network connectivity for reviews
     @State private var hasInternetConnectionReviews = true
+    @State private var hasCheckedConnectivityReviews = false
+    @State private var isLoadingReviewsData = false
     
     // Navigation and alert states for "Do a review"
     @State private var showAddReview = false
@@ -231,14 +233,20 @@ struct UserRestaurantDetailView: View {
         }
         .task { await initialLoad() }
         .onReceive(NotificationCenter.default.publisher(for: .userReviewsDidChange)) { _ in
-            Task { await loadReviews() }
+            Task {
+                guard !isLoadingReviewsData else { return }
+                await loadReviews()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .userFavoritesDidChange)) { _ in
             Task { await loadFavoriteState() }
         }
         .onAppear {
-            // Check internet connection for reviews
-            checkInternetConnectionReviews()
+            // Check internet connection for reviews only once
+            if !hasCheckedConnectivityReviews {
+                checkInternetConnectionReviews()
+                hasCheckedConnectivityReviews = true
+            }
             screenStartTime = Date()
             AnalyticsService.shared.screenStart(ScreenName.restaurantDetail)
             AnalyticsService.shared.log(EventName.restaurantVisit, [
@@ -329,10 +337,20 @@ extension UserRestaurantDetailView {
     }
 
     private func loadReviews() async {
+        // Prevent multiple simultaneous loads
+        guard !isLoadingReviewsData else { return }
+        isLoadingReviewsData = true
+        
         loadingReviews = true; errorReviews = nil
-        defer { loadingReviews = false }
+        defer { 
+            loadingReviews = false
+            isLoadingReviewsData = false
+        }
         
         do {
+            // Check for cancellation before proceeding
+            try Task.checkCancellation()
+            
             // Use GCD to parallelize independent operations
             let group = DispatchGroup()
             var reviewsResult: [Review] = []
@@ -410,10 +428,12 @@ extension UserRestaurantDetailView {
         // Use simple synchronous check for immediate UI update
         hasInternetConnectionReviews = NetworkHelper.shared.isConnectedToNetwork()
         
-        // Also use async check for more accurate result
+        // Also use async check for more accurate result (only update if different to avoid unnecessary re-renders)
         NetworkHelper.shared.checkNetworkConnection { isConnected in
             Task { @MainActor in
-                self.hasInternetConnectionReviews = isConnected
+                if self.hasInternetConnectionReviews != isConnected {
+                    self.hasInternetConnectionReviews = isConnected
+                }
             }
         }
     }
