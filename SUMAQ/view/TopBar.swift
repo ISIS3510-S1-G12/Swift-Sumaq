@@ -18,11 +18,26 @@ struct TopBar: View {
         if let n = session.currentUser?.name, !n.isEmpty { return n }
         return "Mi sesión"
     }
+    
+    @ViewBuilder
+    private var profileImageView: some View {
+        if let profileURL = session.currentUser?.profilePictureURL, !profileURL.isEmpty {
+            RemoteImage(urlString: profileURL)
+                .scaledToFill()
+                .frame(width: 32, height: 32)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+        } else {
+            Image(systemName: "person.crop.circle.fill")
+                .font(.system(size: 32))
+                .foregroundStyle(.secondary)
+        }
+    }
 
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                // Logo app
                 Image("AppLogoUI")
                     .resizable()
                     .scaledToFit()
@@ -38,9 +53,8 @@ struct TopBar: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.secondary)
+                    profileImageView
+                    
                 }
             }
             .padding(.horizontal, sidePadding)

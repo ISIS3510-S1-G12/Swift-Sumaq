@@ -35,6 +35,8 @@ final class SessionController: ObservableObject {
                 self.currentUser = nil
                 self.currentRestaurant = nil
                 self.role = nil
+                // Clear offline credentials on logout
+                KeychainHelper.shared.deleteOfflineCredentials()
                 NotificationCenter.default.post(name: .authDidLogout, object: nil)
             }
         }
@@ -90,5 +92,30 @@ final class SessionController: ObservableObject {
                 self.currentRestaurant = app
             }
         }
+    }
+}
+
+// MARK: - Session Tracking Extension
+extension SessionController {
+    func trackUserSession() {
+        // Llamar cuando el usuario se autentica
+        SessionTracker.shared.startSession()
+        SessionTracker.shared.trackUserEngagement("user_login", parameters: [
+            "user_type": role?.rawValue ?? "unknown"
+        ])
+    }
+    
+    func endUserSession() {
+        // Llamar cuando el usuario se desloguea
+        SessionTracker.shared.trackUserEngagement("user_logout", parameters: [
+            "user_type": role?.rawValue ?? "unknown"
+        ])
+        SessionTracker.shared.endSession()
+    }
+    
+    func trackUserRoleChange() {
+        SessionTracker.shared.trackUserEngagement("role_change", parameters: [
+            "new_role": role?.rawValue ?? "unknown"
+        ])
     }
 }

@@ -23,6 +23,10 @@ struct FavoritesUserView: View {
     @ObservedObject private var session = SessionController.shared
 
     @State private var loadTask: Task<Void, Never>?
+    @State private var isLoadingData = false
+    
+    // Screen tracking
+    @State private var screenStartTime: Date?
 
     var body: some View {
         ScrollView {
@@ -47,6 +51,15 @@ struct FavoritesUserView: View {
 
                 if loading {
                     ProgressView().padding()
+                    Text("Loading your Favorites…")
+                    .font(.custom("Montserrat-Regular", size: 14))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    Text("If you are having a slow connection or if you are offline, we will show you your saved favorites in a moment.")
+                    .font(.custom("Montserrat-Regular", size: 12))
+                    .foregroundStyle(.secondary.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
                 } else if let error {
                     Text(error).foregroundColor(.red).padding(.horizontal, 16)
                 } else if filtered.isEmpty {
@@ -76,13 +89,28 @@ struct FavoritesUserView: View {
             .padding(.top, embedded ? 0 : 8)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
-        .task { await safeLoadFavorites() }
+        .onAppear {
+            screenStartTime = Date()
+            SessionTracker.shared.trackScreenView(ScreenName.favorites, category: ScreenCategory.mainNavigation)
+        }
+        .onDisappear {
+            if let startTime = screenStartTime {
+                let duration = Date().timeIntervalSince(startTime)
+                SessionTracker.shared.trackScreenEnd(ScreenName.favorites, duration: duration, category: ScreenCategory.mainNavigation)
+            }
+        }
+        .task {
+            guard !isLoadingData else { return }
+            await safeLoadFavorites()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .userFavoritesDidChange)) { _ in
             loadTask?.cancel()
+            guard !isLoadingData else { return }
             loadTask = Task { await safeLoadFavorites() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .authStateDidChange)) { _ in
             loadTask?.cancel()
+            guard !isLoadingData else { return }
             loadTask = Task { await safeLoadFavorites() }
         }
     }
@@ -98,9 +126,19 @@ struct FavoritesUserView: View {
     }
 
     private func safeLoadFavorites() async {
+        // Prevent multiple simultaneous loads
+        guard !isLoadingData else { return }
+        isLoadingData = true
+        
         loading = true; error = nil
-        defer { loading = false }
+        defer { 
+            loading = false
+            isLoadingData = false
+        }
         do {
+            // Check for cancellation before proceeding
+            try Task.checkCancellation()
+            
             guard session.isAuthenticated, session.role == .user else {
                 favoriteIds = []; restaurants = []; stats = FavoritesInsight.makeStats(from: [])
                 return
@@ -117,7 +155,6 @@ struct FavoritesUserView: View {
                 return
             }
             restaurants = try await restaurantsRepo.getMany(ids: favoriteIds)
-            // Calcula métricas
             stats = FavoritesInsight.makeStats(from: restaurants)
             AnalyticsService.shared.log("favorites_stats", [
                 "total": stats.total,
@@ -213,3 +250,11 @@ private struct StatPill: View {
         )
     }
 }
+
+//SPRINT 3- Multithreading- Swift Concurrency (async/wait)
+//Patrón usado: Swift Concurrency async/await con Task ligado al ciclo de vida de la vista.
+//Multithreading real: el runtime usa un thread pool cooperativo; await suspende sin bloquear, el trabajo de red va en background; tras await, la lógica de UI vuelve al MainActor.
+//Cancelación: en cambios de sesión o favoritos, se cancela la tarea anterior para evitar condiciones de carrera y estados inconsistentes.
+// sucede cuando se crea el contexto asíncrono : .task { await safeLoadFavorites() }
+// en la definicion de safeLoadFavorites se pone async
+// se guarda el Task actual en loadTask y se cancela si llega un evento que invalida el resultado (cambió auth o favoritos), evitando pisadas de estado

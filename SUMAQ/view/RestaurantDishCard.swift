@@ -27,7 +27,7 @@ struct StarsRow: View {
 struct RestaurantDishCard: View {
     let title: String
     let subtitle: String
-    let imageURL: String           // dataURL
+    let imageURL: String           
     let rating: Int
 
     var body: some View {
@@ -42,12 +42,10 @@ struct RestaurantDishCard: View {
                     .foregroundColor(.white.opacity(0.9))
             }
             .padding(14)
-            .frame(maxWidth: .infinity,
-                   maxHeight: .infinity,
-                   alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(Palette.tealLight)
-
-  
+            
+            // Implementacion de Caching. Estratégia-> LRU para imágenes de dishes.
             RemoteImage(urlString: imageURL)
                 .frame(width: 140, height: 110)
                 .clipped()

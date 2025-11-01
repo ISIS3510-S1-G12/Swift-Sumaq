@@ -54,7 +54,6 @@ struct SegmentedTabs: View {
                 .shadow(color: .black.opacity(0.06), radius: 10, y: 2)
         )
         .padding(.horizontal, 16)
-        // NavigationLinks ocultos (se activan con navTarget)
         .background(
             Group {
                 NavigationLink(
