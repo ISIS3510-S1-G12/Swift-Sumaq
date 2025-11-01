@@ -1,4 +1,5 @@
 //
+//
 //  LoginView.swift
 //  SUMAQ
 //
@@ -19,7 +20,7 @@ struct LoginView: View {
     @State private var user: String = ""
     @State private var pass: String = ""
     @State private var isLoading = false
-    @State private var errorMsg: String?
+    @State private var showOfflineNotice = false
     @State private var goToUserHome = false
     @State private var goToRestaurantHome = false
 
@@ -56,12 +57,14 @@ struct LoginView: View {
                 .padding(.horizontal, 32)
                 .disabled(isLoading || user.isEmpty || pass.isEmpty)
 
-                if let errorMsg {
-                    Text(errorMsg)
-                        .foregroundColor(.red)
-                        .font(.footnote)
-                        .padding(.horizontal, 32)
-                        .multilineTextAlignment(.center)
+                // EVENTUAL CONECTIVITY: Show offline notice below the login button.
+                if showOfflineNotice {
+                    ConnectivityNoticeCard(
+                        title: "Offline mode",
+                        message: "You are offline. You can sign in using the last saved credentials on this device. If they don’t match, please reconnect to verify your account."
+                    )
+                    .padding(.horizontal, 32)
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 NavigationLink(destination: UserRootView(),
@@ -86,7 +89,7 @@ struct LoginView: View {
     }
 
     private func doLogin() {
-        errorMsg = nil
+        showOfflineNotice = false
         isLoading = true
 
         // Check network connectivity
@@ -111,8 +114,8 @@ struct LoginView: View {
                             case .restaurantHome:
                                 goToRestaurantHome = true
                             }
-                        case .failure(let e):
-                            errorMsg = e.localizedDescription
+                        case .failure:
+                            showOfflineNotice = true
                         }
                     }
                 }
@@ -121,7 +124,8 @@ struct LoginView: View {
                 // No internet and credentials don't match saved credentials
                 DispatchQueue.main.async {
                     isLoading = false
-                    errorMsg = "No hay conexión a internet. Las credenciales ingresadas no coinciden con las guardadas para inicio de sesión offline."
+                    //  EVENTUAL CONECTIVITY: Show friendly offline message instead of red error text.
+                    showOfflineNotice = true
                 }
                 return
             }
@@ -142,11 +146,39 @@ struct LoginView: View {
                     case .restaurantHome:
                         goToRestaurantHome = true
                     }
-                case .failure(let e):
-                    errorMsg = e.localizedDescription
+                case .failure:
+                    showOfflineNotice = true
                 }
             }
         }
+    }
+}
+
+//  EVENTUAL CONECTIVITY: Friendly offline notice reused from other views (no red error).
+private struct ConnectivityNoticeCard: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.custom("Montserrat-Bold", size: 16))
+                .foregroundColor(.primary)
+            Text(message)
+                .font(.custom("Montserrat-Regular", size: 14))
+                .foregroundColor(.secondary)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color(.tertiaryLabel), lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(title). \(message)"))
     }
 }
 
