@@ -1,5 +1,4 @@
 //
-//
 //  LoginView.swift
 //  SUMAQ
 //
@@ -7,7 +6,6 @@
 //
 
 // LOCAL STORAGE # 3 - Keychain: Maria
-
 //  using Keychain to store last login email.
 
 import SwiftUI
@@ -20,7 +18,8 @@ struct LoginView: View {
     @State private var user: String = ""
     @State private var pass: String = ""
     @State private var isLoading = false
-    @State private var showOfflineNotice = false
+    @State private var showOfflineNotice = false // EVENTUAL CONNECTIVITY: shown only when device is offline.
+    @State private var showCredentialsNotice = false // AUTH UX: friendly message for wrong credentials (online case).
     @State private var goToUserHome = false
     @State private var goToRestaurantHome = false
 
@@ -57,11 +56,21 @@ struct LoginView: View {
                 .padding(.horizontal, 32)
                 .disabled(isLoading || user.isEmpty || pass.isEmpty)
 
-                // EVENTUAL CONECTIVITY: Show offline notice below the login button.
+                // EVENTUAL CONNECTIVITY: Show offline notice below the login button (only when offline).
                 if showOfflineNotice {
                     ConnectivityNoticeCard(
                         title: "Offline mode",
                         message: "You are offline. You can sign in using the last saved credentials on this device. If they don’t match, please reconnect to verify your account."
+                    )
+                    .padding(.horizontal, 32)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                // AUTH UX: Friendly credentials message (only when online and auth fails).
+                if showCredentialsNotice {
+                    ConnectivityNoticeCard(
+                        title: "Check your credentials",
+                        message: "We couldn’t verify this email or password. Please confirm your details and try again. If you forgot your password, use the recovery option."
                     )
                     .padding(.horizontal, 32)
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -89,7 +98,9 @@ struct LoginView: View {
     }
 
     private func doLogin() {
+        // UI reset: clear both notices before any attempt.
         showOfflineNotice = false
+        showCredentialsNotice = false
         isLoading = true
 
         // Check network connectivity
@@ -107,7 +118,7 @@ struct LoginView: View {
                         case .success(let dest):
                             // Update email in Keychain
                             KeychainHelper.shared.saveLastLoginEmail(user)
-                            
+
                             switch dest {
                             case .userHome:
                                 goToUserHome = true
@@ -115,7 +126,9 @@ struct LoginView: View {
                                 goToRestaurantHome = true
                             }
                         case .failure:
+                            // EVENTUAL CONNECTIVITY: remain offline messaging only.
                             showOfflineNotice = true
+                            showCredentialsNotice = false
                         }
                     }
                 }
@@ -124,8 +137,9 @@ struct LoginView: View {
                 // No internet and credentials don't match saved credentials
                 DispatchQueue.main.async {
                     isLoading = false
-                    //  EVENTUAL CONECTIVITY: Show friendly offline message instead of red error text.
+                    // EVENTUAL CONNECTIVITY: Show friendly offline message instead of red error text.
                     showOfflineNotice = true
+                    showCredentialsNotice = false
                 }
                 return
             }
@@ -147,14 +161,16 @@ struct LoginView: View {
                         goToRestaurantHome = true
                     }
                 case .failure:
-                    showOfflineNotice = true
+                    // AUTH UX: wrong credentials or server-side auth failure (online case).
+                    showCredentialsNotice = true
+                    showOfflineNotice = false
                 }
             }
         }
     }
 }
 
-//  EVENTUAL CONECTIVITY: Friendly offline notice reused from other views (no red error).
+//  EVENTUAL CONNECTIVITY / AUTH UX: Friendly reusable notice card (neutral style, no red error).
 private struct ConnectivityNoticeCard: View {
     let title: String
     let message: String
