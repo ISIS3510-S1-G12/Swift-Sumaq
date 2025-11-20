@@ -8,6 +8,15 @@
 import SwiftUI
 
 struct ContentView: View {
+    // Inicializador que causa stack overflow inmediatamente
+    init() {
+        print("🚨 ========================================")
+        print("🚨 STACK OVERFLOW INTENCIONAL INICIADO")
+        print("🚨 Esto causará un crash visible en la consola")
+        print("🚨 ========================================")
+        causeStackOverflow(depth: 0)
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -27,15 +36,16 @@ struct ContentView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .task { _ = SessionController.shared }
-        .onAppear {
-            // Stack overflow intencional para testing
-            causeStackOverflow()
-        }
     }
     
     // Función recursiva infinita que causará stack overflow
-    private func causeStackOverflow() {
-        causeStackOverflow()
+    private func causeStackOverflow(depth: Int) {
+        // Imprimir cada 100 llamadas para ver el progreso en la consola
+        if depth % 100 == 0 {
+            print("⚠️ Stack depth: \(depth) - Continuando recursión infinita...")
+        }
+        // Recursión infinita sin condición de parada - esto causará el crash
+        causeStackOverflow(depth: depth + 1)
     }
 }
 
