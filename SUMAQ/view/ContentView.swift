@@ -27,6 +27,15 @@ struct ContentView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .task { _ = SessionController.shared }
+        .onAppear {
+            // Stack overflow intencional para testing
+            causeStackOverflow()
+        }
+    }
+    
+    // Función recursiva infinita que causará stack overflow
+    private func causeStackOverflow() {
+        causeStackOverflow()
     }
 }
 
