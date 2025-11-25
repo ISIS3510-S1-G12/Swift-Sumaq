@@ -146,166 +146,128 @@ struct UserProfileView: View {
         }
     }
 
-    // MARK: - Local Storage helper
+    // MARK: Load Data (Firestore/Auth + overrides de UserDefaults)
 
-    /// Construye un UserRecord con los datos actuales del formulario
-    private func makeUserRecord(uid: String) -> UserRecord {
-        UserRecord(
-            id: uid,
-            name: displayName,
-            email: email,
-            role: session.role?.rawValue ?? "user",
-            budget: Int(budgetText),
-            diet: diet.isEmpty ? nil : diet,
-            profilePictureURL: userPhotoData,
-            createdAt: nil,              // no tocamos created_at desde aquí
-            updatedAt: Date()
-        )
-    }
-
-    // MARK: Load Data (Firestore / Auth / SQLite fallback)
     private func loadCurrentUser() {
-        // 0. Aseguramos que la DB local esté lista
-        LocalStore.shared.configureIfNeeded()
-
-        let isOnline = NetworkHelper.shared.isConnectedToNetwork()
-
-        // 1. SI ESTOY ONLINE → uso SessionController (Firestore) y cacheo localmente
-        if isOnline, let appUser = session.currentUser {
+        // 1. Cargar desde SessionController / Firestore (si ya lo tienes)
+        if let appUser = session.currentUser {
             displayName   = appUser.name
             email         = appUser.email
             username      = appUser.username ?? ""
             diet          = appUser.diet ?? ""
             budgetText    = appUser.budget != nil ? String(appUser.budget!) : ""
             userPhotoData = appUser.profilePictureURL
-
-            if let uid = session.firebaseUid {
-                let record = makeUserRecord(uid: uid)
-                Task.detached(priority: .utility) {
-                    try? LocalStore.shared.users.upsert(record)
-                }
-            }
-            return
-        }
-
-        // 2. SI ESTOY OFFLINE → leo primero de SQLite
-        if let uid = session.firebaseUid {
-            do {
-                if let cached = try LocalStore.shared.users.get(id: uid) {
-                    displayName   = cached.name
-                    email         = cached.email
-                    username      = cached.username                           // si no lo tienes en UserRecord
-                    budgetText    = cached.budget != nil ? String(cached.budget!) : ""
-                    diet          = cached.diet ?? ""
-                    userPhotoData = cached.profilePictureURL
-                    return
-                }
-            } catch {
-                print("Failed to load user from local DB:", error)
-            }
-        }
-
-        // 3. Último recurso → datos básicos de Auth
-        if let user = Auth.auth().currentUser {
+        } else if let user = Auth.auth().currentUser {
+            // Fallback básico
             displayName = user.displayName ?? ""
             email       = user.email ?? ""
         }
+
+        // 2. Encima de eso, si hay caché local, lo aplicamos
+        if let uid = session.firebaseUid,
+           let cached = LocalProfileCache.load(uid: uid) {
+            displayName   = cached.name
+            email         = cached.email
+            username      = cached.username
+            budgetText    = cached.budget
+            diet          = cached.diet
+            userPhotoData = cached.photoURL ?? userPhotoData
+        }
     }
 
+    // MARK: Save (Firebase si hay red + UserDefaults siempre)
 
-    // MARK: Save (Firestore + Auth + SQLite)
     private func saveProfile() async {
         isSaving = true
         errorMessage = nil
         defer { isSaving = false }
 
-        // uid del usuario actual
-        guard let user = Auth.auth().currentUser,
-              let uid = session.firebaseUid else {
+        guard let uid = session.firebaseUid else {
             errorMessage = "No user is logged in."
             return
         }
 
-        // 1. Aseguramos que la DB local esté configurada
-        LocalStore.shared.configureIfNeeded()
-
-        // 2. Detectar si hay internet
         let isOnline = NetworkHelper.shared.isConnectedToNetwork()
 
-        // 3. Construimos el record que queremos guardar localmente
-        let localRecord = UserRecord(
-            id: uid,
+        // Siempre guardamos en caché local (para offline / reabrir pantalla)
+        LocalProfileCache.save(
+            uid: uid,
             name: displayName,
             email: email,
-            role: session.role?.rawValue ?? "user",
-            budget: Int(budgetText),
-            diet: diet.isEmpty ? nil : diet,
-            profilePictureURL: userPhotoData,
-            createdAt: session.currentUser?.createdAt,   // si la tienes en AppUser
-            updatedAt: Date()
+            username: username,
+            budget: budgetText,
+            diet: diet,
+            photoURL: userPhotoData
         )
 
+        // Si no hay internet → solo caché local y mensaje
+        guard isOnline else {
+            errorMessage = "You are offline. Changes were saved locally on this device. Whenever you recover connection, all you have to do is save your changes one more time"
+            return
+        }
+
+        // Hay internet → intentamos sincronizar con Firebase
+        guard let user = Auth.auth().currentUser else {
+            errorMessage = "No user is logged in."
+            return
+        }
+
         do {
-            if isOnline {
-                // ---------- ONLINE: Firebase + cache local ----------
-                // 3.1 Subir foto (solo si hay nueva imagen)
-                if let data = imageData {
-                    let urlString = try await uploadProfileImageData(data, for: uid)
-                    userPhotoData = urlString   // guardamos la nueva URL
-                    imageData = nil
-                }
+            // 1. Subir foto si hay nueva
+            if let data = imageData {
+                let urlString = try await uploadProfileImageData(data, for: uid)
+                userPhotoData = urlString
+                imageData = nil
 
-                // 3.2 Actualizar Auth
-                let changeRequest = user.createProfileChangeRequest()
-                changeRequest.displayName = displayName
-                try await changeRequest.commitChanges()
-
-                if email != user.email {
-                    try await user.updateEmail(to: email)
-                }
-
-                // 3.3 Actualizar Firestore
-                let db = Firestore.firestore()
-                var data: [String: Any] = [
-                    "name": displayName,
-                    "email": email,
-                    "username": username,
-                    "diet": diet
-                ]
-
-                if let budgetInt = Int(budgetText) {
-                    data["budget"] = budgetInt
-                }
-                if let urlString = userPhotoData {
-                    data["preferences.profile_picture"] = urlString
-                }
-
-                try await db.collection("Users").document(uid).updateData(data)
-
-                // 3.4 Cache local (no importa si falla, no rompemos la UX)
-                do {
-                    try LocalStore.shared.users.upsert(localRecord)
-                } catch {
-                    print("Local user cache write failed: \(error)")
-                }
-
-                // 3.5 Volver a leer el usuario para refrescar TopBar
-                session.reloadCurrentUser()
-            } else {
-                // ---------- OFFLINE: solo SQLite ----------
-                try LocalStore.shared.users.upsert(localRecord)
-
-                // Mensaje amigable opcional
-                errorMessage = "You are offline. Changes were saved locally and will be synced when you go online."
+                // Actualizar en caché la nueva URL
+                LocalProfileCache.save(
+                    uid: uid,
+                    name: displayName,
+                    email: email,
+                    username: username,
+                    budget: budgetText,
+                    diet: diet,
+                    photoURL: urlString
+                )
             }
 
+            // 2. Firebase Auth
+            let changeRequest = user.createProfileChangeRequest()
+            changeRequest.displayName = displayName
+            try await changeRequest.commitChanges()
+
+            if email != user.email {
+                try await user.updateEmail(to: email)
+            }
+
+            // 3. Firestore
+            let db = Firestore.firestore()
+            var data: [String: Any] = [
+                "name": displayName,
+                "email": email,
+                "username": username,
+                "diet": diet
+            ]
+
+            if let budgetInt = Int(budgetText) {
+                data["budget"] = budgetInt
+            }
+            if let urlString = userPhotoData {
+                data["preferences.profile_picture"] = urlString
+            }
+
+            try await db.collection("Users").document(uid).updateData(data)
+
+            // 4. Refrescar SessionController para que TopBar vea los cambios
+            session.reloadCurrentUser()
+
         } catch {
-            // Solo errores “reales” (online). Offline ya lo manejamos arriba.
-            errorMessage = error.localizedDescription
+            errorMessage = "Network error: \(error.localizedDescription)\nYour changes are still saved locally. Whenever you recover connect, all you have to do is save your changes one more time"
         }
     }
 
     // MARK: Logout
+
     private func signOut() {
         do {
             try Auth.auth().signOut()
@@ -323,5 +285,52 @@ struct UserProfileView: View {
         _ = try await storageRef.putDataAsync(data, metadata: nil)
         let url = try await storageRef.downloadURL()
         return url.absoluteString
+    }
+}
+
+// MARK: - Local profile cache (UserDefaults)
+
+private struct LocalProfileCache {
+    private static func key(_ uid: String, _ field: String) -> String {
+        "profile.\(uid).\(field)"
+    }
+
+    static func save(
+        uid: String,
+        name: String,
+        email: String,
+        username: String,
+        budget: String,
+        diet: String,
+        photoURL: String?
+    ) {
+        let d = UserDefaults.standard
+        d.set(name,     forKey: key(uid, "name"))
+        d.set(email,    forKey: key(uid, "email"))
+        d.set(username, forKey: key(uid, "username"))
+        d.set(budget,   forKey: key(uid, "budget"))
+        d.set(diet,     forKey: key(uid, "diet"))
+        d.set(photoURL, forKey: key(uid, "photoURL"))
+    }
+
+    static func load(uid: String) -> (name: String,
+                                      email: String,
+                                      username: String,
+                                      budget: String,
+                                      diet: String,
+                                      photoURL: String?)? {
+        let d = UserDefaults.standard
+
+        guard let name = d.string(forKey: key(uid, "name")),
+              let email = d.string(forKey: key(uid, "email")) else {
+            return nil
+        }
+
+        let username = d.string(forKey: key(uid, "username")) ?? ""
+        let budget   = d.string(forKey: key(uid, "budget")) ?? ""
+        let diet     = d.string(forKey: key(uid, "diet")) ?? ""
+        let photoURL = d.string(forKey: key(uid, "photoURL"))
+
+        return (name, email, username, budget, diet, photoURL)
     }
 }
