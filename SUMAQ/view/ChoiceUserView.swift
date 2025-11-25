@@ -52,6 +52,7 @@ struct ChoiceUserView: View {
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(.systemBackground).ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        
 
     }
 }

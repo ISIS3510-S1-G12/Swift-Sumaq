@@ -88,6 +88,7 @@ struct FavoritesUserView: View {
             }
             .padding(.top, embedded ? 0 : 8)
         }
+        .navigationBarBackButtonHidden(true)
         .background(Color(.systemBackground).ignoresSafeArea())
         .onAppear {
             screenStartTime = Date()

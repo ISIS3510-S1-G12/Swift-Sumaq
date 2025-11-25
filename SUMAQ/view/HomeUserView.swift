@@ -36,6 +36,8 @@ struct UserHomeView: View {
     @State private var restaurants: [Restaurant] = []
     @State private var loading = true
     @State private var error: String?
+    @State private var showProfile = false
+
 
     @StateObject private var mapCtrl = MapController()
     private let repo = RestaurantsRepository()
@@ -54,7 +56,9 @@ struct UserHomeView: View {
         ScrollView {
             VStack(spacing: 16) {
                 if !embedded {
-                    TopBar()
+                    TopBar(onAvatarTap: {
+                            showProfile = true
+                        })
                     SegmentedTabs(selectedIndex: $selectedTab)
                         .onChange(of: selectedTab) { newValue in
                             let name: String
@@ -174,6 +178,7 @@ struct UserHomeView: View {
             }
             .padding(.top, embedded ? 0 : 8)
         }
+        .navigationBarBackButtonHidden(true)
         .onAppear {
             screenStartTime = Date()
             SessionTracker.shared.trackScreenView(ScreenName.home, category: ScreenCategory.mainNavigation)
@@ -198,6 +203,9 @@ struct UserHomeView: View {
         // Local storage: call the new initializer that includes local storage fallback logic.
         .task { await initializeScreenConcurrentlyWithLocalStorage() }
         .background(Color(.systemBackground).ignoresSafeArea())
+        
+        
+
     }
 
     // MARK: - Derived filtering
