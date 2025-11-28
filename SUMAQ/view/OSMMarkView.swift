@@ -46,6 +46,7 @@ struct OSMMapView: UIViewRepresentable {
         let coordinator = context.coordinator
         let previous = coordinator.previousAnnotations
 
+        // Calcular diferencias de annotations para evitar removals/añadidos masivos
         let annotationsToRemove: [MKAnnotation] = previous.filter { oldAnnotation in
             !annotations.contains { newAnnotation in
                 newAnnotation.coordinate.latitude == oldAnnotation.coordinate.latitude &&
@@ -55,8 +56,8 @@ struct OSMMapView: UIViewRepresentable {
 
         let annotationsToAdd: [MKAnnotation] = annotations.filter { newAnnotation in
             !previous.contains { oldAnnotation in
-                newAnnotation.coordinate.latitude == oldAnnotation.coordinate.latitude &&
-                newAnnotation.coordinate.longitude == oldAnnotation.coordinate.longitude
+                newAnnotation.coordinate.latitude == newAnnotation.coordinate.latitude &&
+                newAnnotation.coordinate.longitude == newAnnotation.coordinate.longitude
             }
         }
 
@@ -67,24 +68,34 @@ struct OSMMapView: UIViewRepresentable {
             map.addAnnotations(annotationsToAdd)
         }
 
+        // Actualizar tracking
         coordinator.previousAnnotations = annotations
 
+        // Actualizar región solo si hay un cambio significativo
         if let c = center {
             let span = self.span ?? MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
             let newRegion = MKCoordinateRegion(center: c, span: span)
 
             let currentRegion = map.region
-            let regionChanged =
-                currentRegion.center.latitude != newRegion.center.latitude ||
-                currentRegion.center.longitude != newRegion.center.longitude ||
-                currentRegion.span.latitudeDelta != newRegion.span.latitudeDelta ||
-                currentRegion.span.longitudeDelta != newRegion.span.longitudeDelta
+            let currentCenter = currentRegion.center
+
+            // Distancia aproximada entre centros y diferencia de span
+            let centerDistance = hypot(
+                currentCenter.latitude - newRegion.center.latitude,
+                currentCenter.longitude - newRegion.center.longitude
+            )
+            let spanDiffLat = abs(currentRegion.span.latitudeDelta - newRegion.span.latitudeDelta)
+            let spanDiffLon = abs(currentRegion.span.longitudeDelta - newRegion.span.longitudeDelta)
+
+            // Umbral pequeño para evitar setRegion redundantes
+            let regionChanged = centerDistance > 0.0005 || spanDiffLat > 0.0005 || spanDiffLon > 0.0005
 
             if regionChanged {
                 map.setRegion(newRegion, animated: false)
             }
         }
 
+        // Sincronizar flag
         map.showsUserLocation = showsUserLocation
     }
 
@@ -102,6 +113,7 @@ struct OSMMapView: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, MKMapViewDelegate {
+        // Tracking de las annotations previas
         var previousAnnotations: [MKAnnotation] = []
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
