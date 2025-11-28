@@ -145,6 +145,131 @@ final class ReviewsRepository {
             }
         }
     }
+    
+    // MARK: - Update Review
+    func updateReview(reviewId: String,
+                      stars: Int,
+                      comment: String,
+                      imageData: Data?,
+                      removeImage: Bool = false,
+                      progress: ((Double) -> Void)? = nil) async throws {
+        let uid = try currentUid()
+        let ref = db.collection(coll).document(reviewId)
+        
+        // Verify the review belongs to the current user
+        let doc = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<DocumentSnapshot, Error>) in
+            ref.getDocument { doc, err in
+                if let err { cont.resume(throwing: err) }
+                else if let doc { cont.resume(returning: doc) }
+                else { cont.resume(throwing: NSError(domain: "Firestore", code: -1)) }
+            }
+        }
+        
+        guard let reviewData = doc.data(),
+              let reviewUserId = reviewData["user_id"] as? String,
+              reviewUserId == uid else {
+            throw NSError(domain: "ReviewsRepository", code: 403,
+                         userInfo: [NSLocalizedDescriptionKey: "No tienes permiso para editar esta review"])
+        }
+        
+        var payload: [String: Any] = [
+            "stars": stars,
+            "comment": comment
+        ]
+        
+        // Handle image update/removal
+        if removeImage {
+            // Remove image: set imageURL to null and delete local image
+            payload["imageURL"] = NSNull()
+            // Delete local image in background
+            Task.detached(priority: .utility) {
+                ReviewImageStore.shared.deleteImage(reviewId: reviewId)
+            }
+        } else if let data = imageData, !data.isEmpty {
+            // Save image locally first (for offline access)
+            do {
+                _ = try ReviewImageStore.shared.saveImage(data: data, reviewId: reviewId)
+            } catch {
+                // Non-fatal: continue even if local save fails
+            }
+            
+            // Upload new image to Firebase Storage
+            let path = "reviews/\(uid)/\(reviewId).jpg"
+            do {
+                let urlString = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<String, Error>) in
+                    StorageService.shared.uploadImageData(data, to: path, contentType: "image/jpeg", progress: progress) { res in
+                        switch res {
+                        case .success(let url): cont.resume(returning: url)
+                        case .failure(let err): cont.resume(throwing: err)
+                        }
+                    }
+                }
+                payload["imageURL"] = urlString
+            } catch {
+                // If image upload fails, keep existing image URL if available
+                if let existingImageURL = reviewData["imageURL"] as? String {
+                    payload["imageURL"] = existingImageURL
+                }
+                print("⚠️ Error uploading review image: \(error.localizedDescription)")
+            }
+        } else {
+            // Keep existing image URL if no new image provided and not removing
+            if let existingImageURL = reviewData["imageURL"] as? String {
+                payload["imageURL"] = existingImageURL
+            }
+        }
+        
+        // Update Firestore
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            ref.updateData(payload) { err in
+                if let err { cont.resume(throwing: err) }
+                else {
+                    // Create updated review immediately for local storage update
+                    let updatedImageURL: String?
+                    if removeImage {
+                        updatedImageURL = nil
+                    } else if let data = imageData, !data.isEmpty {
+                        // Will be updated after image upload, use existing for now
+                        updatedImageURL = reviewData["imageURL"] as? String
+                    } else {
+                        updatedImageURL = reviewData["imageURL"] as? String
+                    }
+                    
+                    let updatedReview = Review(
+                        id: reviewId,
+                        userId: uid,
+                        restaurantId: reviewData["restaurant_id"] as? String ?? "",
+                        stars: stars,
+                        comment: comment,
+                        imageURL: updatedImageURL,
+                        createdAt: (reviewData["createdAt"] as? Timestamp)?.dateValue()
+                    )
+                    
+                    // Update local storage immediately with current data (no need to wait for Firestore read)
+                    Task.detached(priority: .utility) { [local = self.local] in
+                        try? local.reviews.upsert(ReviewRecord(from: updatedReview))
+                    }
+                    
+                    // Also update from Firestore in background to ensure consistency
+                    Task.detached(priority: .utility) { [local = self.local, ref] in
+                        do {
+                            // Get the updated review from Firestore to save locally (for final image URL if uploaded)
+                            if let doc = try? await self.db.collection(self.coll).document(ref.documentID).getDocument(),
+                               let review = Review(doc: doc) {
+                                try? local.reviews.upsert(ReviewRecord(from: review))
+                            }
+                        } catch {
+                            // Non-fatal: cache write failure is ignored
+                        }
+                    }
+                    
+                    NotificationCenter.default.post(name: .userReviewsDidChange, object: nil)
+                    NotificationCenter.default.post(name: .reviewDidUpdate, object: nil)
+                    cont.resume(returning: ())
+                }
+            }
+        }
+    }
 
     func listMyReviews() async throws -> [Review] {
         let uid = try currentUid()

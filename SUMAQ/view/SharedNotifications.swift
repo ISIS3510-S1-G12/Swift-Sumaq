@@ -20,6 +20,7 @@ extension Notification.Name {
     
     static let userReviewsDidChange     = Notification.Name("userReviewsDidChange")
     static let reviewDidCreate          = Notification.Name("reviewDidCreate")
+    static let reviewDidUpdate          = Notification.Name("reviewDidUpdate")
     
     static let crowdScanDidStart  = Notification.Name("crowdScanDidStart")
     static let crowdScanDidUpdate = Notification.Name("crowdScanDidUpdate")

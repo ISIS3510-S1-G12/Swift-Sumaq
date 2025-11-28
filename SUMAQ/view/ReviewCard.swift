@@ -10,9 +10,11 @@ struct ReviewCard: View {
     let rating: Int
     let comment: String
     var avatarURL: String = ""
-
+    
     var reviewImageURL: String? = nil
     var reviewLocalPath: String? = nil
+    var isEditable: Bool = false
+    var onEdit: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -30,6 +32,19 @@ struct ReviewCard: View {
                         .foregroundColor(Palette.burgundy)
                     Spacer(minLength: 8)
                     StarsRow(rating: rating)
+                    if isEditable {
+                        Button(action: {
+                            onEdit?()
+                        }) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(Palette.burgundy)
+                                .frame(width: 36, height: 36)
+                                .background(Palette.burgundy.opacity(0.1))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
                 }
 
                 Text(restaurant)
