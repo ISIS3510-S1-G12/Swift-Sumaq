@@ -33,6 +33,7 @@ struct AddReviewView: View {
                     .font(.custom("Montserrat-SemiBold", size: 22))
                     .foregroundColor(Palette.burgundy)
 
+                // Rating
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Rating")
                         .font(.custom("Montserrat-SemiBold", size: 16))
@@ -74,13 +75,20 @@ struct AddReviewView: View {
                             .padding(.horizontal, 8)
                             .padding(.vertical, 6)
                     }
-                    .background(Palette.grayLight)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color(.systemBackground)) // opaco
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(Color(.systemGray4), lineWidth: 1) // borde opaco
+                            )
+                    )
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Photo (optional)")
                         .font(.custom("Montserrat-SemiBold", size: 16))
+
                     if let img = capturedImage {
                         Image(uiImage: img)
                             .resizable()
@@ -88,9 +96,13 @@ struct AddReviewView: View {
                             .frame(height: 160)
                             .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color(.systemGray6))
+                            )
                     } else {
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Palette.grayLight)
+                            .fill(Color(.systemGray6))
                             .frame(height: 140)
                             .overlay(
                                 Text("No image selected")
@@ -149,14 +161,17 @@ struct AddReviewView: View {
         .navigationTitle("New Review")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showPicker) {
-            CamaraPicker(imageData: $imageData)
-                .onDisappear {
-                    if let data = imageData, let ui = UIImage(data: data) {
-                        capturedImage = ui
-                    }
+            ZStack {
+                Color(.systemBackground).ignoresSafeArea() // capa sólida
+                CamaraPicker(imageData: $imageData)
+            }
+            .onDisappear {
+                if let data = imageData, let ui = UIImage(data: data) {
+                    capturedImage = ui
                 }
+            }
         }
-        .onChange(of: imageData) { _, newData in
+        .onChange(of: imageData) { _, _ in
         }
         .onReceive(NotificationCenter.default.publisher(for: .reviewDidCreate)) { _ in
             dismiss()
