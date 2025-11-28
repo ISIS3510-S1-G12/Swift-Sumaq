@@ -358,7 +358,26 @@ struct ReviewHistoryUserView: View {
                 return
             }
             
-            // First, try to get updated data from local storage (fast)
+            // Always refresh from Firestore to get the latest data immediately
+            // This ensures we get the updated text/comment even if local storage hasn't updated yet
+            let updatedReviews = try await reviewsRepo.listMyReviews()
+            
+            await MainActor.run {
+                self.reviews = updatedReviews
+            }
+            
+            // Load restaurants for updated reviews
+            await loadRestaurantsForReviews(updatedReviews)
+            
+            // Update local storage in background for next time (using multithreading)
+            Task.detached(priority: .utility) { [localStore = self.localStore] in
+                for review in updatedReviews {
+                    try? localStore.reviews.upsert(ReviewRecord(from: review))
+                }
+            }
+        } catch {
+            // Fallback to local storage if Firestore fails
+            guard let uid = session.currentUser?.id else { return }
             if let localRecords = try? localStore.reviews.listForUser(uid),
                !localRecords.isEmpty {
                 let localReviews = localRecords.map { toReview(from: $0) }
@@ -368,16 +387,8 @@ struct ReviewHistoryUserView: View {
                     self.reviews = localReviews
                 }
                 
-                // Load restaurants for updated reviews
                 await loadRestaurantsForReviews(localReviews)
             }
-            
-            // Then refresh from Firestore in background using multithreading
-            // The Combine publisher (startRealTimeUpdates) will automatically update the UI
-            // when Firestore detects changes, so we don't need to manually update here.
-            // The local storage update above provides immediate feedback.
-        } catch {
-            // Non-fatal: keep existing data
         }
     }
 }

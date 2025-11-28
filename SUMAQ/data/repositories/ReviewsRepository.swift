@@ -224,10 +224,36 @@ final class ReviewsRepository {
             ref.updateData(payload) { err in
                 if let err { cont.resume(throwing: err) }
                 else {
-                    // Update local storage in background using multithreading
+                    // Create updated review immediately for local storage update
+                    let updatedImageURL: String?
+                    if removeImage {
+                        updatedImageURL = nil
+                    } else if let data = imageData, !data.isEmpty {
+                        // Will be updated after image upload, use existing for now
+                        updatedImageURL = reviewData["imageURL"] as? String
+                    } else {
+                        updatedImageURL = reviewData["imageURL"] as? String
+                    }
+                    
+                    let updatedReview = Review(
+                        id: reviewId,
+                        userId: uid,
+                        restaurantId: reviewData["restaurant_id"] as? String ?? "",
+                        stars: stars,
+                        comment: comment,
+                        imageURL: updatedImageURL,
+                        createdAt: (reviewData["createdAt"] as? Timestamp)?.dateValue()
+                    )
+                    
+                    // Update local storage immediately with current data (no need to wait for Firestore read)
+                    Task.detached(priority: .utility) { [local = self.local] in
+                        try? local.reviews.upsert(ReviewRecord(from: updatedReview))
+                    }
+                    
+                    // Also update from Firestore in background to ensure consistency
                     Task.detached(priority: .utility) { [local = self.local, ref] in
                         do {
-                            // Get the updated review from Firestore to save locally
+                            // Get the updated review from Firestore to save locally (for final image URL if uploaded)
                             if let doc = try? await self.db.collection(self.coll).document(ref.documentID).getDocument(),
                                let review = Review(doc: doc) {
                                 try? local.reviews.upsert(ReviewRecord(from: review))
