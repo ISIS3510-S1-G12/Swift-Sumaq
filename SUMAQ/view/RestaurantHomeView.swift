@@ -84,9 +84,9 @@ struct RestaurantHomeView: View {
                 .padding(.top, 8)
             }
             .background(Color.white.ignoresSafeArea())
-            // Hoja de cuenta
+            // Hoja de Settings / Account para restaurante
             .sheet(isPresented: $showAccount) {
-                RestaurantAccountSheet {
+                RestaurantSettingsView {
                     // al cerrar sesión, navegar a Choice
                     goToChoice = true
                 }
