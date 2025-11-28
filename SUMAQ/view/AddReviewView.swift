@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct AddReviewView: View {
     let restaurant: Restaurant
@@ -15,6 +16,8 @@ struct AddReviewView: View {
     @State private var error: String? = nil
     @State private var showPicker = false
     @State private var uploadProgress: Double = 0.0
+    
+    @State private var imageProcessingTask: Task<Void, Never>? = nil
 
     private let repo = ReviewsRepository()
 
@@ -153,8 +156,16 @@ struct AddReviewView: View {
                     }
                 }
         }
+        .onChange(of: imageData) { _, newData in
+        }
         .onReceive(NotificationCenter.default.publisher(for: .reviewDidCreate)) { _ in
             dismiss()
+        }
+        .onDisappear {
+            imageProcessingTask?.cancel()
+            imageProcessingTask = nil
+            imageData = nil
+            capturedImage = nil
         }
     }
 
