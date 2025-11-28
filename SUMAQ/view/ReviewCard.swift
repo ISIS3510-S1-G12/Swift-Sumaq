@@ -37,9 +37,11 @@ struct ReviewCard: View {
                             onEdit?()
                         }) {
                             Image(systemName: "pencil")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(Palette.burgundy)
-                                .padding(6)
+                                .frame(width: 36, height: 36)
+                                .background(Palette.burgundy.opacity(0.1))
+                                .clipShape(Circle())
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
