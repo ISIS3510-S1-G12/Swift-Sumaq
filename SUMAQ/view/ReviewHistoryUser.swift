@@ -22,6 +22,7 @@ struct ReviewHistoryUserView: View {
     @State private var selectedReviewForEdit: Review? = nil
     @State private var showEditReview = false
     @State private var showEditSuccessAlert = false
+    @State private var showNoConnectionAlert = false
 
     // Network connectivity
     @State private var hasInternetConnection = true
@@ -99,8 +100,13 @@ struct ReviewHistoryUserView: View {
                                 reviewLocalPath: r.imageLocalPath,
                                 isEditable: true,
                                 onEdit: {
-                                    selectedReviewForEdit = r
-                                    showEditReview = true
+                                    // Check internet connection before allowing edit
+                                    if NetworkHelper.shared.isConnectedToNetwork() {
+                                        selectedReviewForEdit = r
+                                        showEditReview = true
+                                    } else {
+                                        showNoConnectionAlert = true
+                                    }
                                 }
                             )
                         }
@@ -153,6 +159,11 @@ struct ReviewHistoryUserView: View {
             }
         } message: {
             Text("Your review has been updated successfully.")
+        }
+        .alert("No internet connection", isPresented: $showNoConnectionAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Your review cannot be edited without an internet connection. Please try again when you have an internet connection.")
         }
 
     }
