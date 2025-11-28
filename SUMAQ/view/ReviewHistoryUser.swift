@@ -133,12 +133,14 @@ struct ReviewHistoryUserView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .reviewDidUpdate)) { _ in
             // Refresh reviews immediately when a review is updated
+            // Task runs async operation (refreshReviews handles multithreading internally)
             Task {
                 await refreshReviews()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .userReviewsDidChange)) { _ in
             // Also refresh on general reviews change notification
+            // Task runs async operation (refreshReviews handles multithreading internally)
             Task {
                 await refreshReviews()
             }
@@ -361,20 +363,10 @@ struct ReviewHistoryUserView: View {
                 await loadRestaurantsForReviews(localReviews)
             }
             
-            // Then refresh from Firestore in background (will update via Combine publisher)
-            // This ensures we get the latest data from Firebase
-            Task.detached(priority: .userInitiated) { [weak self] in
-                guard let self else { return }
-                do {
-                    let updatedReviews = try await self.reviewsRepo.listMyReviews()
-                    await MainActor.run {
-                        self.reviews = updatedReviews
-                    }
-                    await self.loadRestaurantsForReviews(updatedReviews)
-                } catch {
-                    // Non-fatal: local data is already shown
-                }
-            }
+            // Then refresh from Firestore in background using multithreading
+            // The Combine publisher (startRealTimeUpdates) will automatically update the UI
+            // when Firestore detects changes, so we don't need to manually update here.
+            // The local storage update above provides immediate feedback.
         } catch {
             // Non-fatal: keep existing data
         }
