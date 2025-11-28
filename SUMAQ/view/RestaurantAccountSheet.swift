@@ -34,6 +34,12 @@ struct RestaurantAccountSheet: View {
                         try Auth.auth().signOut()
                         // Clear offline credentials on logout
                         KeychainHelper.shared.deleteOfflineCredentials()
+
+                        // Misma lógica de user:
+                        // cierra sesión en el SessionController
+                        SessionController.shared.endUserSession()
+
+                        // Avisar al padre para que navegue al Choice
                         onLoggedOut?()
                         dismiss()
                     } catch {
