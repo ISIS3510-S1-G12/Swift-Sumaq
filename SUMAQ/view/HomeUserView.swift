@@ -3,10 +3,8 @@
 //  SUMAQ
 //
 //  MULTITRHEADING - Strategy #4 Task Group Maria
-
 //  LOCAL STORAGE #1 - DB local : Maria
-
-
+//
 //  Home screen orchestrating all initial fetches in
 //  parallel using Swift Structured Concurrency Task Group.
 //
@@ -17,8 +15,6 @@
 //  - Store results in local variables inside the group and apply them to @State
 //    once all tasks have completed; this is the point where the loading indicator is hidden.
 //
-
-
 //  - load for restaurants with a local storage fallback.
 //  - On remote success: render fresh data and upsert it to the local DB in a background detached Task.
 //  - On remote failure: read restaurants from local DB and render them so the Home remains usable offline.
@@ -38,7 +34,6 @@ struct UserHomeView: View {
     @State private var error: String?
     @State private var showProfile = false
 
-
     @StateObject private var mapCtrl = MapController()
     private let repo = RestaurantsRepository()
     
@@ -51,14 +46,17 @@ struct UserHomeView: View {
     
     // Screen tracking
     @State private var screenStartTime: Date?
+    
+    @State private var mapStateCache: (center: CLLocationCoordinate2D?, span: MKCoordinateSpan?, annotations: [MKAnnotation])?
+    @State private var lastRestaurantsHash: Int = 0
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 if !embedded {
                     TopBar(onAvatarTap: {
-                            showProfile = true
-                        })
+                        showProfile = true
+                    })
                     SegmentedTabs(selectedIndex: $selectedTab)
                         .onChange(of: selectedTab) { newValue in
                             let name: String
@@ -87,39 +85,56 @@ struct UserHomeView: View {
                 )
                 .padding(.horizontal, 16)
 
-
-                // Show map only if there's internet connection
                 if hasInternetConnection {
-                    OSMMapView(
-                        annotations: mapCtrl.annotations,
-                        center: mapCtrl.center ?? CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
-                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
-                        showsUserLocation: true
-                    )
-                    .frame(height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding(.horizontal, 16)
-                } else {
-                    // Show message when no internet connection
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
-                    .frame(height: 240)
-                    .overlay(
-                        VStack(spacing: 6) {
-                            Image(systemName: "wifi.slash")
-                                .font(.system(size: 26, weight: .semibold))
-                                .foregroundStyle(.secondary)
-                            Text("Map is not available right now.")
-                                .font(.custom("Montserrat-SemiBold", size: 14))
-                                .foregroundStyle(.primary)
-                            Text("We couldn’t download the map tiles. You can still browse restaurants below.")
-                                .font(.custom("Montserrat-Regular", size: 11))
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
+                    if mapStateCache == nil || restaurantsHash != lastRestaurantsHash {
+                        // Render usando estado "vivo" del MapController
+                        OSMMapView(
+                            annotations: mapCtrl.annotations,
+                            center: mapCtrl.center ?? CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661),
+                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01),
+                            showsUserLocation: true
+                        )
+                        .frame(height: 240)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .padding(.horizontal, 16)
+                        .onAppear {
+                            lastRestaurantsHash = restaurantsHash
+                            let center = mapCtrl.center ?? CLLocationCoordinate2D(latitude: 4.6010, longitude: -74.0661)
+                            let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                            mapStateCache = (center, span, mapCtrl.annotations)
                         }
-                    )
-                    .padding(.horizontal, 16)
+                    } else {
+                        // Reutilizar estado cacheado para evitar recalcular todo el mapa
+                        OSMMapView(
+                            annotations: mapStateCache?.annotations ?? [],
+                            center: mapStateCache?.center,
+                            span: mapStateCache?.span,
+                            showsUserLocation: true
+                        )
+                        .frame(height: 240)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .padding(.horizontal, 16)
+                    }
+                } else {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(.secondarySystemBackground))
+                        .frame(height: 240)
+                        .overlay(
+                            VStack(spacing: 6) {
+                                Image(systemName: "wifi.slash")
+                                    .font(.system(size: 26, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                Text("Map is not available right now.")
+                                    .font(.custom("Montserrat-SemiBold", size: 14))
+                                    .foregroundStyle(.primary)
+                                Text("We couldn’t download the map tiles. You can still browse restaurants below.")
+                                    .font(.custom("Montserrat-Regular", size: 11))
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 24)
+                            }
+                        )
+                        .padding(.horizontal, 16)
                 }
 
                 // Mealtime banner
@@ -135,20 +150,25 @@ struct UserHomeView: View {
                 if loading {
                     ProgressView().padding()
                     Text("Loading Home…")
-                    .font(.custom("Montserrat-Regular", size: 14))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                        .font(.custom("Montserrat-Regular", size: 14))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                     Text("If you are having a slow connection or if you are offline, we will show you the restaurant's location and information as soon as we have data for you. Thank you for your patience!")
-                    .font(.custom("Montserrat-Regular", size: 12))
-                    .foregroundStyle(.secondary.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                        .font(.custom("Montserrat-Regular", size: 12))
+                        .foregroundStyle(.secondary.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
                 } else if let error {
-                    Text(error).foregroundColor(.red).padding(.horizontal, 16)
+                    Text(error)
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 16)
                 } else if filtered.isEmpty {
-                    Text("No restaurants found").foregroundColor(.secondary).padding()
+                    Text("No restaurants found")
+                        .foregroundColor(.secondary)
+                        .padding()
                 } else {
-                    VStack(spacing: 14) {
+                    // LazyVStack para evitar reconstruir todas las cards innecesariamente
+                    LazyVStack(spacing: 14) {
                         ForEach(filtered, id: \.id) { r in
                             NavigationLink {
                                 UserRestaurantDetailView(restaurant: r)
@@ -162,6 +182,7 @@ struct UserHomeView: View {
                                     panelColor: Palette.purpleLight
                                 )
                             }
+                            .id(r.id) // ID estable para reuso de vistas
                             .buttonStyle(.plain)
                             .simultaneousGesture(TapGesture().onEnded {
                                 AnalyticsService.shared.log(EventName.restaurantOpen, [
@@ -203,9 +224,6 @@ struct UserHomeView: View {
         // Local storage: call the new initializer that includes local storage fallback logic.
         .task { await initializeScreenConcurrentlyWithLocalStorage() }
         .background(Color(.systemBackground).ignoresSafeArea())
-        
-        
-
     }
 
     // MARK: - Derived filtering
@@ -217,6 +235,11 @@ struct UserHomeView: View {
             || r.typeOfFood.lowercased().contains(q)
             || (r.address ?? "").lowercased().contains(q)
         }
+    }
+    
+    // Hash estable de la lista de restaurantes para detectar cambios reales
+    private var restaurantsHash: Int {
+        restaurants.map { $0.id }.joined().hashValue
     }
 
     // MARK: - Structured Concurrency Orchestration + Local Storage
@@ -259,7 +282,7 @@ struct UserHomeView: View {
                         }
                     }
                 } catch {
-                    // Local storage: Remote failed thenn fallback to local storage.
+                    // Local storage: Remote failed then fallback to local storage.
                     do {
                         let localRecords = try LocalStore.shared.restaurants.all()
                         let local = localRecords.map { toRestaurant(from: $0) }
@@ -301,6 +324,10 @@ struct UserHomeView: View {
             lastNewRestaurantVisit = tmpLastVisit
             showNewRestaurantNotification = tmpShowNotification
             loading = false
+            
+            // Invalidate cache si cambia la data base
+            lastRestaurantsHash = restaurantsHash
+            mapStateCache = nil
         }
     }
 
