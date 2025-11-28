@@ -21,6 +21,7 @@ struct ReviewHistoryUserView: View {
     @State private var isLoadingData = false
     @State private var selectedReviewForEdit: Review? = nil
     @State private var showEditReview = false
+    @State private var showEditSuccessAlert = false
 
     // Network connectivity
     @State private var hasInternetConnection = true
@@ -132,8 +133,9 @@ struct ReviewHistoryUserView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .reviewDidUpdate)) { _ in
-            // Refresh reviews immediately when a review is updated
-            // Task runs async operation (refreshReviews handles multithreading internally)
+            // Show success alert and refresh reviews when a review is updated
+            showEditSuccessAlert = true
+            // Refresh reviews immediately
             Task {
                 await refreshReviews()
             }
@@ -144,6 +146,13 @@ struct ReviewHistoryUserView: View {
             Task {
                 await refreshReviews()
             }
+        }
+        .alert("Review Updated Successfully", isPresented: $showEditSuccessAlert) {
+            Button("OK", role: .cancel) {
+                // Alert dismissed, user stays on reviews page (already refreshed)
+            }
+        } message: {
+            Text("Your review has been updated successfully.")
         }
 
     }

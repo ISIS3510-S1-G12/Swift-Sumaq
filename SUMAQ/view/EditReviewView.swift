@@ -18,7 +18,6 @@ struct EditReviewView: View {
     @State private var error: String? = nil
     @State private var showPicker = false
     @State private var uploadProgress: Double = 0.0
-    @State private var showSuccessMessage = false
     
     private let repo = ReviewsRepository()
     
@@ -152,20 +151,6 @@ struct EditReviewView: View {
                         .foregroundColor(.red)
                 }
                 
-                if showSuccessMessage {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text("Review updated successfully!")
-                            .font(.custom("Montserrat-SemiBold", size: 14))
-                            .foregroundColor(.green)
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(Color.green.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                
                 Button {
                     Task { await submit() }
                 } label: {
@@ -242,16 +227,8 @@ struct EditReviewView: View {
             await MainActor.run {
                 isSaving = false
                 uploadProgress = 1
-                // Show success message - the notification from repository will trigger refresh
-                showSuccessMessage = true
-                
-                // Dismiss after showing success message for 1.5 seconds to allow refresh
-                Task {
-                    try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
-                    await MainActor.run {
-                        dismiss()
-                    }
-                }
+                // Close immediately - the notification from repository will trigger refresh and show success message in parent view
+                dismiss()
             }
         } catch {
             await MainActor.run {
