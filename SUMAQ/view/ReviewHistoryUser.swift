@@ -19,6 +19,8 @@ struct ReviewHistoryUserView: View {
     @State private var userAvatarURL: String = ""
     @State private var restaurantsById: [String: Restaurant] = [:]
     @State private var isLoadingData = false
+    @State private var selectedReviewForEdit: Review? = nil
+    @State private var showEditReview = false
 
     // Network connectivity
     @State private var hasInternetConnection = true
@@ -93,7 +95,12 @@ struct ReviewHistoryUserView: View {
                                 comment: r.comment,
                                 avatarURL: session.currentUser?.profilePictureURL ?? userAvatarURL,
                                 reviewImageURL: r.imageURL,
-                                reviewLocalPath: r.imageLocalPath
+                                reviewLocalPath: r.imageLocalPath,
+                                isEditable: true,
+                                onEdit: {
+                                    selectedReviewForEdit = r
+                                    showEditReview = true
+                                }
                             )
                         }
                     }
@@ -116,6 +123,14 @@ struct ReviewHistoryUserView: View {
         }
         .task { await load() }
         .navigationBarBackButtonHidden(true)
+        .sheet(isPresented: $showEditReview) {
+            if let review = selectedReviewForEdit,
+               let restaurant = restaurantsById[review.restaurantId] {
+                NavigationStack {
+                    EditReviewView(review: review, restaurant: restaurant)
+                }
+            }
+        }
 
     }
 
