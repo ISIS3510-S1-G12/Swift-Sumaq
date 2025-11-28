@@ -1,44 +1,51 @@
 import SwiftUI
-import PhotosUI
 
-struct AddReviewView: View {
+struct EditReviewView: View {
+    let review: Review
     let restaurant: Restaurant
-
+    
     @Environment(\.dismiss) private var dismiss
-
-    @State private var stars: Int = 5
-    @State private var comment: String = ""
+    
+    @State private var stars: Int
+    @State private var comment: String
     @State private var imageData: Data? = nil
     @State private var capturedImage: UIImage? = nil
-
+    @State private var existingImageURL: String?
+    @State private var shouldRemoveImage: Bool = false
+    
     @State private var isSaving = false
     @State private var showValidation = false
     @State private var error: String? = nil
     @State private var showPicker = false
     @State private var uploadProgress: Double = 0.0
     
-    @State private var imageProcessingTask: Task<Void, Never>? = nil
-
     private let repo = ReviewsRepository()
-
+    
+    init(review: Review, restaurant: Restaurant) {
+        self.review = review
+        self.restaurant = restaurant
+        _stars = State(initialValue: review.stars)
+        _comment = State(initialValue: review.comment)
+        _existingImageURL = State(initialValue: review.imageURL)
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-
-                Text("Write a review for")
+                
+                Text("Edit review for")
                     .font(.custom("Montserrat-Regular", size: 14))
                     .foregroundColor(.secondary)
-
+                
                 Text(restaurant.name)
                     .font(.custom("Montserrat-SemiBold", size: 22))
                     .foregroundColor(Palette.burgundy)
-
-                // Rating
+                
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Rating")
                         .font(.custom("Montserrat-SemiBold", size: 16))
                         .foregroundColor(.primary)
-
+                    
                     HStack(spacing: 8) {
                         ForEach(1...5, id: \.self) { index in
                             Image(systemName: index <= stars ? "star.fill" : "star")
@@ -55,12 +62,12 @@ struct AddReviewView: View {
                     }
                     .padding(.top, 4)
                 }
-
+                
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Comment")
                         .font(.custom("Montserrat-SemiBold", size: 16))
                         .foregroundColor(.primary)
-
+                    
                     ZStack(alignment: .topLeading) {
                         if comment.isEmpty {
                             Text("Write your thoughts…")
@@ -75,20 +82,14 @@ struct AddReviewView: View {
                             .padding(.horizontal, 8)
                             .padding(.vertical, 6)
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(.systemBackground)) // opaco
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(Color(.systemGray4), lineWidth: 1) // borde opaco
-                            )
-                    )
+                    .background(Palette.grayLight)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-
+                
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Photo (optional)")
                         .font(.custom("Montserrat-SemiBold", size: 16))
-
+                    
                     if let img = capturedImage {
                         Image(uiImage: img)
                             .resizable()
@@ -96,61 +97,77 @@ struct AddReviewView: View {
                             .frame(height: 160)
                             .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color(.systemGray6))
-                            )
+                    } else if let existingURL = existingImageURL, !existingURL.isEmpty {
+                        RemoteImage(urlString: existingURL)
+                            .scaledToFill()
+                            .frame(height: 160)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     } else {
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGray6))
+                            .fill(Palette.grayLight)
                             .frame(height: 140)
                             .overlay(
                                 Text("No image selected")
                                     .foregroundColor(.secondary)
                             )
                     }
-
+                    
                     HStack {
                         Button {
                             showPicker = true
                         } label: {
-                            Text("Add photo")
+                            Text("Change photo")
                                 .font(.custom("Montserrat-SemiBold", size: 16))
                                 .frame(maxWidth: .infinity, minHeight: 48)
                         }
                         .buttonStyle(PrimaryCapsuleButton(color: Palette.orange))
+                        
+                        if existingImageURL != nil || capturedImage != nil {
+                            Button {
+                                imageData = nil
+                                capturedImage = nil
+                                existingImageURL = nil
+                                shouldRemoveImage = true
+                            } label: {
+                                Text("Remove")
+                                    .font(.custom("Montserrat-SemiBold", size: 16))
+                                    .frame(maxWidth: .infinity, minHeight: 48)
+                            }
+                            .buttonStyle(PrimaryCapsuleButton(color: .red))
+                        }
                     }
                 }
-
+                
                 if showValidation {
                     Text("Please write a comment before submitting.")
                         .font(.footnote)
                         .foregroundColor(.red)
                 }
-
+                
                 if let error {
                     Text(error)
                         .font(.footnote)
                         .foregroundColor(.red)
                 }
-
+                
                 Button {
                     Task { await submit() }
                 } label: {
                     let pct = Int((uploadProgress * 100).rounded())
-                    Text(isSaving && uploadProgress > 0 ? "Uploading \(pct)%" : (isSaving ? "Submitting…" : "Submit review"))
+                    Text(isSaving && uploadProgress > 0 ? "Uploading \(pct)%" : (isSaving ? "Saving…" : "Save changes"))
                         .font(.custom("Montserrat-SemiBold", size: 18))
                         .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .buttonStyle(PrimaryCapsuleButton(color: Palette.burgundy))
                 .disabled(isSaving)
-
+                
                 if isSaving && uploadProgress > 0 && uploadProgress < 1 {
                     ProgressView(value: uploadProgress)
                         .progressViewStyle(.linear)
                         .tint(Palette.burgundy)
                 }
-
+                
                 Spacer(minLength: 24)
             }
             .padding(.horizontal, 16)
@@ -158,32 +175,31 @@ struct AddReviewView: View {
             .padding(.bottom, 24)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
-        .navigationTitle("New Review")
+        .navigationTitle("Edit Review")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showPicker) {
-            ZStack {
-                Color(.systemBackground).ignoresSafeArea() // capa sólida
-                CamaraPicker(imageData: $imageData)
-            }
-            .onDisappear {
-                if let data = imageData, let ui = UIImage(data: data) {
+            CamaraPicker(imageData: $imageData)
+                .onDisappear {
+                    if let data = imageData, let ui = UIImage(data: data) {
+                        capturedImage = ui
+                        existingImageURL = nil // Clear existing URL when new image is selected
+                        shouldRemoveImage = false // Reset remove flag when new image is selected
+                    }
+                }
+        }
+        .task {
+            // Load existing image locally if available
+            if let localPath = review.imageLocalPath,
+               FileManager.default.fileExists(atPath: localPath),
+               let data = try? Data(contentsOf: URL(fileURLWithPath: localPath)),
+               let ui = UIImage(data: data) {
+                await MainActor.run {
                     capturedImage = ui
                 }
             }
         }
-        .onChange(of: imageData) { _, _ in
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .reviewDidCreate)) { _ in
-            dismiss()
-        }
-        .onDisappear {
-            imageProcessingTask?.cancel()
-            imageProcessingTask = nil
-            imageData = nil
-            capturedImage = nil
-        }
     }
-
+    
     private func submit() async {
         let trimmed = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -194,23 +210,33 @@ struct AddReviewView: View {
         error = nil
         do {
             uploadProgress = 0
-            try await repo.createReview(
-                restaurantId: restaurant.id,
+            // Only send imageData if a new image was selected
+            let imageToUpload = capturedImage != nil && imageData != nil ? imageData : nil
+            try await repo.updateReview(
+                reviewId: review.id,
                 stars: stars,
                 comment: trimmed,
-                imageData: imageData,
+                imageData: imageToUpload,
+                removeImage: shouldRemoveImage,
                 progress: { pct in
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         self.uploadProgress = pct
                     }
                 }
             )
-            isSaving = false
-            uploadProgress = 1
+            await MainActor.run {
+                isSaving = false
+                uploadProgress = 1
+                // Close immediately - the notification from repository will trigger refresh and show success message in parent view
+                dismiss()
+            }
         } catch {
-            self.error = error.localizedDescription
-            isSaving = false
-            uploadProgress = 0
+            await MainActor.run {
+                self.error = error.localizedDescription
+                isSaving = false
+                uploadProgress = 0
+            }
         }
     }
 }
+

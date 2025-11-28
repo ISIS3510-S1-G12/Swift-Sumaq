@@ -12,6 +12,8 @@ struct CamaraPicker: View {
 
     @State private var showCamera = false
     @State private var cameraUnavailableAlert = false
+    
+    @State private var loadTask: Task<Void, Never>? = nil
 
     var body: some View {
         NavigationView {
@@ -68,13 +70,14 @@ struct CamaraPicker: View {
         }
         .onChange(of: selection) { newItem in
             guard let newItem else { return }
-            Task {
+            
+            loadTask?.cancel()
+
+            loadTask = Task {
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let ui = UIImage(data: data) {
                     await MainActor.run { applyPicked(ui) }
                 } else {
-
-                    // fallback simple si no se pudo leer
                     await MainActor.run {
                         self.imageData = nil
                         self.previewImage = nil
@@ -84,7 +87,6 @@ struct CamaraPicker: View {
         }
         .fullScreenCover(isPresented: $showCamera) {
             SystemCameraPicker { image in
-
                 Task { @MainActor in
                     if let image { applyPicked(image) }
                     showCamera = false
@@ -97,6 +99,14 @@ struct CamaraPicker: View {
         } message: {
             Text("Please enable camera access in Settings or use the photo library.")
         }
+        .onDisappear {
+            loadTask?.cancel()
+            loadTask = nil
+            
+            // Cleanup memoria
+            previewImage = nil
+            imageData = nil
+        }
     }
 
     @MainActor private func applyPicked(_ ui: UIImage) {
@@ -105,7 +115,6 @@ struct CamaraPicker: View {
     }
 
     private func openCamera() async {
-        // Verifica si el dispositivo tiene cámara
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
             DispatchQueue.main.async {
                 self.cameraUnavailableAlert = true
@@ -114,22 +123,22 @@ struct CamaraPicker: View {
         }
         
         let status = AVCaptureDevice.authorizationStatus(for: .video)
-                switch status {
-                case .authorized:
-                    await MainActor.run { showCamera = true }
-                case .notDetermined:
-                    let granted = await AVCaptureDevice.requestAccess(for: .video)
-                    await MainActor.run {
-                        showCamera = granted
-                        if !granted { cameraUnavailableAlert = true }
-                    }
-                case .denied, .restricted:
-                    await MainActor.run { cameraUnavailableAlert = true }
-                @unknown default:
-                    await MainActor.run { cameraUnavailableAlert = true }
-                }
+        switch status {
+        case .authorized:
+            await MainActor.run { showCamera = true }
+        case .notDetermined:
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            await MainActor.run {
+                showCamera = granted
+                if !granted { cameraUnavailableAlert = true }
             }
+        case .denied, .restricted:
+            await MainActor.run { cameraUnavailableAlert = true }
+        @unknown default:
+            await MainActor.run { cameraUnavailableAlert = true }
         }
+    }
+}
 
 private struct SystemCameraPicker: UIViewControllerRepresentable {
     var onFinish: (UIImage?) -> Void
@@ -145,6 +154,10 @@ private struct SystemCameraPicker: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    static func dismantleUIViewController(_ uiViewController: UIImagePickerController, coordinator: Coordinator) {
+        uiViewController.delegate = nil
+    }
 
     func makeCoordinator() -> Coordinator { Coordinator(onFinish: onFinish) }
 

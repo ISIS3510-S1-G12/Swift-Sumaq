@@ -19,6 +19,10 @@ struct ReviewHistoryUserView: View {
     @State private var userAvatarURL: String = ""
     @State private var restaurantsById: [String: Restaurant] = [:]
     @State private var isLoadingData = false
+    @State private var selectedReviewForEdit: Review? = nil
+    @State private var showEditReview = false
+    @State private var showEditSuccessAlert = false
+    @State private var showNoConnectionAlert = false
 
     // Network connectivity
     @State private var hasInternetConnection = true
@@ -93,7 +97,17 @@ struct ReviewHistoryUserView: View {
                                 comment: r.comment,
                                 avatarURL: session.currentUser?.profilePictureURL ?? userAvatarURL,
                                 reviewImageURL: r.imageURL,
-                                reviewLocalPath: r.imageLocalPath
+                                reviewLocalPath: r.imageLocalPath,
+                                isEditable: true,
+                                onEdit: {
+                                    // Check internet connection before allowing edit
+                                    if NetworkHelper.shared.isConnectedToNetwork() {
+                                        selectedReviewForEdit = r
+                                        showEditReview = true
+                                    } else {
+                                        showNoConnectionAlert = true
+                                    }
+                                }
                             )
                         }
                     }
@@ -115,6 +129,43 @@ struct ReviewHistoryUserView: View {
             stopRealTimeUpdates()
         }
         .task { await load() }
+        .navigationBarBackButtonHidden(true)
+        .sheet(isPresented: $showEditReview) {
+            if let review = selectedReviewForEdit,
+               let restaurant = restaurantsById[review.restaurantId] {
+                NavigationStack {
+                    EditReviewView(review: review, restaurant: restaurant)
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .reviewDidUpdate)) { _ in
+            // Show success alert and refresh reviews when a review is updated
+            showEditSuccessAlert = true
+            // Refresh reviews immediately
+            Task {
+                await refreshReviews()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .userReviewsDidChange)) { _ in
+            // Also refresh on general reviews change notification
+            // Task runs async operation (refreshReviews handles multithreading internally)
+            Task {
+                await refreshReviews()
+            }
+        }
+        .alert("Review Updated Successfully", isPresented: $showEditSuccessAlert) {
+            Button("OK", role: .cancel) {
+                // Alert dismissed, user stays on reviews page (already refreshed)
+            }
+        } message: {
+            Text("Your review has been updated successfully.")
+        }
+        .alert("No internet connection", isPresented: $showNoConnectionAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Your review cannot be edited without an internet connection. Please try again when you have an internet connection.")
+        }
+
     }
 
     private var filtered: [Review] {
@@ -302,6 +353,53 @@ struct ReviewHistoryUserView: View {
             }
         } catch {
             // Non-fatal: restaurant names are optional
+        }
+    }
+    
+    // MARK: - Refresh Reviews
+    private func refreshReviews() async {
+        // Prevent multiple simultaneous refreshes
+        guard !isLoadingData else { return }
+        isLoadingData = true
+        defer { isLoadingData = false }
+        
+        do {
+            // Get current user ID
+            guard let uid = session.currentUser?.id else {
+                return
+            }
+            
+            // Always refresh from Firestore to get the latest data immediately
+            // This ensures we get the updated text/comment even if local storage hasn't updated yet
+            let updatedReviews = try await reviewsRepo.listMyReviews()
+            
+            await MainActor.run {
+                self.reviews = updatedReviews
+            }
+            
+            // Load restaurants for updated reviews
+            await loadRestaurantsForReviews(updatedReviews)
+            
+            // Update local storage in background for next time (using multithreading)
+            Task.detached(priority: .utility) { [localStore = self.localStore] in
+                for review in updatedReviews {
+                    try? localStore.reviews.upsert(ReviewRecord(from: review))
+                }
+            }
+        } catch {
+            // Fallback to local storage if Firestore fails
+            guard let uid = session.currentUser?.id else { return }
+            if let localRecords = try? localStore.reviews.listForUser(uid),
+               !localRecords.isEmpty {
+                let localReviews = localRecords.map { toReview(from: $0) }
+                    .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+                
+                await MainActor.run {
+                    self.reviews = localReviews
+                }
+                
+                await loadRestaurantsForReviews(localReviews)
+            }
         }
     }
 }

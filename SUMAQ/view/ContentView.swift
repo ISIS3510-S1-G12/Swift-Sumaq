@@ -8,26 +8,42 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(.systemBackground).ignoresSafeArea()
+    @ObservedObject private var session = SessionController.shared
 
-                NavigationLink {
-                    ChoiceUserView()
-                } label: {
-                    Image("AppLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 220)
-                        .contentShape(Rectangle())
+    var body: some View {
+        Group {
+            if !session.isAuthenticated {
+                // NO hay sesión → mostrar pantalla inicial (login/registro)
+                NavigationStack {
+                    ZStack {
+                        Color(.systemBackground).ignoresSafeArea()
+                        
+                        NavigationLink {
+                            ChoiceUserView()
+                        } label: {
+                            Image("AppLogo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 220)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .toolbar(.hidden, for: .navigationBar)
                 }
-                .buttonStyle(.plain)
+            } else {
+                // SÍ hay sesión → mostrar root de usuario / restaurante
+                NavigationStack {
+                    if session.role == .user {
+                        UserRootView()
+                    } else if session.role == .restaurant {
+                        RestaurantHomeView()   // si tienes uno
+                    } else {
+                        ProgressView("Loading profile…")
+                    }
+                }
             }
-            .toolbar(.hidden, for: .navigationBar)
         }
-        .task { _ = SessionController.shared }
+        .task { _ = SessionController.shared }  // asegurar inicialización del listener
     }
 }
-
-#Preview { ContentView() }
