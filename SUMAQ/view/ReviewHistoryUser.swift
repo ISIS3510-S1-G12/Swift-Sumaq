@@ -131,6 +131,18 @@ struct ReviewHistoryUserView: View {
                 }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .reviewDidUpdate)) { _ in
+            // Refresh reviews immediately when a review is updated
+            Task {
+                await refreshReviews()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .userReviewsDidChange)) { _ in
+            // Also refresh on general reviews change notification
+            Task {
+                await refreshReviews()
+            }
+        }
 
     }
 
@@ -319,6 +331,52 @@ struct ReviewHistoryUserView: View {
             }
         } catch {
             // Non-fatal: restaurant names are optional
+        }
+    }
+    
+    // MARK: - Refresh Reviews
+    private func refreshReviews() async {
+        // Prevent multiple simultaneous refreshes
+        guard !isLoadingData else { return }
+        isLoadingData = true
+        defer { isLoadingData = false }
+        
+        do {
+            // Get current user ID
+            guard let uid = session.currentUser?.id else {
+                return
+            }
+            
+            // First, try to get updated data from local storage (fast)
+            if let localRecords = try? localStore.reviews.listForUser(uid),
+               !localRecords.isEmpty {
+                let localReviews = localRecords.map { toReview(from: $0) }
+                    .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+                
+                await MainActor.run {
+                    self.reviews = localReviews
+                }
+                
+                // Load restaurants for updated reviews
+                await loadRestaurantsForReviews(localReviews)
+            }
+            
+            // Then refresh from Firestore in background (will update via Combine publisher)
+            // This ensures we get the latest data from Firebase
+            Task.detached(priority: .userInitiated) { [weak self] in
+                guard let self else { return }
+                do {
+                    let updatedReviews = try await self.reviewsRepo.listMyReviews()
+                    await MainActor.run {
+                        self.reviews = updatedReviews
+                    }
+                    await self.loadRestaurantsForReviews(updatedReviews)
+                } catch {
+                    // Non-fatal: local data is already shown
+                }
+            }
+        } catch {
+            // Non-fatal: keep existing data
         }
     }
 }
