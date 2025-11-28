@@ -1,16 +1,12 @@
-//
-//  TopBar.swift
-//  SUMAQ
-//
-//  Created by Gabriela  Escobar Rojas on 19/09/25.
-//
-
 import SwiftUI
 
 struct TopBar: View {
     private let lineColor: Color = Palette.burgundy
     private let lineHeight: CGFloat = 1
     private let sidePadding: CGFloat = 16
+    
+    // 👇 Closure opcional con valor por defecto
+    var onAvatarTap: () -> Void = {}
 
     @ObservedObject private var session = SessionController.shared
 
@@ -53,8 +49,11 @@ struct TopBar: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
-                    profileImageView
-                    
+                    // 👇 Solo el avatar es botón
+                    Button(action: onAvatarTap) {
+                        profileImageView
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, sidePadding)

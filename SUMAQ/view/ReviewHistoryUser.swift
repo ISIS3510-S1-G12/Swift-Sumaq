@@ -115,6 +115,8 @@ struct ReviewHistoryUserView: View {
             stopRealTimeUpdates()
         }
         .task { await load() }
+        .navigationBarBackButtonHidden(true)
+
     }
 
     private var filtered: [Review] {

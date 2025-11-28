@@ -194,6 +194,8 @@ struct OffersUserView: View {
         .onChange(of: searchText) { newTerm in
             searchSubject.send(newTerm)
         }
+        .navigationBarBackButtonHidden(true)
+
     }
 
     // MARK: - Data loading
